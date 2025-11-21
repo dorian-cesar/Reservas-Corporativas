@@ -10,12 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { type Trip, type Route, BOOKINGS } from "@/lib/mock-data"
 import { useAuth } from "@/lib/auth"
 import { MapPin, Calendar, Clock, DollarSign, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { SeatSelector } from "./seat-selector"
 
 interface BookingDialogProps {
   trip: Trip & { route: Route }
@@ -25,9 +24,13 @@ interface BookingDialogProps {
 
 export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) {
   const { user } = useAuth()
-  const [seatNumber, setSeatNumber] = useState("")
+  const [seatNumber, setSeatNumber] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  const occupiedSeats = BOOKINGS.filter((b) => b.tripId === trip.id && b.status === "confirmed").map(
+    (b) => b.seatNumber,
+  )
 
   const handleBooking = async () => {
     if (!seatNumber || !user) return
@@ -61,7 +64,7 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
 
     setTimeout(() => {
       setSuccess(false)
-      setSeatNumber("")
+      setSeatNumber(null)
       onOpenChange(false)
       window.location.reload()
     }, 2000)
@@ -69,10 +72,10 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Confirmar Reserva</DialogTitle>
-          <DialogDescription>Revisa los detalles de tu viaje antes de confirmar</DialogDescription>
+          <DialogDescription>Revisa los detalles de tu viaje y selecciona tu asiento</DialogDescription>
         </DialogHeader>
 
         {success ? (
@@ -120,15 +123,16 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="seat">Número de Asiento</Label>
-                <Input
-                  id="seat"
-                  placeholder="Ej: A12, B8, C15"
-                  value={seatNumber}
-                  onChange={(e) => setSeatNumber(e.target.value.toUpperCase())}
-                  className="transition-all duration-200"
+                <h3 className="font-semibold text-lg">Selecciona tu Asiento</h3>
+                <SeatSelector
+                  totalSeats={trip.totalSeats}
+                  occupiedSeats={occupiedSeats}
+                  onSeatSelect={setSeatNumber}
+                  selectedSeat={seatNumber}
                 />
-                <p className="text-sm text-muted-foreground">Ingresa el número de asiento que deseas reservar</p>
+                {seatNumber && (
+                  <p className="text-sm text-center text-primary font-medium">Asiento seleccionado: {seatNumber}</p>
+                )}
               </div>
 
               <Alert className="bg-primary/10 border-primary/20">
