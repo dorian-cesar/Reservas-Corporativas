@@ -4,11 +4,12 @@ import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, ArrowLeft } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AllCompanies } from "@/components/all-companies"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
+import { CompaniesCRUD } from "@/components/companies-crud"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -26,19 +27,9 @@ export default function AdminPage() {
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push("/dashboard")}
-                  className="transition-all hover:scale-105"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div>
-                  <h1 className="text-xl font-bold">Panel de Administración</h1>
-                  <p className="text-sm text-muted-foreground">Super Usuario</p>
-                </div>
+              <div>
+                <h1 className="text-xl font-bold">Panel de Administración</h1>
+                <p className="text-sm text-muted-foreground">Super Usuario</p>
               </div>
 
               <div className="flex items-center gap-4">
@@ -64,17 +55,25 @@ export default function AdminPage() {
           <div className="space-y-6">
             <AdminStats />
 
-            <Tabs defaultValue="companies" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <Tabs defaultValue="companies-crud" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+                <TabsTrigger value="companies-crud" className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  Gestión de Empresas
+                </TabsTrigger>
                 <TabsTrigger value="companies" className="gap-2">
                   <Building2 className="h-4 w-4" />
-                  Empresas
+                  Reportes
                 </TabsTrigger>
                 <TabsTrigger value="bookings" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Todas las Reservas
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="companies-crud" className="mt-6">
+                <CompaniesCRUD />
+              </TabsContent>
 
               <TabsContent value="companies" className="mt-6">
                 <AllCompanies />

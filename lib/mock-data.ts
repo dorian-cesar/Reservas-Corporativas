@@ -4,6 +4,7 @@ export interface Company {
   contactEmail: string
   activeUsers: number
   totalBookings: number
+  surchargePercentage: number
 }
 
 export interface Route {
@@ -50,6 +51,7 @@ export const COMPANIES: Company[] = [
     contactEmail: "controller@empresa1.com",
     activeUsers: 45,
     totalBookings: 128,
+    surchargePercentage: 15,
   },
   {
     id: "emp2",
@@ -57,6 +59,7 @@ export const COMPANIES: Company[] = [
     contactEmail: "controller@empresa2.com",
     activeUsers: 32,
     totalBookings: 96,
+    surchargePercentage: 12,
   },
   {
     id: "emp3",
@@ -64,6 +67,7 @@ export const COMPANIES: Company[] = [
     contactEmail: "controller@empresa3.com",
     activeUsers: 28,
     totalBookings: 74,
+    surchargePercentage: 10,
   },
 ]
 
