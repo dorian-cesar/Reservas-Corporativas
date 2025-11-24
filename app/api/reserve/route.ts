@@ -38,13 +38,13 @@ export async function POST(request: NextRequest) {
       boardingAt,
     } = body;
 
-    // Validaciones básicas
     if (
       !serviceId ||
-      !seatNumber ||
-      !passengerName ||
-      !passengerEmail ||
-      !passengerPhone
+      !seatNumber
+      //   !seatNumber ||
+      //   !passengerName ||
+      //   !passengerEmail ||
+      //   !passengerPhone
     ) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Usar datos dinámicos del servicio
     const bookingPayload = {
       book_ticket: {
         seat_details: {
@@ -75,21 +74,21 @@ export async function POST(request: NextRequest) {
             {
               seat_number: seatNumber,
               fare: price.toString(),
-              title: "Ms",
-              name: passengerName,
-              age: "30",
+              title: "Mr",
+              name: "Ivan Valenzuela",
+              age: "41",
               sex: "M",
               is_primary: "true",
               id_card_type: "1",
-              id_card_number: "111111111",
-              id_card_issued_by: "default",
+              id_card_number: "17211508k",
+              id_card_issued_by: "oneone",
             },
           ],
         },
         contact_detail: {
-          mobile_number: passengerPhone,
-          emergency_name: passengerName,
-          email: passengerEmail,
+          mobile_number: "942858102",
+          emergency_name: "Ivan Valenzuela",
+          email: "ivalenzuela@wit.la",
         },
       },
       origin_id: originId,

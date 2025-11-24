@@ -158,9 +158,9 @@ export function ServiceDetailDialog({
           seatNumber: selectedSeat,
           price:
             availableSeats.find((s) => s.number === selectedSeat)?.price || 0,
-          passengerName: user.name,
-          passengerEmail: user.email,
-          passengerPhone: "123456789",
+          // passengerName: user.name,
+          // passengerEmail: user.email,
+          // passengerPhone: "",
           originId: serviceDetail.origin_id,
           destinationId: serviceDetail.destination_id,
           travelDate: serviceDetail.travel_date,

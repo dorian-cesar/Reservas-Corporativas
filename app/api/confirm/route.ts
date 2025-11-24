@@ -33,8 +33,6 @@ export async function POST(request: NextRequest) {
 
     const apiUrl = `${URL_KUPOS}/confirm_booking/${pnrNumber}.json?api_key=${apiKey}`;
 
-    console.log("Calling confirm API:", apiUrl);
-
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
