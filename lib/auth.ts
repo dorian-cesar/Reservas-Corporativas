@@ -15,87 +15,88 @@ export interface User {
 }
 
 interface AuthState {
+  token: string | null;
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-  _hasHydrated: boolean; // Nueva propiedad para controlar la hidratación
+  _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
+  getToken?: () => string | null;
 }
 
-// Mock users for demo
-const MOCK_USERS = [
-  {
-    id: "1",
-    email: "user@empresa1.com",
-    password: "user123",
-    name: "Juan Pérez",
-    role: "user" as UserRole,
-    companyId: "emp1",
-    companyName: "Empresa Tecnológica S.A.",
-  },
-  {
-    id: "2",
-    email: "controller@empresa1.com",
-    password: "controller123",
-    name: "María González",
-    role: "controller" as UserRole,
-    companyId: "emp1",
-    companyName: "Empresa Tecnológica S.A.",
-  },
-  {
-    id: "3",
-    email: "admin@sistema.com",
-    password: "admin123",
-    name: "Carlos Administrador",
-    role: "superuser" as UserRole,
-  },
-  {
-    id: "4",
-    email: "user@empresa2.com",
-    password: "user123",
-    name: "Ana Martínez",
-    role: "user" as UserRole,
-    companyId: "emp2",
-    companyName: "Logística Global Corp.",
-  },
-  {
-    id: "5",
-    email: "controller@empresa2.com",
-    password: "controller123",
-    name: "Roberto Silva",
-    role: "controller" as UserRole,
-    companyId: "emp2",
-    companyName: "Logística Global Corp.",
-  },
-];
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => ({
+      token: null,
       user: null,
       isAuthenticated: false,
       _hasHydrated: false,
       setHasHydrated: (state) => {
         set({ _hasHydrated: state });
       },
+
       login: async (email: string, password: string) => {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000); // 10s
 
-        const user = MOCK_USERS.find(
-          (u) => u.email === email && u.password === password
-        );
+          const res = await fetch(`${API_BASE}/api/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+            signal: controller.signal,
+          });
 
-        if (user) {
-          const { password: _, ...userWithoutPassword } = user;
-          set({ user: userWithoutPassword, isAuthenticated: true });
+          clearTimeout(timeout);
+
+          if (!res.ok) {
+            let msg = "Error en autenticación";
+            try {
+              const jsonErr = await res.json();
+              if (jsonErr?.message) msg = jsonErr.message;
+            } catch (e) { }
+            return false;
+          }
+
+          const data = await res.json();
+          const token = data.token ?? null;
+          const rawUser = data.user ?? null;
+
+          if (!token || !rawUser) return false;
+
+          const user: User = {
+            id: String(rawUser.id ?? rawUser._id ?? ""),
+            email: rawUser.email ?? rawUser.correo ?? "",
+            name: rawUser.nombre ?? rawUser.name ?? "",
+            role: (rawUser.rol ?? rawUser.role ?? "user") as UserRole,
+            companyId: rawUser.empresa ? String(rawUser.empresa) : undefined,
+            companyName: rawUser.empresa_nombre ?? rawUser.companyName ?? undefined,
+          };
+
+          set({
+            token,
+            user,
+            isAuthenticated: true,
+          });
+
           return true;
+        } catch (err) {
+          console.error("login error: ", err);
+          return false;
         }
-        return false;
       },
+
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({ token: null, user: null, isAuthenticated: false });
+      },
+
+      getToken: () => {
+        return get().token ?? null;
       },
     }),
     {
@@ -107,7 +108,6 @@ export const useAuth = create<AuthState>()(
   )
 );
 
-// Hook para verificar si la autenticación está hidratada
 export const useAuthHydration = () => {
   return useAuth((state) => state._hasHydrated);
 };
