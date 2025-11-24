@@ -1,32 +1,53 @@
-"use client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { COMPANIES, BOOKINGS } from "@/lib/mock-data"
-import { Building2, Users, Ticket, Mail, FileDown, TrendingUp } from "lucide-react"
-import { generatePDF } from "@/lib/pdf-generator"
+"use client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { COMPANIES, BOOKINGS } from "@/lib/mock-data";
+import {
+  Building2,
+  Users,
+  Ticket,
+  Mail,
+  FileDown,
+  TrendingUp,
+} from "lucide-react";
+import { generatePDF } from "@/lib/pdf-generator";
 
 export function AllCompanies() {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {COMPANIES.map((company, index) => {
-        const companyBookings = BOOKINGS.filter((b) => b.companyId === company.id)
-        const totalRevenue = companyBookings.reduce((sum, b) => sum + b.price, 0)
+        const companyBookings = BOOKINGS.filter(
+          (b) => b.companyId === company.id
+        );
+        const totalRevenue = companyBookings.reduce(
+          (sum, b) => sum + b.price,
+          0
+        );
 
         const handleDownloadPDF = () => {
-          const previousMonth = new Date()
-          previousMonth.setMonth(previousMonth.getMonth() - 1)
-          const monthName = previousMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+          const previousMonth = new Date();
+          previousMonth.setMonth(previousMonth.getMonth() - 1);
+          const monthName = previousMonth.toLocaleDateString("es-CL", {
+            month: "long",
+            year: "numeric",
+          });
 
           const previousMonthBookings = companyBookings.filter((b) => {
-            const bookingDate = new Date(b.bookedAt)
+            const bookingDate = new Date(b.bookedAt);
             return (
               bookingDate.getMonth() === previousMonth.getMonth() &&
               bookingDate.getFullYear() === previousMonth.getFullYear()
-            )
-          })
+            );
+          });
 
-          generatePDF(previousMonthBookings, company.name, monthName)
-        }
+          generatePDF(previousMonthBookings, company.name, monthName);
+        };
 
         return (
           <Card
@@ -73,7 +94,9 @@ export function AllCompanies() {
                   <TrendingUp className="h-3 w-3" />
                   Ingresos Totales
                 </div>
-                <p className="text-2xl font-bold text-accent">${totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-accent">
+                  ${totalRevenue.toLocaleString()}
+                </p>
               </div>
 
               <Button
@@ -86,8 +109,8 @@ export function AllCompanies() {
               </Button>
             </CardContent>
           </Card>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

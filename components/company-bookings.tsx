@@ -1,43 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { useAuth } from "@/lib/auth"
-import { BOOKINGS } from "@/lib/mock-data"
-import { MapPin, Calendar, Clock, DollarSign, CheckCircle2, FileDown, Search, User } from "lucide-react"
-import { generatePDF } from "@/lib/pdf-generator"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth";
+import { BOOKINGS } from "@/lib/mock-data";
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+  FileDown,
+  Search,
+  User,
+} from "lucide-react";
+import { generatePDF } from "@/lib/pdf-generator";
 
 export function CompanyBookings() {
-  const { user } = useAuth()
-  const [searchTerm, setSearchTerm] = useState("")
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const companyBookings = BOOKINGS.filter((b) => b.companyId === user?.companyId)
+  const companyBookings = BOOKINGS.filter(
+    (b) => b.companyId === user?.companyId
+  );
 
   const filteredBookings = companyBookings.filter(
     (b) =>
       b.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.destination.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      b.destination.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDownloadPDF = () => {
-    const previousMonth = new Date()
-    previousMonth.setMonth(previousMonth.getMonth() - 1)
-    const monthName = previousMonth.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+    const previousMonth = new Date();
+    previousMonth.setMonth(previousMonth.getMonth() - 1);
+    const monthName = previousMonth.toLocaleDateString("es-CL", {
+      month: "long",
+      year: "numeric",
+    });
 
     const previousMonthBookings = companyBookings.filter((b) => {
-      const bookingDate = new Date(b.bookedAt)
+      const bookingDate = new Date(b.bookedAt);
       return (
-        bookingDate.getMonth() === previousMonth.getMonth() && bookingDate.getFullYear() === previousMonth.getFullYear()
-      )
-    })
+        bookingDate.getMonth() === previousMonth.getMonth() &&
+        bookingDate.getFullYear() === previousMonth.getFullYear()
+      );
+    });
 
-    generatePDF(previousMonthBookings, user?.companyName || "", monthName)
-  }
+    generatePDF(previousMonthBookings, user?.companyName || "", monthName);
+  };
 
   return (
     <Card className="border-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -45,7 +66,9 @@ export function CompanyBookings() {
         <div className="flex items-start justify-between">
           <div>
             <CardTitle>Reservas de la Empresa</CardTitle>
-            <CardDescription>Listado completo de todas las reservas realizadas</CardDescription>
+            <CardDescription>
+              Listado completo de todas las reservas realizadas
+            </CardDescription>
           </div>
           <Button
             onClick={handleDownloadPDF}
@@ -68,7 +91,9 @@ export function CompanyBookings() {
         </div>
 
         {filteredBookings.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No se encontraron reservas</div>
+          <div className="text-center py-8 text-muted-foreground">
+            No se encontraron reservas
+          </div>
         ) : (
           <div className="space-y-3">
             {filteredBookings.map((booking, index) => (
@@ -82,7 +107,9 @@ export function CompanyBookings() {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-bold">{booking.userName}</span>
-                      <span className="text-sm text-muted-foreground">({booking.userEmail})</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({booking.userEmail})
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-3 w-3 text-primary" />
@@ -94,20 +121,24 @@ export function CompanyBookings() {
                   </div>
                   <Badge className="bg-green-500/10 text-green-700 border-green-500/20">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {booking.status === "confirmed" ? "Confirmada" : "Cancelada"}
+                    {booking.status === "confirmed"
+                      ? "Confirmada"
+                      : "Cancelada"}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {new Date(booking.date).toLocaleDateString("es-AR")}
+                    {new Date(booking.date).toLocaleDateString("es-CL")}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {booking.departureTime}
                   </div>
-                  <div className="flex items-center gap-2 font-medium">Asiento: {booking.seatNumber}</div>
+                  <div className="flex items-center gap-2 font-medium">
+                    Asiento: {booking.seatNumber}
+                  </div>
                   <div className="flex items-center gap-1 font-bold text-primary justify-end">
                     <DollarSign className="h-3 w-3" />
                     {booking.price.toLocaleString()}
@@ -119,5 +150,5 @@ export function CompanyBookings() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

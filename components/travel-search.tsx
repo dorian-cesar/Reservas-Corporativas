@@ -131,154 +131,169 @@ export function TravelSearch() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="space-y-6">
-      <Card className="border-2 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
-            Buscar Servicios de Buses
-          </CardTitle>
-          <CardDescription>
-            Encuentra y reserva servicios de buses entre ciudades
-          </CardDescription>
-        </CardHeader>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-5 space-y-6">
+        <div className="text-center space-y-2 pt-5">
+          <h1 className="text-3xl font-bold text-foreground">Busca tu Viaje</h1>
+          <p className="text-lg text-muted-foreground">
+            Encuentra los mejores servicios de buses para tu destino
+          </p>
+        </div>
 
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* ORIGEN */}
-            <div className="space-y-2">
-              <Label htmlFor="origin" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                Origen
-              </Label>
-              <ComboBox
-                items={cities.map((city) => ({
-                  label: city.name,
-                  value: city.id.toString(),
-                }))}
-                value={origin?.id.toString() || ""}
-                onChange={(value) => {
-                  const city = cities.find((c) => c.id.toString() === value);
-                  setOrigin(city || null);
-                  // Reset destination si es la misma ciudad
-                  if (destination?.id === city?.id) {
-                    setDestination(null);
+        {/* El resto se mantiene igual */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-primary" />
+              Buscar Servicios de Buses
+            </CardTitle>
+            <CardDescription>
+              Encuentra y reserva servicios de buses entre ciudades
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* ORIGEN */}
+              <div className="space-y-2">
+                <Label htmlFor="origin" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Origen
+                </Label>
+                <ComboBox
+                  items={cities.map((city) => ({
+                    label: city.name,
+                    value: city.id.toString(),
+                  }))}
+                  value={origin?.id.toString() || ""}
+                  onChange={(value) => {
+                    const city = cities.find((c) => c.id.toString() === value);
+                    setOrigin(city || null);
+                    // Reset destination si es la misma ciudad
+                    if (destination?.id === city?.id) {
+                      setDestination(null);
+                    }
+                  }}
+                  placeholder={
+                    isLoadingCities
+                      ? "Cargando ciudades..."
+                      : "Selecciona origen"
                   }
-                }}
-                placeholder={
-                  isLoadingCities ? "Cargando ciudades..." : "Selecciona origen"
-                }
-                disabled={isLoadingCities}
-              />
+                  disabled={isLoadingCities}
+                />
+              </div>
+
+              {/* DESTINO */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="destination"
+                  className="flex items-center gap-2"
+                >
+                  <MapPin className="h-4 w-4 text-accent" />
+                  Destino
+                </Label>
+                <ComboBox
+                  items={availableDestinations.map((city) => ({
+                    label: city.name,
+                    value: city.id.toString(),
+                  }))}
+                  value={destination?.id.toString() || ""}
+                  onChange={(value) => {
+                    const city = cities.find((c) => c.id.toString() === value);
+                    setDestination(city || null);
+                  }}
+                  placeholder="Selecciona destino"
+                  disabled={!origin || isLoadingCities}
+                />
+              </div>
+
+              {/* FECHA */}
+              <div className="space-y-2">
+                <Label htmlFor="date" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-secondary" />
+                  Fecha
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  min={today}
+                  className="w-full"
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
-            {/* DESTINO */}
-            <div className="space-y-2">
-              <Label htmlFor="destination" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-accent" />
-                Destino
-              </Label>
-              <ComboBox
-                items={availableDestinations.map((city) => ({
-                  label: city.name,
-                  value: city.id.toString(),
-                }))}
-                value={destination?.id.toString() || ""}
-                onChange={(value) => {
-                  const city = cities.find((c) => c.id.toString() === value);
-                  setDestination(city || null);
-                }}
-                placeholder="Selecciona destino"
-                disabled={!origin || isLoadingCities}
-              />
-            </div>
-
-            {/* FECHA */}
-            <div className="space-y-2">
-              <Label htmlFor="date" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-secondary" />
-                Fecha
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={today}
-                className="w-full"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSearch}
-            disabled={isSearchDisabled}
-            className="w-full mt-6 bg-accent hover:bg-accent/90"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Buscando...
-              </>
-            ) : (
-              <>
-                <Search className="h-4 w-4 mr-2" />
-                Buscar Servicios
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Mensajes de error */}
-      {searchError && (
-        <Card className="border-2 border-destructive">
-          <CardContent className="pt-6">
-            <div className="text-destructive text-center">
-              <p className="font-medium">Error en la búsqueda</p>
-              <p className="text-sm">{searchError}</p>
-            </div>
+            <Button
+              onClick={handleSearch}
+              disabled={isSearchDisabled}
+              className="w-full mt-6 bg-accent hover:bg-accent/90"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Buscando...
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar Servicios
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
-      )}
 
-      {/* Resultados de búsqueda */}
-      {hasSearched && !searchError && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">
-            {isLoading
-              ? "Buscando servicios..."
-              : services.length > 0
-              ? `${services.length} servicio${
-                  services.length > 1 ? "s" : ""
-                } disponible${services.length > 1 ? "s" : ""}`
-              : "No se encontraron servicios disponibles"}
-          </h2>
+        {/* Mensajes de error */}
+        {searchError && (
+          <Card className="border-2 border-destructive">
+            <CardContent className="pt-6">
+              <div className="text-destructive text-center">
+                <p className="font-medium">Error en la búsqueda</p>
+                <p className="text-sm">{searchError}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {!isLoading && services.length > 0 && (
-            <div className="grid gap-4">
-              {services.map((service, index) => (
-                <BusServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          )}
+        {/* Resultados de búsqueda */}
+        {hasSearched && !searchError && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">
+              {isLoading
+                ? "Buscando servicios..."
+                : services.length > 0
+                ? `${services.length} servicio${
+                    services.length > 1 ? "s" : ""
+                  } disponible${services.length > 1 ? "s" : ""}`
+                : "No se encontraron servicios disponibles"}
+            </h2>
 
-          {!isLoading && services.length === 0 && hasSearched && (
-            <Card className="border-2 border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <Search className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium text-muted-foreground">
-                  No hay servicios disponibles para esta ruta y fecha
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Intenta con otra combinación de origen, destino y fecha
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
+            {!isLoading && services.length > 0 && (
+              <div className="grid gap-4">
+                {services.map((service, index) => (
+                  <BusServiceCard key={service.id} service={service} />
+                ))}
+              </div>
+            )}
+
+            {!isLoading && services.length === 0 && hasSearched && (
+              <Card className="border-2 border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Search className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No hay servicios disponibles para esta ruta y fecha
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Intenta con otra combinación de origen, destino y fecha
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

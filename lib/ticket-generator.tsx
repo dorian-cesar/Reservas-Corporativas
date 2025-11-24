@@ -1,4 +1,4 @@
-import type { Booking } from "./mock-data"
+import type { Booking } from "./mock-data";
 
 export function generateTicketPDF(booking: Booking) {
   const ticketHTML = `
@@ -264,7 +264,9 @@ export function generateTicketPDF(booking: Booking) {
           <div class="details-grid">
             <div class="detail-item">
               <div class="detail-label">Fecha de Viaje</div>
-              <div class="detail-value">${new Date(booking.date).toLocaleDateString("es-AR", {
+              <div class="detail-value">${new Date(
+                booking.date
+              ).toLocaleDateString("es-CL", {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
@@ -302,7 +304,9 @@ export function generateTicketPDF(booking: Booking) {
           
           <div class="price-section">
             <div class="price-label">Precio Total</div>
-            <div class="price-value">$ ${booking.price.toLocaleString("es-AR")}</div>
+            <div class="price-value">$ ${booking.price.toLocaleString(
+              "es-CL"
+            )}</div>
           </div>
           
           <div class="booking-code">
@@ -313,7 +317,9 @@ export function generateTicketPDF(booking: Booking) {
         
         <div class="ticket-footer">
           <p>Presentar este pasaje al momento de abordar el bus</p>
-          <p>Reservado el ${new Date(booking.bookedAt).toLocaleDateString("es-AR")} a las ${new Date(booking.bookedAt).toLocaleTimeString("es-AR")}</p>
+          <p>Reservado el ${new Date(booking.bookedAt).toLocaleDateString(
+            "es-CL"
+          )} a las ${new Date(booking.bookedAt).toLocaleTimeString("es-CL")}</p>
         </div>
       </div>
       
@@ -324,21 +330,21 @@ export function generateTicketPDF(booking: Booking) {
       </script>
     </body>
     </html>
-  `
+  `;
 
-  const blob = new Blob([ticketHTML], { type: "text/html" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = `pasaje-${booking.id}-${booking.seatNumber}.html`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  const blob = new Blob([ticketHTML], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `pasaje-${booking.id}-${booking.seatNumber}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 
   // Open in new window for printing
-  const printWindow = window.open(url, "_blank")
+  const printWindow = window.open(url, "_blank");
   if (printWindow) {
-    printWindow.focus()
+    printWindow.focus();
   }
 }

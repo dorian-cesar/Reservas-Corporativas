@@ -303,7 +303,7 @@ export function ServiceDetailDialog({
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>
                       {new Date(serviceDetail.travel_date).toLocaleDateString(
-                        "es-AR",
+                        "es-CL",
                         {
                           day: "numeric",
                           month: "long",
@@ -361,20 +361,6 @@ export function ServiceDetailDialog({
                   selectedSeat={selectedSeat}
                   seats={availableSeats}
                 />
-
-                {selectedSeat && (
-                  <div className="text-center p-3 bg-primary/10 rounded-lg">
-                    <p className="text-primary font-medium">
-                      Asiento seleccionado: <strong>{selectedSeat}</strong>
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Precio: $
-                      {availableSeats
-                        .find((s) => s.number === selectedSeat)
-                        ?.price.toLocaleString("es-CL")}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Información del usuario */}

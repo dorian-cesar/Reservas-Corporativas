@@ -1,0 +1,94 @@
+"use client";
+
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { LogOut, Users, BarChart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+
+interface HeaderProps {
+  onLogout?: () => void;
+}
+
+export function Header({ onLogout }: HeaderProps) {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    if (onLogout) {
+      onLogout();
+    } else {
+      router.push("/login");
+    }
+  };
+
+  return (
+    <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/pullman-logo-32x32.png"
+              alt="Logo Pullman"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+            <div>
+              <h1 className="text-xl font-bold">Pullman Bus</h1>
+              <p className="text-sm text-muted-foreground">
+                Reservas Corporativas
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="font-medium">{user?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {user?.role === "user" && "Usuario"}
+                {user?.role === "admin" && "Controlador"}
+                {user?.role === "superuser" && "Super Usuario"}
+                {user?.companyName && ` - ${user.companyName}`}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {user?.role === "admin" && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push("/controller")}
+                  className="transition-all hover:scale-105"
+                >
+                  <Users className="h-4 w-4" />
+                </Button>
+              )}
+
+              {user?.role === "superuser" && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push("/admin")}
+                  className="transition-all hover:scale-105"
+                >
+                  <BarChart className="h-4 w-4" />
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleLogout}
+                className="transition-all hover:scale-105 bg-transparent"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}

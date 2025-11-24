@@ -267,7 +267,7 @@ export function generatePDF(
             <h2>📅 Detalles del Reporte</h2>
             <p><strong>Período:</strong> ${monthName}</p>
             <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString(
-              "es-AR",
+              "es-CL",
               {
                 day: "numeric",
                 month: "long",
@@ -324,7 +324,7 @@ export function generatePDF(
                       <td><strong>${booking.origin}</strong> → <strong>${
                         booking.destination
                       }</strong></td>
-                      <td>${new Date(booking.date).toLocaleDateString("es-AR", {
+                      <td>${new Date(booking.date).toLocaleDateString("es-CL", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -363,7 +363,7 @@ export function generatePDF(
         <div class="footer">
           <p style="font-weight: 600; color: #475569;">Pullman Bus - Sistema de Reservas Corporativas</p>
           <p>Documento generado automáticamente el ${new Date().toLocaleString(
-            "es-AR",
+            "es-CL",
             {
               day: "numeric",
               month: "long",

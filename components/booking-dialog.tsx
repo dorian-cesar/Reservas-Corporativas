@@ -116,7 +116,7 @@ export function BookingDialog({
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {new Date(trip.date).toLocaleDateString("es-AR", {
+                      {new Date(trip.date).toLocaleDateString("es-CL", {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
