@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validar que los IDs sean números
     const originIdNum = parseInt(originId);
     const destinationIdNum = parseInt(destinationId);
 
@@ -70,10 +69,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Hacer la llamada a la API externa de Kupos
     const apiUrl = `${URL_KUPOS}/ui_schedules/${originIdNum}/${destinationIdNum}/${date}.json?api_key=${apiKey}`;
-
-    console.log("Calling Kupos API:", apiUrl);
 
     const response = await fetch(apiUrl, {
       cache: "no-store",

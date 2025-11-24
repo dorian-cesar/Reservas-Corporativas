@@ -16,10 +16,8 @@ import {
   Users,
   CheckCircle2,
   Bus,
-  Wifi,
-  Tv,
-  Snowflake,
 } from "lucide-react";
+import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 
 interface BusService {
   id: number;
@@ -44,18 +42,16 @@ interface BusServiceCardProps {
 }
 
 export function BusServiceCard({ service }: BusServiceCardProps) {
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [showServiceDetail, setShowServiceDetail] = useState(false);
   const availabilityPercentage =
     (service.available_seats / service.total_seats) * 100;
 
-  // Determinar el color del badge según disponibilidad
   const getAvailabilityVariant = () => {
     if (service.available_seats === 0) return "destructive";
     if (availabilityPercentage < 30) return "secondary";
     return "default";
   };
 
-  // Extraer amenities del bus_type
   const getAmenities = () => {
     const amenities = [];
     if (service.bus_type?.includes("AC")) amenities.push("Aire Acondicionado");
@@ -71,118 +67,122 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
   const amenities = getAmenities();
 
   return (
-    <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Bus className="h-5 w-5 text-primary" />
-              <span className="font-bold text-lg">{service.travel_name}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              {service.number} - {service.name}
-            </div>
-          </div>
-          <Badge variant={getAvailabilityVariant()}>
-            {service.available_seats === 0
-              ? "Agotado"
-              : `${service.available_seats} asientos`}
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Horarios y duración */}
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Salida</p>
-            <p className="font-bold text-lg">{service.dep_time}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
-              <Clock className="h-3 w-3" />
-              Duración
-            </p>
-            <p className="font-bold">{service.duration}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Llegada</p>
-            <p className="font-bold text-lg">{service.arr_time}</p>
-          </div>
-        </div>
-
-        {/* Información de asientos y precio */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span className="text-sm">
-              {service.total_seats - service.available_seats} de{" "}
-              {service.total_seats} ocupados
-            </span>
-          </div>
-          <div className="flex items-center gap-1 text-2xl font-bold text-primary">
-            <DollarSign className="h-5 w-5" />
-            {service.price.toLocaleString("es-AR")}
-          </div>
-        </div>
-
-        {/* Tipo de bus y amenities */}
-        {service.bus_type && (
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">
-              <strong>Tipo de bus:</strong> {service.bus_type}
-            </div>
-            {amenities.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {amenities.map((amenity, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {amenity}
-                  </Badge>
-                ))}
+    <>
+      <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Bus className="h-5 w-5 text-primary" />
+                <span className="font-bold text-lg">{service.travel_name}</span>
               </div>
-            )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                {service.number} - {service.name}
+              </div>
+            </div>
+            <Badge variant={getAvailabilityVariant()}>
+              {service.available_seats === 0
+                ? "Agotado"
+                : `${service.available_seats} asientos`}
+            </Badge>
           </div>
-        )}
+        </CardHeader>
 
-        {/* Barra de progreso de disponibilidad */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Disponibilidad</span>
-            <span>{Math.round(availabilityPercentage)}%</span>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Salida</p>
+              <p className="font-bold text-lg">{service.dep_time}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
+                <Clock className="h-3 w-3" />
+                Duración
+              </p>
+              <p className="font-bold">{service.duration}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Llegada</p>
+              <p className="font-bold text-lg">{service.arr_time}</p>
+            </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-500 rounded-full ${
-                availabilityPercentage > 50
-                  ? "bg-green-500"
-                  : availabilityPercentage > 20
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-              style={{ width: `${availabilityPercentage}%` }}
-            />
-          </div>
-        </div>
-      </CardContent>
 
-      <CardFooter>
-        <Button
-          onClick={() => setShowBookingDialog(true)}
-          disabled={service.available_seats === 0}
-          className="w-full bg-accent hover:bg-accent/90 text-accent-foreground transition-all duration-200"
-          size="lg"
-        >
-          {service.available_seats === 0 ? (
-            "Agotado"
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Reservar Asiento
-            </>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span className="text-sm">
+                {service.total_seats - service.available_seats} de{" "}
+                {service.total_seats} ocupados
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-2xl font-bold text-primary">
+              <DollarSign className="h-5 w-5" />
+              {service.price.toLocaleString("es-AR")}
+            </div>
+          </div>
+
+          {service.bus_type && (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                <strong>Tipo de bus:</strong> {service.bus_type}
+              </div>
+              {amenities.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {amenities.map((amenity, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {amenity}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-        </Button>
-      </CardFooter>
-    </Card>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Disponibilidad</span>
+              <span>{Math.round(availabilityPercentage)}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  availabilityPercentage > 50
+                    ? "bg-green-500"
+                    : availabilityPercentage > 20
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
+                }`}
+                style={{ width: `${availabilityPercentage}%` }}
+              />
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter>
+          <Button
+            onClick={() => setShowServiceDetail(true)}
+            disabled={service.available_seats === 0}
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground transition-all duration-200"
+            size="lg"
+          >
+            {service.available_seats === 0 ? (
+              "Agotado"
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Seleccionar Asiento
+              </>
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <ServiceDetailDialog
+        serviceId={service.id}
+        open={showServiceDetail}
+        onOpenChange={setShowServiceDetail}
+      />
+    </>
   );
 }
