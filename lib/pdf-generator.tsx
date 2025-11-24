@@ -1,21 +1,22 @@
-import type { Booking } from "./mock-data"
+import type { Booking } from "./mock-data";
 
-export function generatePDF(bookings: Booking[], companyName: string, monthName: string) {
+export function generatePDF(
+  bookings: Booking[],
+  companyName: string,
+  monthName: string
+) {
   // Calculate totals
-  const totalAmount = bookings.reduce((sum, b) => sum + b.price, 0)
-  const totalBookings = bookings.length
+  const totalAmount = bookings.reduce((sum, b) => sum + b.price, 0);
+  const totalBookings = bookings.length;
 
   // Group bookings by user for better organization
-  const bookingsByUser = bookings.reduce(
-    (acc, booking) => {
-      if (!acc[booking.userName]) {
-        acc[booking.userName] = []
-      }
-      acc[booking.userName].push(booking)
-      return acc
-    },
-    {} as Record<string, Booking[]>,
-  )
+  const bookingsByUser = bookings.reduce((acc, booking) => {
+    if (!acc[booking.userName]) {
+      acc[booking.userName] = [];
+    }
+    acc[booking.userName].push(booking);
+    return acc;
+  }, {} as Record<string, Booking[]>);
 
   // Create HTML content for PDF with enhanced styling
   const htmlContent = `
@@ -249,7 +250,7 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
     <body>
       <div class="container">
         <div class="header">
-          <h1>✈️ TravelBook</h1>
+          <h1>Pullman Bus</h1>
           <p style="font-size: 20px; margin-top: 10px;">Estado de Pago - Reservas Corporativas</p>
           <p style="font-size: 14px; opacity: 0.9; margin-top: 5px;">Sistema de Gestión de Viajes</p>
         </div>
@@ -258,16 +259,21 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
           <div class="info-card">
             <h2>📋 Información de la Empresa</h2>
             <p><strong>Empresa:</strong> ${companyName}</p>
-            <p><strong>Total de Usuarios:</strong> ${Object.keys(bookingsByUser).length}</p>
+            <p><strong>Total de Usuarios:</strong> ${
+              Object.keys(bookingsByUser).length
+            }</p>
           </div>
           <div class="info-card">
             <h2>📅 Detalles del Reporte</h2>
             <p><strong>Período:</strong> ${monthName}</p>
-            <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString("es-AR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}</p>
+            <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString(
+              "es-AR",
+              {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }
+            )}</p>
           </div>
         </div>
 
@@ -290,12 +296,14 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
 
         ${Object.entries(bookingsByUser)
           .map(([userName, userBookings]) => {
-            const userTotal = userBookings.reduce((sum, b) => sum + b.price, 0)
+            const userTotal = userBookings.reduce((sum, b) => sum + b.price, 0);
             return `
             <div class="user-section">
               <div class="user-header">
                 <span>👤 ${userName} (${userBookings[0].userEmail})</span>
-                <span class="user-total">${userBookings.length} reserva${userBookings.length > 1 ? "s" : ""} - $${userTotal.toLocaleString()}</span>
+                <span class="user-total">${userBookings.length} reserva${
+              userBookings.length > 1 ? "s" : ""
+            } - $${userTotal.toLocaleString()}</span>
               </div>
               <table>
                 <thead>
@@ -313,20 +321,26 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
                     .map(
                       (booking) => `
                     <tr>
-                      <td><strong>${booking.origin}</strong> → <strong>${booking.destination}</strong></td>
-                      <td>${new Date(booking.date).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })}</td>
+                      <td><strong>${booking.origin}</strong> → <strong>${
+                        booking.destination
+                      }</strong></td>
+                      <td>${new Date(booking.date).toLocaleDateString("es-AR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}</td>
                       <td>${booking.departureTime}</td>
                       <td><strong>${booking.seatNumber}</strong></td>
                       <td><span class="badge">Confirmada</span></td>
                       <td style="text-align: right; font-weight: 600; color: #4fb3d4;">$${booking.price.toLocaleString()}</td>
                     </tr>
-                  `,
+                  `
                     )
                     .join("")}
                 </tbody>
               </table>
             </div>
-          `
+          `;
           })
           .join("")}
 
@@ -335,7 +349,9 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
             <div class="left">
               <p style="font-size: 18px; margin-bottom: 5px;">💼 Resumen del Período</p>
               <p><strong>${totalBookings}</strong> reservas confirmadas</p>
-              <p><strong>${Object.keys(bookingsByUser).length}</strong> usuarios activos</p>
+              <p><strong>${
+                Object.keys(bookingsByUser).length
+              }</strong> usuarios activos</p>
             </div>
             <div class="right">
               <p style="font-size: 18px; opacity: 0.9;">Total a Pagar</p>
@@ -345,29 +361,35 @@ export function generatePDF(bookings: Booking[], companyName: string, monthName:
         </div>
 
         <div class="footer">
-          <p style="font-weight: 600; color: #475569;">✈️ TravelBook - Sistema de Reservas Corporativas</p>
-          <p>Documento generado automáticamente el ${new Date().toLocaleString("es-AR", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}</p>
+          <p style="font-weight: 600; color: #475569;">Pullman Bus - Sistema de Reservas Corporativas</p>
+          <p>Documento generado automáticamente el ${new Date().toLocaleString(
+            "es-AR",
+            {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }
+          )}</p>
           <p style="margin-top: 15px; font-size: 11px;">Este documento es válido como comprobante de reservas realizadas durante el período indicado.</p>
         </div>
       </div>
     </body>
     </html>
-  `
+  `;
 
   // Create a blob and download
-  const blob = new Blob([htmlContent], { type: "text/html" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `estado-pago-${companyName.replace(/\s+/g, "-")}-${monthName.replace(/\s+/g, "-")}.html`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const blob = new Blob([htmlContent], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `estado-pago-${companyName.replace(
+    /\s+/g,
+    "-"
+  )}-${monthName.replace(/\s+/g, "-")}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

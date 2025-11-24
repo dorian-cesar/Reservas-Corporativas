@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
-import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/lib/auth"
-import { TravelSearch } from "@/components/travel-search"
-import { MyBookings } from "@/components/my-bookings"
-import { Button } from "@/components/ui/button"
-import { Plane, LogOut, Users, BarChart } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { AuthGuard } from "@/components/auth-guard";
+import { useAuth } from "@/lib/auth";
+import { TravelSearch } from "@/components/travel-search";
+import { MyBookings } from "@/components/my-bookings";
+import { Button } from "@/components/ui/button";
+import { LogOut, Users, BarChart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const handleLogout = () => {
-    logout()
-    router.push("/login")
-  }
+    logout();
+    router.push("/login");
+  };
 
   return (
     <AuthGuard>
@@ -25,12 +26,18 @@ export default function DashboardPage() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary rounded-lg">
-                  <Plane className="h-6 w-6 text-primary-foreground" />
-                </div>
+                <Image
+                  src="/pullman-logo-32x32.png"
+                  alt="Logo Pullman"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
                 <div>
-                  <h1 className="text-xl font-bold">TravelBook</h1>
-                  <p className="text-sm text-muted-foreground">Reservas Corporativas</p>
+                  <h1 className="text-xl font-bold">Pullman Bus</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Reservas Corporativas
+                  </p>
                 </div>
               </div>
 
@@ -91,5 +98,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </AuthGuard>
-  )
+  );
 }

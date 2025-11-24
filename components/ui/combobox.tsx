@@ -16,17 +16,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+interface ComboBoxProps {
+  items: { label: string; value: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}
+
 export function ComboBox({
   items,
   value,
   onChange,
   placeholder,
-}: {
-  items: { label: string; value: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
+  disabled = false,
+}: ComboBoxProps) {
   const [open, setOpen] = React.useState(false);
 
   const selectedLabel =
@@ -38,7 +42,11 @@ export function ComboBox({
         <Button
           variant="outline"
           role="combobox"
-          className="w-full justify-between"
+          className={cn(
+            "w-full justify-between",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
+          disabled={disabled}
         >
           {selectedLabel}
           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -57,9 +65,12 @@ export function ComboBox({
                   key={item.value}
                   value={item.label}
                   onSelect={() => {
-                    onChange(item.value);
-                    setOpen(false);
+                    if (!disabled) {
+                      onChange(item.value);
+                      setOpen(false);
+                    }
                   }}
+                  className={cn(disabled && "opacity-50 cursor-not-allowed")}
                 >
                   <Check
                     className={cn(
