@@ -46,14 +46,14 @@ export default function DashboardPage() {
                   <p className="font-medium">{user?.name}</p>
                   <p className="text-sm text-muted-foreground">
                     {user?.role === "user" && "Usuario"}
-                    {user?.role === "controller" && "Controlador"}
+                    {user?.role === "admin" && "Controlador"}
                     {user?.role === "superuser" && "Super Usuario"}
                     {user?.companyName && ` - ${user.companyName}`}
                   </p>
                 </div>
 
                 <div className="flex gap-2">
-                  {user?.role === "controller" && (
+                  {user?.role === "admin" && (
                     <Button
                       variant="outline"
                       size="icon"
