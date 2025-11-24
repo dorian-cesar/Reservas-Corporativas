@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,36 +8,46 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { type Trip, type Route, BOOKINGS } from "@/lib/mock-data"
-import { useAuth } from "@/lib/auth"
-import { MapPin, Calendar, Clock, DollarSign, CheckCircle2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SeatSelector } from "./seat-selector"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { type Trip, type Route, BOOKINGS } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SeatSelector } from "./seat-selector";
 
 interface BookingDialogProps {
-  trip: Trip & { route: Route }
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  trip: Trip & { route: Route };
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) {
-  const { user } = useAuth()
-  const [seatNumber, setSeatNumber] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+export function BookingDialog({
+  trip,
+  open,
+  onOpenChange,
+}: BookingDialogProps) {
+  const { user } = useAuth();
+  const [seatNumber, setSeatNumber] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const occupiedSeats = BOOKINGS.filter((b) => b.tripId === trip.id && b.status === "confirmed").map(
-    (b) => b.seatNumber,
-  )
+  const occupiedSeats = BOOKINGS.filter(
+    (b) => b.tripId === trip.id && b.status === "confirmed"
+  ).map((b) => b.seatNumber);
 
   const handleBooking = async () => {
-    if (!seatNumber || !user) return
+    if (!seatNumber || !user) return;
 
-    setLoading(true)
+    setLoading(true);
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const newBooking = {
       id: `b${BOOKINGS.length + 1}`,
@@ -55,34 +65,40 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
       price: trip.price,
       status: "confirmed" as const,
       bookedAt: new Date().toISOString(),
-    }
+    };
 
-    BOOKINGS.push(newBooking)
+    BOOKINGS.push(newBooking);
 
-    setLoading(false)
-    setSuccess(true)
+    setLoading(false);
+    setSuccess(true);
 
     setTimeout(() => {
-      setSuccess(false)
-      setSeatNumber(null)
-      onOpenChange(false)
-      window.location.reload()
-    }, 2000)
-  }
+      setSuccess(false);
+      setSeatNumber(null);
+      onOpenChange(false);
+      window.location.reload();
+    }, 2000);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Confirmar Reserva</DialogTitle>
-          <DialogDescription>Revisa los detalles de tu viaje y selecciona tu asiento</DialogDescription>
+          <DialogDescription>
+            Revisa los detalles de tu viaje y selecciona tu asiento
+          </DialogDescription>
         </DialogHeader>
 
         {success ? (
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-green-600 mb-2">¡Reserva Confirmada!</h3>
-            <p className="text-muted-foreground">Tu asiento ha sido reservado exitosamente</p>
+            <h3 className="text-xl font-bold text-green-600 mb-2">
+              ¡Reserva Confirmada!
+            </h3>
+            <p className="text-muted-foreground">
+              Tu asiento ha sido reservado exitosamente
+            </p>
           </div>
         ) : (
           <>
@@ -131,7 +147,9 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
                   selectedSeat={seatNumber}
                 />
                 {seatNumber && (
-                  <p className="text-sm text-center text-primary font-medium">Asiento seleccionado: {seatNumber}</p>
+                  <p className="text-sm text-center text-primary font-medium">
+                    Asiento seleccionado: {seatNumber}
+                  </p>
                 )}
               </div>
 
@@ -145,7 +163,11 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
             </div>
 
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
                 Cancelar
               </Button>
               <Button
@@ -160,5 +182,5 @@ export function BookingDialog({ trip, open, onOpenChange }: BookingDialogProps) 
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

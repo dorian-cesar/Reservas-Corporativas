@@ -56,11 +56,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // const apiKey = process.env.KUPOS_API_KEY_PROD;
-    // const URL_KUPOS = process.env.URL_KUPOS_PROD;
+    const isProd = process.env.KUPOS_ENV === "prod";
 
-    const apiKey = process.env.KUPOS_API_KEY_DEV;
-    const URL_KUPOS = process.env.URL_KUPOS_DEV;
+    const apiKey = isProd
+      ? process.env.KUPOS_API_KEY_PROD
+      : process.env.KUPOS_API_KEY_DEV;
+
+    const URL_KUPOS = isProd
+      ? process.env.URL_KUPOS_PROD
+      : process.env.URL_KUPOS_DEV;
 
     if (!apiKey || !URL_KUPOS) {
       return NextResponse.json(
