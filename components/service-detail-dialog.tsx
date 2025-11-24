@@ -87,38 +87,54 @@ export function ServiceDetailDialog({
     }
   };
 
-  const parseSeats = (): Seat[] => {
-    if (!serviceDetail?.bus_layout?.available) return [];
+  const parseAllSeats = (): Seat[] => {
+    if (!serviceDetail?.bus_layout) return [];
 
-    const seats: Seat[] = [];
-    const availableSeats = serviceDetail.bus_layout.available.split(",");
+    const totalSeats = serviceDetail.bus_layout.total_seats;
+    const allSeats: Seat[] = [];
 
-    availableSeats.forEach((seatInfo) => {
-      const [seatNumber, priceStr] = seatInfo.split("|");
-      if (seatNumber && priceStr) {
-        seats.push({
-          number: seatNumber.trim(),
-          price: parseFloat(priceStr),
-          available: true,
-          row: Math.ceil(parseInt(seatNumber) / 4), // Asumiendo 4 asientos por fila
-          position: (parseInt(seatNumber) - 1) % 4,
-        });
-      }
-    });
+    // Crear todos los asientos inicialmente como no disponibles
+    for (let i = 1; i <= totalSeats; i++) {
+      allSeats.push({
+        number: i.toString(),
+        price: 0,
+        available: false,
+        row: Math.ceil(i / 4),
+        position: (i - 1) % 4,
+      });
+    }
 
-    return seats.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    // Marcar como disponibles los asientos que están en "available"
+    if (serviceDetail.bus_layout.available) {
+      const availableSeats = serviceDetail.bus_layout.available.split(",");
+
+      availableSeats.forEach((seatInfo) => {
+        const [seatNumber, priceStr] = seatInfo.split("|");
+        if (seatNumber && priceStr) {
+          const seatIndex = allSeats.findIndex(
+            (s) => s.number === seatNumber.trim()
+          );
+          if (seatIndex !== -1) {
+            allSeats[seatIndex] = {
+              ...allSeats[seatIndex],
+              price: parseFloat(priceStr),
+              available: true,
+            };
+          }
+        }
+      });
+    }
+
+    return allSeats.sort((a, b) => parseInt(a.number) - parseInt(b.number));
   };
 
   const getOccupiedSeats = (): string[] => {
     if (!serviceDetail) return [];
 
-    const totalSeats = serviceDetail.bus_layout.total_seats;
-    const availableSeats = parseSeats().map((seat) => seat.number);
-    const allSeats = Array.from({ length: totalSeats }, (_, i) =>
-      (i + 1).toString()
-    );
-
-    return allSeats.filter((seat) => !availableSeats.includes(seat));
+    const allSeats = parseAllSeats();
+    return allSeats
+      .filter((seat) => !seat.available)
+      .map((seat) => seat.number);
   };
 
   const handleBooking = async () => {
@@ -143,8 +159,9 @@ export function ServiceDetailDialog({
     }
   };
 
-  const seats = parseSeats();
+  const allSeats = parseAllSeats();
   const occupiedSeats = getOccupiedSeats();
+  const availableSeatsCount = allSeats.filter((seat) => seat.available).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,12 +206,10 @@ export function ServiceDetailDialog({
                   </div>
                   <Badge
                     variant={
-                      serviceDetail.available_seats > 0
-                        ? "default"
-                        : "destructive"
+                      availableSeatsCount > 0 ? "default" : "destructive"
                     }
                   >
-                    {serviceDetail.available_seats} asientos disponibles
+                    {availableSeatsCount} asientos disponibles
                   </Badge>
                 </div>
 
@@ -255,7 +270,7 @@ export function ServiceDetailDialog({
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4" />
                     <span>
-                      {serviceDetail.available_seats} de{" "}
+                      {availableSeatsCount} de{" "}
                       {serviceDetail.bus_layout.total_seats} disponibles
                     </span>
                   </div>
@@ -266,7 +281,7 @@ export function ServiceDetailDialog({
                   occupiedSeats={occupiedSeats}
                   onSeatSelect={setSelectedSeat}
                   selectedSeat={selectedSeat}
-                  seats={seats}
+                  seats={allSeats}
                 />
 
                 {selectedSeat && (
@@ -276,7 +291,7 @@ export function ServiceDetailDialog({
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Precio: $
-                      {seats
+                      {allSeats
                         .find((s) => s.number === selectedSeat)
                         ?.price.toLocaleString("es-AR")}
                     </p>

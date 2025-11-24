@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plane, AlertCircle } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -47,13 +48,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/10 via-background to-accent/10 p-4">
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2 text-primary">
-            <div className="p-3 bg-primary rounded-xl">
-              <Plane className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <Image
+              src="/pullman-logo-32x32.png"
+              alt="Logo Pullman"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
             <div>
               <h1 className="text-2xl font-bold text-foreground">
                 Pullman Bus
@@ -122,9 +127,9 @@ export default function LoginPage() {
             <div className="mt-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
               <p className="font-medium text-foreground">Usuarios de prueba:</p>
               <div className="space-y-1 text-muted-foreground">
-                <p>👤 Usuario: user@empresa1.com / user123</p>
-                <p>👔 Controlador: controller@empresa1.com / controller123</p>
-                <p>⚡ SuperUser: admin@sistema.com / admin123</p>
+                <p>👤 Usuario: user@wit.la / 123456</p>
+                <p>👔 Controlador: controlador@wit.la / 123456</p>
+                <p>⚡ SuperUser: super@wit.la / 123456</p>
               </div>
             </div>
           </CardContent>
