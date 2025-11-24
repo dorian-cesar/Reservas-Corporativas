@@ -25,8 +25,6 @@ interface AuthState {
   getToken?: () => string | null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -40,26 +38,13 @@ export const useAuth = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000); // 10s
-
-          const res = await fetch(`${API_BASE}/api/auth/login`, {
+          const res = await fetch("/api/auth/login", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
-            signal: controller.signal,
           });
 
-          clearTimeout(timeout);
-
           if (!res.ok) {
-            let msg = "Error en autenticación";
-            try {
-              const jsonErr = await res.json();
-              if (jsonErr?.message) msg = jsonErr.message;
-            } catch (e) { }
             return false;
           }
 
@@ -78,15 +63,10 @@ export const useAuth = create<AuthState>()(
             companyName: rawUser.empresa_nombre ?? rawUser.companyName ?? undefined,
           };
 
-          set({
-            token,
-            user,
-            isAuthenticated: true,
-          });
-
+          set({ token, user, isAuthenticated: true });
           return true;
         } catch (err) {
-          console.error("login error: ", err);
+          console.error("login error:", err);
           return false;
         }
       },
