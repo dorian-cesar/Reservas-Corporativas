@@ -1,35 +1,52 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { BOOKINGS } from "@/lib/mock-data"
-import { useAuth } from "@/lib/auth"
-import { Ticket, MapPin, Calendar, Clock, CheckCircle2, Download, XCircle } from "lucide-react"
-import { generateTicketPDF } from "@/lib/ticket-generator"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { BOOKINGS } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
+import {
+  Ticket,
+  MapPin,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Download,
+  XCircle,
+} from "lucide-react";
+import { generateTicketPDF } from "@/lib/ticket-generator";
 
 export function MyBookings() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
-  const userBookings = BOOKINGS.filter((b) => b.userId === user?.id)
+  const userBookings = BOOKINGS.filter((b) => b.userId === user?.id);
 
   const handleDownloadTicket = (bookingId: string) => {
-    const booking = BOOKINGS.find((b) => b.id === bookingId)
+    const booking = BOOKINGS.find((b) => b.id === bookingId);
     if (booking) {
-      generateTicketPDF(booking)
+      generateTicketPDF(booking);
     }
-  }
+  };
 
   const handleCancelBooking = (bookingId: string) => {
-    const booking = BOOKINGS.find((b) => b.id === bookingId)
-    if (booking && confirm("¿Estás seguro de que deseas cancelar esta reserva?")) {
-      booking.status = "cancelled"
-      window.location.reload()
+    const booking = BOOKINGS.find((b) => b.id === bookingId);
+    if (
+      booking &&
+      confirm("¿Estás seguro de que deseas cancelar esta reserva?")
+    ) {
+      booking.status = "cancelled";
+      window.location.reload();
     }
-  }
+  };
 
   if (userBookings.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -82,7 +99,9 @@ export function MyBookings() {
                   <Clock className="h-3 w-3" />
                   {booking.departureTime}
                 </div>
-                <div className="text-right font-bold text-primary">Asiento: {booking.seatNumber}</div>
+                <div className="text-right font-bold text-primary">
+                  Asiento: {booking.seatNumber}
+                </div>
               </div>
 
               {booking.status === "confirmed" && (
@@ -112,5 +131,5 @@ export function MyBookings() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

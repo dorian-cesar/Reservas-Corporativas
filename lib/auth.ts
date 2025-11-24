@@ -1,24 +1,26 @@
-"use client"
+"use client";
 
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type UserRole = "user" | "controller" | "superuser"
+export type UserRole = "user" | "controller" | "superuser";
 
 export interface User {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  companyId?: string
-  companyName?: string
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  companyId?: string;
+  companyName?: string;
 }
 
 interface AuthState {
-  user: User | null
-  login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
-  isAuthenticated: boolean
+  user: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  isAuthenticated: boolean;
+  _hasHydrated: boolean; // Nueva propiedad para controlar la hidratación
+  setHasHydrated: (state: boolean) => void;
 }
 
 // Mock users for demo
@@ -66,32 +68,46 @@ const MOCK_USERS = [
     companyId: "emp2",
     companyName: "Logística Global Corp.",
   },
-]
+];
 
 export const useAuth = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isAuthenticated: false,
+      _hasHydrated: false,
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
       login: async (email: string, password: string) => {
         // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 800))
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
-        const user = MOCK_USERS.find((u) => u.email === email && u.password === password)
+        const user = MOCK_USERS.find(
+          (u) => u.email === email && u.password === password
+        );
 
         if (user) {
-          const { password: _, ...userWithoutPassword } = user
-          set({ user: userWithoutPassword, isAuthenticated: true })
-          return true
+          const { password: _, ...userWithoutPassword } = user;
+          set({ user: userWithoutPassword, isAuthenticated: true });
+          return true;
         }
-        return false
+        return false;
       },
       logout: () => {
-        set({ user: null, isAuthenticated: false })
+        set({ user: null, isAuthenticated: false });
       },
     }),
     {
       name: "auth-storage",
-    },
-  ),
-)
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
+  )
+);
+
+// Hook para verificar si la autenticación está hidratada
+export const useAuthHydration = () => {
+  return useAuth((state) => state._hasHydrated);
+};
