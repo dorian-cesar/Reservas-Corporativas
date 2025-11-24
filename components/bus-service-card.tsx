@@ -78,7 +78,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                {service.number} - {service.name}
+                {service.name}
               </div>
             </div>
             <Badge variant={getAvailabilityVariant()}>
@@ -118,7 +118,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
             </div>
             <div className="flex items-center gap-1 text-2xl font-bold text-primary">
               <DollarSign className="h-5 w-5" />
-              {service.price.toLocaleString("es-AR")}
+              {service.price.toLocaleString("es-CL")}
             </div>
           </div>
 
