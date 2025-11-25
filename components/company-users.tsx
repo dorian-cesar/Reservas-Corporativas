@@ -636,7 +636,7 @@ export function CompanyUsers() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -644,7 +644,7 @@ export function CompanyUsers() {
                   >
                     <Trash2 className="h-3 w-3 mr-2" />
                     Eliminar
-                  </Button>
+                  </Button> */}
                 </div>
               </CardContent>
             </Card>
@@ -732,14 +732,14 @@ export function CompanyUsers() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(user.id)}
                           className="h-8 px-3 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </TableCell>
                   </TableRow>
