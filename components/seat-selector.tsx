@@ -65,7 +65,6 @@ export function SeatSelector({
     }
 
     try {
-      // Procesamiento de filas y asientos basado en el código Vue
       let rows = coachDetails.split(",").filter((row) => row !== "DR_IMG|.GY");
 
       let seats_rows: ProcessedSeat[][] = [];
@@ -88,7 +87,7 @@ export function SeatSelector({
             seat = {
               num: seat_info[0],
               type: seat_info[1] || null,
-              status: "busy", // Por defecto ocupado
+              status: "busy",
               floor: 0,
             };
           } else if (seat_info[0] === ".GY" || seat_info[0].includes("_IMG")) {
@@ -104,7 +103,6 @@ export function SeatSelector({
         seats_rows.push(seats);
       }
 
-      // Lógica para determinar pisos del bus
       let seats_floor_1: ProcessedSeat[][] = [];
       let seats_floor_2: ProcessedSeat[][] = [];
       let floors: ProcessedSeat[][][] = [];
@@ -118,14 +116,12 @@ export function SeatSelector({
           .split(",")
           .filter((num) => num && !isNaN(Number(num)));
 
-        // Asignar asientos a cada piso
         for (let sr of seats_rows) {
           let row_floor_1: ProcessedSeat[] = [];
           let row_floor_2: ProcessedSeat[] = [];
 
           for (let s of sr) {
             if (s.num === "%" || s.num === "blank-seat") {
-              // Mantener espacios/pasillos en ambos pisos
               row_floor_1.push({ ...s, floor: 0 });
               row_floor_2.push({ ...s, floor: 1 });
             } else if (floor_1.includes(s.num)) {
@@ -141,13 +137,11 @@ export function SeatSelector({
 
         floors = [seats_floor_1, seats_floor_2];
       } else {
-        // Un solo piso
         floors = [
           seats_rows.map((row) => row.map((seat) => ({ ...seat, floor: 0 }))),
         ];
       }
 
-      // Actualizar disponibilidad de asientos
       const availableSeatNumbers = seats.map((s) => s.number);
 
       const updateSeatAvailability = (floorSeats: ProcessedSeat[][]) => {
@@ -169,7 +163,6 @@ export function SeatSelector({
       if (floors.length > 0) updateSeatAvailability(floors[0]);
       if (floors.length > 1) updateSeatAvailability(floors[1]);
 
-      // Convertir a layout vertical con pasillo en el centro
       const createVerticalLayout = (
         floorSeats: ProcessedSeat[][]
       ): (string | null)[][] => {
@@ -182,30 +175,23 @@ export function SeatSelector({
             const seat = row[i];
 
             if (seat.num === "%") {
-              // Pasillo - poner null en posición central
               verticalRow.push(null);
             } else if (seat.num !== "blank-seat") {
-              // Asiento normal
               verticalRow.push(seat.num);
             } else {
-              // Espacio en blanco
               verticalRow.push(null);
             }
           }
 
-          // Asegurar que cada fila tenga 4 elementos
           while (verticalRow.length < 4) {
             verticalRow.push(null);
           }
 
-          // Reorganizar para poner pasillo en posición 2 (centro)
           if (verticalRow.length === 4) {
-            // Buscar la posición del pasillo y reorganizar
             const pasilloIndex = verticalRow.findIndex((seat) => seat === null);
             let reorderedRow = [...verticalRow];
 
             if (pasilloIndex !== -1 && pasilloIndex !== 2) {
-              // Mover el pasillo a la posición central
               const temp = reorderedRow[2];
               reorderedRow[2] = reorderedRow[pasilloIndex];
               reorderedRow[pasilloIndex] = temp;
@@ -258,26 +244,18 @@ export function SeatSelector({
   const createBasicLayout = (total: number): (string | null)[][] => {
     const rows: (string | null)[][] = [];
     const seatsPerRow = 4;
-    const totalRows = Math.ceil(total / (seatsPerRow - 1)); // -1 por el pasillo
+    const totalRows = Math.ceil(total / (seatsPerRow - 1));
 
     for (let i = 0; i < totalRows; i++) {
       const row: (string | null)[] = [];
       const startSeat = i * (seatsPerRow - 1) + 1;
-
-      // 2 asientos izquierda
       if (startSeat <= total) row.push(startSeat.toString());
       else row.push(null);
-
       if (startSeat + 1 <= total) row.push((startSeat + 1).toString());
       else row.push(null);
-
-      // Pasillo
       row.push(null);
-
-      // 1 asiento derecha (para mantener 4 columnas)
       if (startSeat + 2 <= total) row.push((startSeat + 2).toString());
       else row.push(null);
-
       rows.push(row);
     }
 
@@ -310,9 +288,6 @@ export function SeatSelector({
 
   return (
     <div className="space-y-4 sm:space-y-6 sm:mx-4 md:mx-6">
-      {" "}
-      {/* Cambiado para cubrir desde 640px */}
-      {/* Selector de piso para buses de 2 pisos */}
       {processedLayout.isTwoFloor && processedLayout.floors && (
         <div className="flex justify-center gap-2 sm:gap-4">
           <Button
@@ -345,8 +320,6 @@ export function SeatSelector({
       </div>
       {/* Mapa de asientos */}
       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-6 sm:mx-2 md:mx-4">
-        {" "}
-        {/* Cambiado para cubrir desde 640px */}
         <div className="space-y-2 sm:space-y-3">
           {currentRows.map((row, rowIndex) => (
             <div key={rowIndex} className="flex justify-center gap-1 sm:gap-2">
@@ -377,13 +350,10 @@ export function SeatSelector({
                       {seat}
                     </button>
                   ) : (
-                    // Pasillo - tamaño responsive
                     <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
                       <div className="w-1 h-6 sm:h-8 bg-gray-300 rounded"></div>
                     </div>
                   )}
-
-                  {/* Espacio reducido y responsive */}
                   {seatIndex === 1 && (
                     <div className="w-1 sm:w-2 bg-transparent"></div>
                   )}
@@ -402,8 +372,6 @@ export function SeatSelector({
       </div>
       {/* Leyenda */}
       <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:px-4 md:px-6">
-        {" "}
-        {/* Cambiado para cubrir desde 640px */}
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-100 border-2 border-green-300 rounded"></div>
           <span className="text-xs">Disponible</span>
@@ -419,8 +387,6 @@ export function SeatSelector({
       </div>
       {/* Información adicional */}
       <div className="text-center text-xs sm:text-sm text-muted-foreground px-2 sm:px-6 md:px-8">
-        {" "}
-        {/* Cambiado para cubrir desde 640px */}
         <p>
           Total: {totalSeats} | Disp: {seats.filter((s) => s.available).length}{" "}
           | Ocup: {occupiedSeats.length}
@@ -431,8 +397,6 @@ export function SeatSelector({
       {/* Información del asiento seleccionado */}
       {selectedSeat && (
         <div className="text-center p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg mx-2 sm:mx-6 md:mx-8">
-          {" "}
-          {/* Cambiado para cubrir desde 640px */}
           <p className="text-base sm:text-lg font-bold text-primary">
             Asiento seleccionado:{" "}
             <span className="text-xl sm:text-2xl">{selectedSeat}</span>

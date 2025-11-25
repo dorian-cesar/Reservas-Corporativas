@@ -12,6 +12,12 @@ export interface User {
   role: UserRole;
   companyId?: string;
   companyName?: string;
+  companyEstado?: boolean;
+  companyRecargo?: number;
+  companyPorcentajeDevolucion?: string;
+  centroCostoId?: string;
+  centroCostoName?: string;
+  centroCostoEstado?: boolean;
 }
 
 interface AuthState {
@@ -44,23 +50,30 @@ export const useAuth = create<AuthState>()(
             body: JSON.stringify({ email, password }),
           });
 
-          if (!res.ok) {
-            return false;
-          }
+          if (!res.ok) return false;
 
           const data = await res.json();
+
           const token = data.token ?? null;
           const rawUser = data.user ?? null;
+          const empresa = data.empresa ?? null;
+          const centroCosto = data.centroCosto ?? null;
 
           if (!token || !rawUser) return false;
 
           const user: User = {
-            id: String(rawUser.id ?? rawUser._id ?? ""),
-            email: rawUser.email ?? rawUser.correo ?? "",
-            name: rawUser.nombre ?? rawUser.name ?? "",
-            role: (rawUser.rol ?? rawUser.role ?? "user") as UserRole,
-            companyId: rawUser.empresa ? String(rawUser.empresa) : undefined,
-            companyName: rawUser.empresa_nombre ?? rawUser.companyName ?? undefined,
+            id: String(rawUser.id),
+            email: rawUser.email,
+            name: rawUser.nombre,
+            role: (rawUser.rol?.trim() || "user") as UserRole,
+            companyId: empresa ? String(empresa.id) : undefined,
+            companyName: empresa?.nombre,
+            companyEstado: empresa?.estado,
+            companyRecargo: empresa?.recargo,
+            companyPorcentajeDevolucion: empresa?.porcentaje_devolucion,
+            centroCostoId: centroCosto ? String(centroCosto.id) : undefined,
+            centroCostoName: centroCosto?.nombre,
+            centroCostoEstado: centroCosto?.estado,
           };
 
           set({ token, user, isAuthenticated: true });
