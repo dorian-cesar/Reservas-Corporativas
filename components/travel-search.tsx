@@ -86,6 +86,8 @@ export function TravelSearch() {
       return;
     }
 
+    setGlobalOrigin(origin.name);
+    setGlobalDestination(destination.name);
     setIsLoading(true);
     setHasSearched(true);
     setSearchError(null);
@@ -169,7 +171,6 @@ export function TravelSearch() {
                   onChange={(value) => {
                     const city = cities.find((c) => c.id.toString() === value);
                     setOrigin(city || null);
-                    setGlobalOrigin(city?.name ?? null);
                   }}
                   placeholder={
                     isLoadingCities
@@ -198,7 +199,6 @@ export function TravelSearch() {
                   onChange={(value) => {
                     const city = cities.find((c) => c.id.toString() === value);
                     setDestination(city || null);
-                    setGlobalDestination(city?.name ?? null);
                   }}
                   placeholder="Selecciona destino"
                   disabled={!origin || isLoadingCities}
