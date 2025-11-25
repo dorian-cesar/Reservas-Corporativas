@@ -2,15 +2,14 @@
 
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AllCompanies } from "@/components/all-companies"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { CompaniesCRUD } from "@/components/companies-crud"
-import { UsersCrud } from "@/components/users-crud"
+import { CompanyUsers } from "@/components/company-users"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -24,7 +23,6 @@ export default function AdminPage() {
   return (
     <AuthGuard allowedRoles={["superuser"]}>
       <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5">
-        {/* Header */}
         {/* <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
@@ -51,7 +49,6 @@ export default function AdminPage() {
           </div>
         </header> */}
 
-        {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-6">
             <div>
@@ -61,17 +58,21 @@ export default function AdminPage() {
             <AdminStats />
 
             <Tabs defaultValue="companies-crud" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="companies-crud" className="gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Empresas
+                </TabsTrigger>
+                <TabsTrigger value="centro_costo" className="gap-2">
                   <Settings className="h-4 w-4" />
-                  Gestión de Empresas
+                  Centros de Costo
                 </TabsTrigger>
                 <TabsTrigger value="users" className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
                 </TabsTrigger>
                 <TabsTrigger value="companies" className="gap-2">
-                  <Building2 className="h-4 w-4" />
+                  <Calendar className="h-4 w-4" />
                   Reportes
                 </TabsTrigger>
                 <TabsTrigger value="bookings" className="gap-2">
@@ -85,7 +86,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
-                <UsersCrud />
+                <CompanyUsers />
               </TabsContent>
 
               <TabsContent value="companies" className="mt-6">
