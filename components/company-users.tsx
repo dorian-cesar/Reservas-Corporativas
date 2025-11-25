@@ -26,7 +26,8 @@ import {
   RefreshCcw,
   Table,
   LayoutGrid,
-  Badge
+  Badge,
+  FolderTree
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -43,7 +44,10 @@ export function CompanyUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards") // Estado para cambiar vista
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [costCenters, setCostCenters] = useState<{ id: string; nombre: string; empresa_id: string }[]>([]);
+  const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
 
   type User = {
     id: string;
@@ -72,7 +76,69 @@ export function CompanyUsers() {
 
   useEffect(() => {
     fetchUsers();
+    fetchCompanies();
   }, []);
+
+  // Cargar centros de costo cuando cambia la empresa seleccionada
+  useEffect(() => {
+    if (formData.empresa_id) {
+      fetchCostCentersByCompany(formData.empresa_id);
+    } else {
+      setCostCenters([]);
+      setFormData(prev => ({ ...prev, centro_costo_id: "" }));
+    }
+  }, [formData.empresa_id]);
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch("/api/companies", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error fetching companies");
+      const data = await res.json();
+      const mapped = data.map((c: any) => ({
+        id: c.id.toString(),
+        nombre: c.nombre,
+      }));
+      setCompanies(mapped);
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+    }
+  };
+
+  const fetchCostCentersByCompany = async (empresaId: string) => {
+    if (!empresaId) return;
+
+    setIsLoadingCostCenters(true);
+    try {
+      const res = await fetch(`/api/centros-costo/empresa/${empresaId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          setCostCenters([]);
+          return;
+        }
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const costCentersData = await res.json();
+      const mapped = costCentersData.map((cc: any) => ({
+        id: cc.id.toString(),
+        nombre: cc.nombre,
+        empresa_id: cc.empresa_id?.toString() || "",
+      }));
+
+      setCostCenters(mapped);
+    } catch (err) {
+      console.error("Error fetching cost centers:", err);
+      setCostCenters([]);
+    } finally {
+      setIsLoadingCostCenters(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -117,6 +183,7 @@ export function CompanyUsers() {
       empresa_id: "",
       centro_costo_id: ""
     });
+    setCostCenters([]);
   };
 
   const handleAdd = async () => {
@@ -263,7 +330,7 @@ export function CompanyUsers() {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = async (user: User) => {
     setSelectedUser(user);
     setFormData({
       nombre: user.nombre,
@@ -275,6 +342,14 @@ export function CompanyUsers() {
       empresa_id: user.empresa_id,
       centro_costo_id: user.centro_costo_id || "",
     });
+
+    // Si el usuario tiene empresa, cargar sus centros de costo
+    if (user.empresa_id) {
+      await fetchCostCentersByCompany(user.empresa_id);
+    } else {
+      setCostCenters([]);
+    }
+
     setIsEditDialogOpen(true);
   };
 
@@ -307,7 +382,6 @@ export function CompanyUsers() {
         return "px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full";
     }
   };
-
 
   const getRoleDisplayName = (rol: string) => {
     switch (rol) {
@@ -422,6 +496,46 @@ export function CompanyUsers() {
                   </select>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="empresa_id">Empresa</Label>
+                  <select
+                    id="empresa_id"
+                    value={formData.empresa_id}
+                    onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Selecciona una empresa</option>
+                    {companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.id} - {company.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="centro_costo_id">Centro de Costo</Label>
+                  <select
+                    id="centro_costo_id"
+                    value={formData.centro_costo_id}
+                    onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+                    disabled={!formData.empresa_id || isLoadingCostCenters}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Selecciona un centro de costo</option>
+                    {isLoadingCostCenters ? (
+                      <option value="" disabled>Cargando centros de costo...</option>
+                    ) : (
+                      costCenters.map((costCenter) => (
+                        <option key={costCenter.id} value={costCenter.id}>
+                          {costCenter.nombre}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {!formData.empresa_id && (
+                    <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
+                  )}
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="estado">Estado</Label>
                   <select
                     id="estado"
@@ -432,24 +546,6 @@ export function CompanyUsers() {
                     <option value="true">Activo</option>
                     <option value="false">Inactivo</option>
                   </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="empresa_id">ID Empresa</Label>
-                  <Input
-                    id="empresa_id"
-                    placeholder="ID de la empresa (opcional)"
-                    value={formData.empresa_id}
-                    onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="centro_costo_id">ID Centro de Costo</Label>
-                  <Input
-                    id="centro_costo_id"
-                    placeholder="ID del centro de costo (opcional)"
-                    value={formData.centro_costo_id}
-                    onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
-                  />
                 </div>
               </div>
               <DialogFooter>
@@ -519,6 +615,15 @@ export function CompanyUsers() {
                       <p className="text-sm font-medium">{user.empresa_id}</p>
                     </div>
                   )}
+                  {user.centro_costo_id && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <FolderTree className="h-3 w-3" />
+                        Centro de Costo ID
+                      </div>
+                      <p className="text-sm font-medium">{user.centro_costo_id}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -560,6 +665,7 @@ export function CompanyUsers() {
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Empresa ID</TableHead>
+                  <TableHead>Centro Costo ID</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -599,7 +705,18 @@ export function CompanyUsers() {
                     <TableCell>
                       {user.empresa_id ? (
                         <div className="flex items-center gap-2">
+                          <Building2 className="h-3 w-3 text-muted-foreground" />
                           {user.empresa_id}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.centro_costo_id ? (
+                        <div className="flex items-center gap-2">
+                          <FolderTree className="h-3 w-3 text-muted-foreground" />
+                          {user.centro_costo_id}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
@@ -699,6 +816,46 @@ export function CompanyUsers() {
               </select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="edit-empresa_id">Empresa</Label>
+              <select
+                id="edit-empresa_id"
+                value={formData.empresa_id}
+                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Selecciona una empresa</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.id} - {company.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-centro_costo_id">Centro de Costo</Label>
+              <select
+                id="edit-centro_costo_id"
+                value={formData.centro_costo_id}
+                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+                disabled={!formData.empresa_id || isLoadingCostCenters}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Selecciona un centro de costo</option>
+                {isLoadingCostCenters ? (
+                  <option value="" disabled>Cargando centros de costo...</option>
+                ) : (
+                  costCenters.map((costCenter) => (
+                    <option key={costCenter.id} value={costCenter.id}>
+                      {costCenter.nombre}
+                    </option>
+                  ))
+                )}
+              </select>
+              {!formData.empresa_id && (
+                <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="edit-estado">Estado</Label>
               <select
                 id="edit-estado"
@@ -709,24 +866,6 @@ export function CompanyUsers() {
                 <option value="true">Activo</option>
                 <option value="false">Inactivo</option>
               </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-empresa_id">ID Empresa</Label>
-              <Input
-                id="edit-empresa_id"
-                placeholder="ID de la empresa (opcional)"
-                value={formData.empresa_id}
-                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-centro_costo_id">ID Centro de Costo</Label>
-              <Input
-                id="edit-centro_costo_id"
-                placeholder="ID del centro de costo (opcional)"
-                value={formData.centro_costo_id}
-                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
-              />
             </div>
           </div>
           <DialogFooter>
