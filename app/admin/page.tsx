@@ -22,7 +22,7 @@ export default function AdminPage() {
 
   return (
     <AuthGuard allowedRoles={["superuser"]}>
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5">
         {/* Header */}
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
           <div className="container mx-auto px-4 py-4">
