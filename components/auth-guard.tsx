@@ -29,7 +29,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     }
   }, [isAuthenticated, user, allowedRoles, router, hasHydrated]);
 
-  // Mostrar loading mientras se hidrata el estado
   if (!hasHydrated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
