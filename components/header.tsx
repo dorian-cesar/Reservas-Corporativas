@@ -31,6 +31,9 @@ export function Header({ onLogout }: HeaderProps) {
     }
   };
 
+  // Mostrar navegación solo para usuarios con rol "user"
+  const showNavigation = user?.role === "user";
+
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 left-0 right-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-3">
@@ -98,31 +101,34 @@ export function Header({ onLogout }: HeaderProps) {
         </div>
       </div>
 
-      <nav className="border-t bg-background/80">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-center h-10">
-            <div className="flex space-x-8">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "border-primary text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-primary/50"
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                );
-              })}
+      {/* Mostrar navegación solo para usuarios con rol "user" */}
+      {showNavigation && (
+        <nav className="border-t bg-background/80">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-center h-10">
+              <div className="flex space-x-8">
+                {navigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "border-primary text-foreground"
+                          : "border-transparent text-muted-foreground hover:text-foreground hover:border-primary/50"
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
     </header>
   );
 }
