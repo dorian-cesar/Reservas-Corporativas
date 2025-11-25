@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/lib/auth";
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,7 @@ export function CostCentersCRUD() {
     const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
     const [empresaId, setEmpresaId] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
 
     type CostCenter = {
         id: string;
@@ -66,6 +67,29 @@ export function CostCentersCRUD() {
         empresa_id: "",
         estado: true
     })
+
+    useEffect(() => {
+        fetchCompanies();
+    }, []);
+
+
+    const fetchCompanies = async () => {
+        try {
+            const res = await fetch("/api/companies", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Error fetching companies");
+            const data = await res.json();
+            const mapped = data.map((c: any) => ({
+                id: c.id.toString(),
+                nombre: c.nombre,
+            }));
+            setCompanies(mapped);
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+        }
+    };
 
     const fetchCostCenters = async (targetEmpresaId: string) => {
         if (!targetEmpresaId || targetEmpresaId === "") {
@@ -108,7 +132,7 @@ export function CostCentersCRUD() {
             }));
 
             setCostCenters(costCentersMapped);
-            
+
             if (costCentersMapped.length === 0) {
                 toast({
                     title: "Información",
@@ -172,7 +196,7 @@ export function CostCentersCRUD() {
             setIsAddDialogOpen(false);
             resetForm();
             toast({ title: "Centro de costo agregado", description: `${formData.nombre} agregado exitosamente` });
-            
+
             // Recargar los centros si estamos viendo la misma empresa
             if (empresaId && empresaId === formData.empresa_id) {
                 fetchCostCenters(empresaId);
@@ -209,7 +233,7 @@ export function CostCentersCRUD() {
             setIsEditDialogOpen(false);
             setSelectedCostCenter(null);
             resetForm();
-            
+
             // Recargar los centros si estamos viendo la misma empresa
             if (empresaId && empresaId === formData.empresa_id) {
                 fetchCostCenters(empresaId);
@@ -285,28 +309,38 @@ export function CostCentersCRUD() {
                 <div className="flex items-center gap-4">
                     {/* Buscador de Empresa */}
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="empresa-id" className="text-sm font-medium">
-                            ID Empresa
+                        <Label htmlFor="empresa_id" className="text-sm font-medium">
+                            Empresa
                         </Label>
                         <div className="flex gap-2">
-                            <Input
-                                id="empresa-id"
-                                type="number"
-                                placeholder="Ingresa ID de empresa"
-                                value={empresaId}
-                                onChange={(e) => setEmpresaId(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                className="w-40"
-                            />
-                            <Button 
+                            <div className="space-y-2">
+                                <select
+                                    id="empresa_id"
+                                    value={formData.empresa_id}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, empresa_id: e.target.value });
+                                        setEmpresaId(e.target.value);
+                                    }}
+                                    className="w-full p-2 border rounded-md"
+                                >
+                                    <option value="">Selecciona una empresa</option>
+                                    {companies.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.id} - {c.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <Button
                                 onClick={handleSearch}
-                                disabled={isLoading || !empresaId}
+                                disabled={isLoading || !formData.empresa_id}
                                 className="bg-accent hover:bg-accent/90"
                             >
                                 <Search className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
+
 
                     {/* Toggle de Vista - Solo mostrar si hay datos */}
                     {costCenters.length > 0 && (
@@ -332,8 +366,8 @@ export function CostCentersCRUD() {
 
                     {/* Botón Actualizar - Solo mostrar si hay empresa seleccionada */}
                     {empresaId && (
-                        <Button 
-                            onClick={handleSearch} 
+                        <Button
+                            onClick={handleSearch}
                             disabled={isLoading}
                             className="bg-secondary hover:bg-secondary/90 justify-center"
                         >
