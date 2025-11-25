@@ -48,18 +48,22 @@ export function ServiceDetailDialog({
   const [error, setError] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<any>(null);
 
-  // Función para extraer solo el precio del string de cost
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
-
     const priceMatch = costString.match(/(\d+\.?\d*)/);
-
     if (priceMatch) {
       const price = parseFloat(priceMatch[1]);
       return price.toLocaleString("es-CL");
     }
-
     return "0";
+  };
+
+  const getMainBusType = (busType: string | null | undefined): string => {
+    if (!busType) return "";
+    const parts = busType.split(",").map((p) => p.trim());
+    const ignore = ["2+2", "2+1", "AC", "Video", "WiFi", "Baño"];
+    const main = parts.find((p) => !ignore.includes(p));
+    return main || parts[0];
   };
 
   useEffect(() => {
@@ -137,15 +141,14 @@ export function ServiceDetailDialog({
   };
 
   const handleBooking = async () => {
-    if (!selectedSeat || !user || !serviceDetail) return;
+    // if (!selectedSeat || !user || !serviceDetail) return;
+    if (!selectedSeat || !serviceDetail) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // Obtener boarding point dinámico del servicio
-      const boardingPoint =
-        serviceDetail.boarding_stages?.split("|")[0] || "224";
+      const boardingPoint = serviceDetail.boarding_stages?.split("|")[0];
 
       // 1. Reservar el asiento con datos dinámicos
       const bookResponse = await fetch("/api/reserve", {
@@ -158,9 +161,6 @@ export function ServiceDetailDialog({
           seatNumber: selectedSeat,
           price:
             availableSeats.find((s) => s.number === selectedSeat)?.price || 0,
-          // passengerName: user.name,
-          // passengerEmail: user.email,
-          // passengerPhone: "",
           originId: serviceDetail.origin_id,
           destinationId: serviceDetail.destination_id,
           travelDate: serviceDetail.travel_date,
@@ -324,7 +324,8 @@ export function ServiceDetailDialog({
 
                 {serviceDetail.bus_type && (
                   <div className="text-sm">
-                    <strong>Tipo de bus:</strong> {serviceDetail.bus_type}
+                    <strong>Tipo de bus:</strong>{" "}
+                    {getMainBusType(serviceDetail.bus_type)}
                   </div>
                 )}
 
@@ -360,6 +361,8 @@ export function ServiceDetailDialog({
                   onSeatSelect={setSelectedSeat}
                   selectedSeat={selectedSeat}
                   seats={availableSeats}
+                  coachDetails={serviceDetail.bus_layout.coach_details}
+                  floor={serviceDetail.bus_layout.floor}
                 />
               </div>
 

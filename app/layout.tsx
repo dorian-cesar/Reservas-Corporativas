@@ -4,7 +4,6 @@ import type React from "react";
 import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { Navbar } from "@/components/navbar";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -20,7 +19,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-
   const hideLayout = pathname === "/login" || pathname === "/unauthorized";
 
   return (
@@ -30,7 +28,6 @@ export default function RootLayout({
       >
         <div className="min-h-screen flex flex-col">
           {!hideLayout && <Header />}
-          {!hideLayout && <Navbar />}
           <main className="flex-1">{children}</main>
         </div>
         <Analytics />

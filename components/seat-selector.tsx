@@ -3,6 +3,8 @@
 import { cn } from "@/lib/utils";
 import type { Seat } from "@/types/service-detail";
 import { ArrowUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 
 interface SeatSelectorProps {
   totalSeats: number;
@@ -10,6 +12,24 @@ interface SeatSelectorProps {
   onSeatSelect: (seatNumber: string) => void;
   selectedSeat: string | null;
   seats?: Seat[];
+  coachDetails?: string;
+  floor?: string;
+}
+
+interface BusLayout {
+  rows: (string | null)[][];
+  isTwoFloor: boolean;
+  floors: {
+    first: (string | null)[][];
+    second: (string | null)[][];
+  } | null;
+}
+
+interface ProcessedSeat {
+  num: string;
+  type: string | null;
+  status: string;
+  floor: number;
 }
 
 export function SeatSelector({
@@ -18,121 +38,405 @@ export function SeatSelector({
   onSeatSelect,
   selectedSeat,
   seats = [],
+  coachDetails = "",
+  floor = "",
 }: SeatSelectorProps) {
-  // Crear array completo de todos los asientos
-  const allSeats: Seat[] = Array.from({ length: totalSeats }, (_, i) => {
-    const seatNumber = (i + 1).toString();
-    const existingSeat = seats.find((s) => s.number === seatNumber);
+  const [currentFloor, setCurrentFloor] = useState<"first" | "second">("first");
+  const [processedLayout, setProcessedLayout] = useState<BusLayout>({
+    rows: [],
+    isTwoFloor: false,
+    floors: null,
+  });
+  const [loading, setLoading] = useState(true);
 
-    if (existingSeat) {
-      return {
-        ...existingSeat,
-        available: !occupiedSeats.includes(seatNumber),
-      };
+  useEffect(() => {
+    processBusLayout();
+  }, [coachDetails, floor, totalSeats]);
+
+  const processBusLayout = () => {
+    if (!coachDetails) {
+      setProcessedLayout({
+        rows: createBasicLayout(totalSeats),
+        isTwoFloor: false,
+        floors: null,
+      });
+      setLoading(false);
+      return;
     }
 
-    return {
-      number: seatNumber,
-      price: 0,
-      available: !occupiedSeats.includes(seatNumber),
-      row: Math.ceil((i + 1) / 4),
-      position: i % 4,
-    };
-  });
+    try {
+      // Procesamiento de filas y asientos basado en el código Vue
+      let rows = coachDetails.split(",").filter((row) => row !== "DR_IMG|.GY");
 
-  const rows = Math.ceil(totalSeats / 4);
+      let seats_rows: ProcessedSeat[][] = [];
+      const seat_null: ProcessedSeat = {
+        num: "blank-seat",
+        type: null,
+        status: "busy",
+        floor: 0,
+      };
+
+      for (let row of rows) {
+        let row_seats = row.split("-");
+        let seats: ProcessedSeat[] = [];
+
+        for (let row_seat of row_seats) {
+          let seat_info = row_seat.split("|");
+          let seat = seat_null;
+
+          if (seat_info[0] !== "" && !isNaN(Number(seat_info[0]))) {
+            seat = {
+              num: seat_info[0],
+              type: seat_info[1] || null,
+              status: "busy", // Por defecto ocupado
+              floor: 0,
+            };
+          } else if (seat_info[0] === ".GY" || seat_info[0].includes("_IMG")) {
+            seat = {
+              num: "%",
+              type: seat_info[0],
+              status: "%",
+              floor: 0,
+            };
+          }
+          seats.push(seat);
+        }
+        seats_rows.push(seats);
+      }
+
+      // Lógica para determinar pisos del bus
+      let seats_floor_1: ProcessedSeat[][] = [];
+      let seats_floor_2: ProcessedSeat[][] = [];
+      let floors: ProcessedSeat[][][] = [];
+
+      if (floor && floor.trim() !== "" && floor.includes("@")) {
+        const floor_available = floor.split("@");
+        const floor_1 = floor_available[0]
+          .split(",")
+          .filter((num) => num && num !== "DR_IMG" && !isNaN(Number(num)));
+        const floor_2 = floor_available[1]
+          .split(",")
+          .filter((num) => num && !isNaN(Number(num)));
+
+        // Asignar asientos a cada piso
+        for (let sr of seats_rows) {
+          let row_floor_1: ProcessedSeat[] = [];
+          let row_floor_2: ProcessedSeat[] = [];
+
+          for (let s of sr) {
+            if (s.num === "%" || s.num === "blank-seat") {
+              // Mantener espacios/pasillos en ambos pisos
+              row_floor_1.push({ ...s, floor: 0 });
+              row_floor_2.push({ ...s, floor: 1 });
+            } else if (floor_1.includes(s.num)) {
+              row_floor_1.push({ ...s, floor: 0 });
+            } else if (floor_2.includes(s.num)) {
+              row_floor_2.push({ ...s, floor: 1 });
+            }
+          }
+
+          if (row_floor_1.length > 0) seats_floor_1.push(row_floor_1);
+          if (row_floor_2.length > 0) seats_floor_2.push(row_floor_2);
+        }
+
+        floors = [seats_floor_1, seats_floor_2];
+      } else {
+        // Un solo piso
+        floors = [
+          seats_rows.map((row) => row.map((seat) => ({ ...seat, floor: 0 }))),
+        ];
+      }
+
+      // Actualizar disponibilidad de asientos
+      const availableSeatNumbers = seats.map((s) => s.number);
+
+      const updateSeatAvailability = (floorSeats: ProcessedSeat[][]) => {
+        for (let row of floorSeats) {
+          for (let seat of row) {
+            if (!seat.num || seat.num === "blank-seat" || seat.num === "%")
+              continue;
+
+            const isAvailable = availableSeatNumbers.includes(seat.num);
+            if (isAvailable) {
+              seat.status = "available";
+            } else {
+              seat.status = "busy";
+            }
+          }
+        }
+      };
+
+      if (floors.length > 0) updateSeatAvailability(floors[0]);
+      if (floors.length > 1) updateSeatAvailability(floors[1]);
+
+      // Convertir a layout vertical con pasillo en el centro
+      const createVerticalLayout = (
+        floorSeats: ProcessedSeat[][]
+      ): (string | null)[][] => {
+        const verticalRows: (string | null)[][] = [];
+
+        for (let row of floorSeats) {
+          const verticalRow: (string | null)[] = [];
+
+          for (let i = 0; i < row.length; i++) {
+            const seat = row[i];
+
+            if (seat.num === "%") {
+              // Pasillo - poner null en posición central
+              verticalRow.push(null);
+            } else if (seat.num !== "blank-seat") {
+              // Asiento normal
+              verticalRow.push(seat.num);
+            } else {
+              // Espacio en blanco
+              verticalRow.push(null);
+            }
+          }
+
+          // Asegurar que cada fila tenga 4 elementos
+          while (verticalRow.length < 4) {
+            verticalRow.push(null);
+          }
+
+          // Reorganizar para poner pasillo en posición 2 (centro)
+          if (verticalRow.length === 4) {
+            // Buscar la posición del pasillo y reorganizar
+            const pasilloIndex = verticalRow.findIndex((seat) => seat === null);
+            let reorderedRow = [...verticalRow];
+
+            if (pasilloIndex !== -1 && pasilloIndex !== 2) {
+              // Mover el pasillo a la posición central
+              const temp = reorderedRow[2];
+              reorderedRow[2] = reorderedRow[pasilloIndex];
+              reorderedRow[pasilloIndex] = temp;
+            }
+
+            verticalRows.push(reorderedRow);
+          } else {
+            verticalRows.push(verticalRow);
+          }
+        }
+
+        return verticalRows.filter((row) => row.some((seat) => seat !== null));
+      };
+
+      const isTwoFloor = floor && floor.trim() !== "" && floor.includes("@");
+
+      if (isTwoFloor && floors.length >= 2) {
+        const firstFloorGrid = createVerticalLayout(floors[0]);
+        const secondFloorGrid = createVerticalLayout(floors[1]);
+
+        setProcessedLayout({
+          rows: firstFloorGrid,
+          isTwoFloor: true,
+          floors: {
+            first: firstFloorGrid,
+            second: secondFloorGrid,
+          },
+        });
+      } else {
+        const singleFloorGrid = createVerticalLayout(floors[0]);
+        setProcessedLayout({
+          rows: singleFloorGrid,
+          isTwoFloor: false,
+          floors: null,
+        });
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error processing bus layout:", error);
+      setProcessedLayout({
+        rows: createBasicLayout(totalSeats),
+        isTwoFloor: false,
+        floors: null,
+      });
+      setLoading(false);
+    }
+  };
+
+  const createBasicLayout = (total: number): (string | null)[][] => {
+    const rows: (string | null)[][] = [];
+    const seatsPerRow = 4;
+    const totalRows = Math.ceil(total / (seatsPerRow - 1)); // -1 por el pasillo
+
+    for (let i = 0; i < totalRows; i++) {
+      const row: (string | null)[] = [];
+      const startSeat = i * (seatsPerRow - 1) + 1;
+
+      // 2 asientos izquierda
+      if (startSeat <= total) row.push(startSeat.toString());
+      else row.push(null);
+
+      if (startSeat + 1 <= total) row.push((startSeat + 1).toString());
+      else row.push(null);
+
+      // Pasillo
+      row.push(null);
+
+      // 1 asiento derecha (para mantener 4 columnas)
+      if (startSeat + 2 <= total) row.push((startSeat + 2).toString());
+      else row.push(null);
+
+      rows.push(row);
+    }
+
+    return rows;
+  };
+
+  const currentRows =
+    processedLayout.isTwoFloor && processedLayout.floors
+      ? processedLayout.floors[currentFloor]
+      : processedLayout.rows;
+
+  const getSeatPrice = (seatNumber: string): number => {
+    return seats.find((s) => s.number === seatNumber)?.price || 0;
+  };
+
+  const isSeatAvailable = (seatNumber: string): boolean => {
+    return !occupiedSeats.includes(seatNumber);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8 sm:py-12">
+        <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary"></div>
+        <span className="ml-2 text-sm sm:text-base">
+          Cargando distribución del bus...
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col items-center gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Selector de piso para buses de 2 pisos */}
+      {processedLayout.isTwoFloor && processedLayout.floors && (
+        <div className="flex justify-center gap-2 sm:gap-4">
+          <Button
+            variant={currentFloor === "first" ? "default" : "outline"}
+            onClick={() => setCurrentFloor("first")}
+            size="sm"
+            className="text-xs sm:text-sm"
+          >
+            Primer Piso
+          </Button>
+          <Button
+            variant={currentFloor === "second" ? "default" : "outline"}
+            onClick={() => setCurrentFloor("second")}
+            size="sm"
+            className="text-xs sm:text-sm"
+          >
+            Segundo Piso
+          </Button>
+        </div>
+      )}
+
+      {/* Indicador del frente */}
+      <div className="flex flex-col items-center gap-1 sm:gap-2">
         <div className="flex flex-col items-center gap-1">
-          <div className="text-sm text-gray-500 font-medium">
+          <div className="text-xs sm:text-sm text-gray-500 font-medium">
             Frente del Bus
           </div>
-          <div className="w-12 h-0.5 bg-gray-300 rounded-full"></div>
+          <div className="w-8 sm:w-12 h-0.5 bg-gray-300 rounded-full"></div>
           <ArrowUp className="h-3 w-3 text-gray-400" />
         </div>
       </div>
 
       {/* Mapa de asientos */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="grid grid-cols-4 gap-3">
-          {Array.from({ length: rows }, (_, rowIndex) => (
-            <div key={rowIndex} className="contents">
-              {allSeats
-                .filter((seat) => seat.row === rowIndex + 1)
-                .map((seat) => (
-                  <button
-                    key={seat.number}
-                    onClick={() => seat.available && onSeatSelect(seat.number)}
-                    disabled={!seat.available}
-                    className={cn(
-                      "h-12 w-12 rounded-lg border-2 flex items-center justify-center transition-all duration-200",
-                      selectedSeat === seat.number
-                        ? "bg-accent border-accent text-accent-foreground scale-105 shadow-md"
-                        : seat.available
-                        ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:border-green-400 hover:scale-105 cursor-pointer shadow-sm"
-                        : "bg-red-100 border-red-300 text-red-800 cursor-not-allowed opacity-80"
-                    )}
-                    title={
-                      seat.available
-                        ? `Asiento ${
-                            seat.number
-                          } - $${seat.price.toLocaleString("es-CL")}`
-                        : "Asiento ocupado - No disponible"
-                    }
-                  >
-                    <span className="text-sm font-bold">{seat.number}</span>
-                  </button>
-                ))}
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-6">
+        <div className="space-y-2 sm:space-y-3">
+          {currentRows.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex justify-center gap-1 sm:gap-2">
+              {row.map((seat, seatIndex) => (
+                <div key={seatIndex} className="flex items-center">
+                  {seat ? (
+                    <button
+                      onClick={() =>
+                        isSeatAvailable(seat) && onSeatSelect(seat)
+                      }
+                      disabled={!isSeatAvailable(seat)}
+                      className={cn(
+                        "h-10 w-10 sm:h-12 sm:w-12 rounded-lg border-2 flex items-center justify-center transition-all duration-200 font-bold text-xs sm:text-sm",
+                        selectedSeat === seat
+                          ? "bg-accent border-accent text-accent-foreground scale-105 shadow-md"
+                          : isSeatAvailable(seat)
+                          ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:border-green-400 hover:scale-105 cursor-pointer shadow-sm"
+                          : "bg-red-100 border-red-300 text-red-800 cursor-not-allowed opacity-80"
+                      )}
+                      title={
+                        isSeatAvailable(seat)
+                          ? `Asiento ${seat} - $${getSeatPrice(
+                              seat
+                            ).toLocaleString("es-CL")}`
+                          : "Asiento ocupado - No disponible"
+                      }
+                    >
+                      {seat}
+                    </button>
+                  ) : (
+                    // Pasillo - tamaño responsive
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
+                      <div className="w-1 h-6 sm:h-8 bg-gray-300 rounded"></div>
+                    </div>
+                  )}
+
+                  {/* Espacio reducido y responsive */}
+                  {seatIndex === 1 && (
+                    <div className="w-1 sm:w-2 bg-transparent"></div>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>
       </div>
 
       {/* Indicador de la parte trasera */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-16 h-1 bg-gray-400 rounded-full"></div>
-        <div className="text-sm text-gray-600 font-medium">Parte Trasera</div>
+      <div className="flex flex-col items-center gap-1 sm:gap-2">
+        <div className="w-12 sm:w-16 h-1 bg-gray-400 rounded-full"></div>
+        <div className="text-xs sm:text-sm text-gray-600 font-medium">
+          Parte Trasera
+        </div>
       </div>
 
       {/* Leyenda */}
-      <div className="flex justify-center gap-6 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
-          <span>Disponible</span>
+      <div className="flex justify-center gap-4 sm:gap-6 text-xs">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-100 border-2 border-green-300 rounded"></div>
+          <span className="text-xs">Disponible</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
-          <span>Ocupado</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+          <span className="text-xs">Ocupado</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-accent border-2 border-accent rounded"></div>
-          <span>Seleccionado</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 bg-accent border-2 border-accent rounded"></div>
+          <span className="text-xs">Seleccionado</span>
         </div>
       </div>
 
       {/* Información adicional */}
-      <div className="text-center text-sm text-muted-foreground">
+      <div className="text-center text-xs sm:text-sm text-muted-foreground px-2">
         <p>
-          Total de asientos: {totalSeats} | Disponibles:{" "}
-          {allSeats.filter((s) => s.available).length} | Ocupados:{" "}
-          {occupiedSeats.length}
+          Total: {totalSeats} | Disp: {seats.filter((s) => s.available).length}{" "}
+          | Ocup: {occupiedSeats.length}
+          {processedLayout.isTwoFloor &&
+            ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
         </p>
       </div>
 
       {/* Información del asiento seleccionado */}
       {selectedSeat && (
-        <div className="text-center p-4 bg-primary/10 border border-primary/20 rounded-lg">
-          <p className="text-lg font-bold text-primary">
+        <div className="text-center p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg mx-2">
+          <p className="text-base sm:text-lg font-bold text-primary">
             Asiento seleccionado:{" "}
-            <span className="text-2xl">{selectedSeat}</span>
+            <span className="text-xl sm:text-2xl">{selectedSeat}</span>
           </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Precio: $
-            {allSeats
-              .find((s) => s.number === selectedSeat)
-              ?.price.toLocaleString("es-CL")}
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Precio: ${getSeatPrice(selectedSeat).toLocaleString("es-CL")}
+            {processedLayout.isTwoFloor &&
+              ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
           </p>
         </div>
       )}

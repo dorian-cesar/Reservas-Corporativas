@@ -52,6 +52,14 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
     return "default";
   };
 
+  const getMainBusType = (busType: string | null | undefined): string => {
+    if (!busType) return "";
+    const parts = busType.split(",").map((p) => p.trim());
+    const ignore = ["2+2", "2+1", "AC", "Video", "WiFi", "Baño"];
+    const main = parts.find((p) => !ignore.includes(p));
+    return main || parts[0];
+  };
+
   const getAmenities = () => {
     const amenities = [];
     if (service.bus_type?.includes("AC")) amenities.push("Aire Acondicionado");
@@ -125,7 +133,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
           {service.bus_type && (
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">
-                <strong>Tipo de bus:</strong> {service.bus_type}
+                <strong>Tipo de bus:</strong> {getMainBusType(service.bus_type)}
               </div>
               {amenities.length > 0 && (
                 <div className="flex flex-wrap gap-2">

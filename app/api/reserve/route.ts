@@ -38,14 +38,7 @@ export async function POST(request: NextRequest) {
       boardingAt,
     } = body;
 
-    if (
-      !serviceId ||
-      !seatNumber
-      //   !seatNumber ||
-      //   !passengerName ||
-      //   !passengerEmail ||
-      //   !passengerPhone
-    ) {
+    if (!serviceId || !seatNumber) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
         { status: 400 }

@@ -127,20 +127,17 @@ export function TravelSearch() {
 
   const isSearchDisabled = !origin || !destination || !date || isLoading;
 
-  // Formatear fecha mínima (hoy)
   const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-5 space-y-6">
+      <div className="space-y-6">
         <div className="text-center space-y-2 pt-5">
           <h1 className="text-3xl font-bold text-foreground">Busca tu Viaje</h1>
           <p className="text-lg text-muted-foreground">
             Encuentra los mejores servicios de buses para tu destino
           </p>
         </div>
-
-        {/* El resto se mantiene igual */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -169,7 +166,6 @@ export function TravelSearch() {
                   onChange={(value) => {
                     const city = cities.find((c) => c.id.toString() === value);
                     setOrigin(city || null);
-                    // Reset destination si es la misma ciudad
                     if (destination?.id === city?.id) {
                       setDestination(null);
                     }
@@ -244,7 +240,6 @@ export function TravelSearch() {
             </Button>
           </CardContent>
         </Card>
-
         {/* Mensajes de error */}
         {searchError && (
           <Card className="border-2 border-destructive">
@@ -256,7 +251,6 @@ export function TravelSearch() {
             </CardContent>
           </Card>
         )}
-
         {/* Resultados de búsqueda */}
         {hasSearched && !searchError && (
           <div className="space-y-4">

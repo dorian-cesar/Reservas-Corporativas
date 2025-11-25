@@ -134,7 +134,7 @@ export async function GET(
         fares_hash: {},
         o_availabity: "",
       },
-      boarding_stages: result.boarding_stages || "",
+      boarding_stages: result.bus_layout.boarding_stages || "",
       dropoff_stages: result.dropoff_stages || "",
     };
 

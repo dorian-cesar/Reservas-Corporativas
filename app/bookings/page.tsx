@@ -8,7 +8,6 @@ export default function BookingsPage() {
     <AuthGuard>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header de la página */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-3">
               Mis Reservas
@@ -17,11 +16,7 @@ export default function BookingsPage() {
               Gestiona y revisa todas tus reservas de viajes
             </p>
           </div>
-
-          <MyBookings
-            showActiveOnly={false} // Mostrar todas las reservas
-            showCard={true} // Con wrapper de Card
-          />
+          <MyBookings showActiveOnly={false} showCard={true} />
         </div>
       </div>
     </AuthGuard>

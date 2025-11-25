@@ -11,6 +11,7 @@ export interface BusLayout {
     };
   };
   o_availabity: string;
+  floor: string;
 }
 
 export interface ServiceDetail {
