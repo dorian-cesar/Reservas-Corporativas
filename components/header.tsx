@@ -31,8 +31,8 @@ export function Header({ onLogout }: HeaderProps) {
     }
   };
 
-  // Mostrar navegación solo para usuarios con rol "user"
-  const showNavigation = user?.role === "user";
+  const allowedRoles = ["user", "subusuario"];
+  const showNavigation = allowedRoles.includes(user?.role || "");
 
   return (
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 left-0 right-0 z-50 shadow-sm">
@@ -101,7 +101,6 @@ export function Header({ onLogout }: HeaderProps) {
         </div>
       </div>
 
-      {/* Mostrar navegación solo para usuarios con rol "user" */}
       {showNavigation && (
         <nav className="border-t bg-background/80">
           <div className="container mx-auto px-4">

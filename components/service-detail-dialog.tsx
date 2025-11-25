@@ -281,12 +281,17 @@ export function ServiceDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">Detalles del Servicio</DialogTitle>
-          <DialogDescription>
-            Revisa los detalles completos y selecciona tu asiento
-          </DialogDescription>
-        </DialogHeader>
+        {/* Mostrar header solo cuando NO está en estado success */}
+        {!success && (
+          <DialogHeader>
+            <DialogTitle className="text-2xl">
+              Detalles del Servicio
+            </DialogTitle>
+            <DialogDescription>
+              Revisa los detalles completos y selecciona tu asiento
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         {loadingDetail ? (
           <div className="flex items-center justify-center py-12">
@@ -299,31 +304,124 @@ export function ServiceDetailDialog({
           </Alert>
         ) : success ? (
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
-            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-green-600 mb-2">
-              ¡Reserva Confirmada!
-            </h3>
-            <p className="text-muted-foreground">
-              Tu asiento {selectedSeat} ha sido reservado exitosamente
-            </p>
-            {bookingData && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
-                <p className="text-sm font-medium text-green-800">
-                  PNR:{" "}
-                  <span className="font-bold">{bookingData.operatorPnr}</span>
-                </p>
-                <p className="text-sm text-green-600">
-                  Ticket: {bookingData.ticketNumber}
-                </p>
-                <p className="text-sm text-green-600">
-                  Operador: {bookingData.travelName}
-                </p>
-                <p className="text-sm text-green-600">
-                  Precio total: $
-                  {bookingData.totalFare?.toLocaleString("es-CL")}
+            <div className="flex flex-col items-center justify-center space-y-6">
+              {/* Icono de éxito animado */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
+                <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
+              </div>
+
+              {/* Título y mensaje */}
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-green-600">
+                  Reserva Confirmada
+                </h3>
+                <p className="text-muted-foreground text-lg">
+                  ¡Tu asiento ha sido reservado!
                 </p>
               </div>
-            )}
+
+              {bookingData && (
+                <div className="w-full max-w-md bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
+                  {/* Header de la tarjeta */}
+                  <div className="text-center mb-4">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500 text-white border-green-600 mb-2"
+                    >
+                      Confirmado
+                    </Badge>
+                    <p className="text-sm text-green-600">
+                      Reserva realizada exitosamente
+                    </p>
+                  </div>
+
+                  {/* Información principal */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                      <p className="text-xs text-muted-foreground">N° de PNR</p>
+                      <p className="font-bold text-green-800 text-sm">
+                        {bookingData.operatorPnr}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                      <p className="text-xs text-muted-foreground">Asiento</p>
+                      <p className="font-bold text-green-800 text-lg">
+                        {selectedSeat}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Detalles del viaje */}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Operador:</span>
+                      <span className="font-medium text-green-800">
+                        {bookingData.travelName}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Origen - Destino:
+                      </span>
+                      <span className="font-medium text-green-800">
+                        {origin} - {destination}
+                      </span>
+                    </div>
+                    {serviceDetail && (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Fecha:</span>
+                          <span className="font-medium text-green-800">
+                            {new Date(
+                              serviceDetail.travel_date
+                            ).toLocaleDateString("es-CL")}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Hora salida:
+                          </span>
+                          <span className="font-medium text-green-800">
+                            {serviceDetail.dep_time}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Precio total destacado */}
+                  <div className="border-t border-green-200 pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Precio total:
+                      </span>
+                      <span className="text-xl font-bold text-green-700">
+                        $
+                        {bookingData.totalFare?.toLocaleString("es-CL") ||
+                          availableSeats
+                            .find((s) => s.number === selectedSeat)
+                            ?.price.toLocaleString("es-CL")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Información adicional */}
+                  <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
+                    <p className="text-xs text-green-700 text-center">
+                      Recibirás un email de confirmación con los detalles de tu
+                      reserva
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-600">
+                  Esta ventana se cerrará automáticamente en{" "}
+                  <span className="font-bold">5 segundos</span>
+                </p>
+              </div>
+            </div>
           </div>
         ) : serviceDetail ? (
           <>
