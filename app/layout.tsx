@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Header } from "@/components/header";
+import { TravelProvider } from "@/components/context/travel-context";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -26,10 +27,12 @@ export default function RootLayout({
       <body
         className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <div className="min-h-screen flex flex-col">
-          {!hideLayout && <Header />}
-          <main className="flex-1">{children}</main>
-        </div>
+        <TravelProvider>
+          <div className="min-h-screen flex flex-col">
+            {!hideLayout && <Header />}
+            <main className="flex-1">{children}</main>
+          </div>
+        </TravelProvider>
         <Analytics />
       </body>
     </html>

@@ -14,6 +14,7 @@ import { ComboBox } from "@/components/ui/combobox";
 import { Search, MapPin, Calendar, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { BusServiceCard } from "@/components/bus-service-card";
+import { useTravel } from "@/components/context/travel-context";
 
 interface City {
   id: number;
@@ -55,6 +56,8 @@ export function TravelSearch() {
   const [cities, setCities] = useState<City[]>([]);
   const [isLoadingCities, setIsLoadingCities] = useState(true);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
+    useTravel();
 
   useEffect(() => {
     const loadCities = async () => {
@@ -166,9 +169,7 @@ export function TravelSearch() {
                   onChange={(value) => {
                     const city = cities.find((c) => c.id.toString() === value);
                     setOrigin(city || null);
-                    if (destination?.id === city?.id) {
-                      setDestination(null);
-                    }
+                    setGlobalOrigin(city?.name ?? null);
                   }}
                   placeholder={
                     isLoadingCities
@@ -197,6 +198,7 @@ export function TravelSearch() {
                   onChange={(value) => {
                     const city = cities.find((c) => c.id.toString() === value);
                     setDestination(city || null);
+                    setGlobalDestination(city?.name ?? null);
                   }}
                   placeholder="Selecciona destino"
                   disabled={!origin || isLoadingCities}

@@ -25,6 +25,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
 import type { ServiceDetail, Seat } from "@/types/service-detail";
+import { useTravel } from "@/components/context/travel-context";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -47,6 +48,7 @@ export function ServiceDetailDialog({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<any>(null);
+  const { origin, destination } = useTravel();
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
@@ -294,7 +296,7 @@ export function ServiceDetailDialog({
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
                   <span className="font-medium">
-                    Servicio: {serviceDetail.number}
+                    {origin} - {destination}
                   </span>
                 </div>
 

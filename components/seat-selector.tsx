@@ -309,7 +309,9 @@ export function SeatSelector({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 sm:mx-4 md:mx-6">
+      {" "}
+      {/* Cambiado para cubrir desde 640px */}
       {/* Selector de piso para buses de 2 pisos */}
       {processedLayout.isTwoFloor && processedLayout.floors && (
         <div className="flex justify-center gap-2 sm:gap-4">
@@ -331,7 +333,6 @@ export function SeatSelector({
           </Button>
         </div>
       )}
-
       {/* Indicador del frente */}
       <div className="flex flex-col items-center gap-1 sm:gap-2">
         <div className="flex flex-col items-center gap-1">
@@ -342,9 +343,10 @@ export function SeatSelector({
           <ArrowUp className="h-3 w-3 text-gray-400" />
         </div>
       </div>
-
       {/* Mapa de asientos */}
-      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-6 sm:mx-2 md:mx-4">
+        {" "}
+        {/* Cambiado para cubrir desde 640px */}
         <div className="space-y-2 sm:space-y-3">
           {currentRows.map((row, rowIndex) => (
             <div key={rowIndex} className="flex justify-center gap-1 sm:gap-2">
@@ -391,7 +393,6 @@ export function SeatSelector({
           ))}
         </div>
       </div>
-
       {/* Indicador de la parte trasera */}
       <div className="flex flex-col items-center gap-1 sm:gap-2">
         <div className="w-12 sm:w-16 h-1 bg-gray-400 rounded-full"></div>
@@ -399,9 +400,10 @@ export function SeatSelector({
           Parte Trasera
         </div>
       </div>
-
       {/* Leyenda */}
-      <div className="flex justify-center gap-4 sm:gap-6 text-xs">
+      <div className="flex justify-center gap-4 sm:gap-6 text-xs sm:px-4 md:px-6">
+        {" "}
+        {/* Cambiado para cubrir desde 640px */}
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-100 border-2 border-green-300 rounded"></div>
           <span className="text-xs">Disponible</span>
@@ -415,9 +417,10 @@ export function SeatSelector({
           <span className="text-xs">Seleccionado</span>
         </div>
       </div>
-
       {/* Información adicional */}
-      <div className="text-center text-xs sm:text-sm text-muted-foreground px-2">
+      <div className="text-center text-xs sm:text-sm text-muted-foreground px-2 sm:px-6 md:px-8">
+        {" "}
+        {/* Cambiado para cubrir desde 640px */}
         <p>
           Total: {totalSeats} | Disp: {seats.filter((s) => s.available).length}{" "}
           | Ocup: {occupiedSeats.length}
@@ -425,10 +428,11 @@ export function SeatSelector({
             ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
         </p>
       </div>
-
       {/* Información del asiento seleccionado */}
       {selectedSeat && (
-        <div className="text-center p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg mx-2">
+        <div className="text-center p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg mx-2 sm:mx-6 md:mx-8">
+          {" "}
+          {/* Cambiado para cubrir desde 640px */}
           <p className="text-base sm:text-lg font-bold text-primary">
             Asiento seleccionado:{" "}
             <span className="text-xl sm:text-2xl">{selectedSeat}</span>
