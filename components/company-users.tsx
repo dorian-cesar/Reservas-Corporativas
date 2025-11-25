@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useAuth } from "@/lib/auth";
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,164 +13,732 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
-import { useAuth } from "@/lib/auth"
-import { UserPlus, Mail, User, CheckCircle2 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-
-// Mock users for the company
-const COMPANY_USERS = [
-  { id: "1", name: "Juan Pérez", email: "user@empresa1.com", role: "user", active: true },
-  { id: "2", name: "María González", email: "controller@empresa1.com", role: "controller", active: true },
-]
+import {
+  User,
+  Plus,
+  Pencil,
+  Trash2,
+  Mail,
+  Key,
+  Building2,
+  RefreshCcw,
+  Table,
+  LayoutGrid,
+  Badge
+} from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Table as UITable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 export function CompanyUsers() {
-  const { user } = useAuth()
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [newUserName, setNewUserName] = useState("")
-  const [newUserEmail, setNewUserEmail] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const { token } = useAuth.getState();
+  const [users, setUsers] = useState<User[]>([])
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards") // Estado para cambiar vista
 
-  const companyUsers = COMPANY_USERS.filter(
-    (u) => user?.companyId === "emp1", // Mock filter
-  )
+  type User = {
+    id: string;
+    nombre: string;
+    rut: string;
+    email: string;
+    rol: string;
+    empresa_id: string;
+    centro_costo_id?: string;
+    estado: boolean;
+  };
 
-  const handleAddUser = async () => {
-    if (!newUserName || !newUserEmail) return
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { toast } = useToast()
 
-    setLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+  const [formData, setFormData] = useState({
+    nombre: "",
+    rut: "",
+    email: "",
+    password: "",
+    rol: "user",
+    estado: true,
+    empresa_id: "",
+    centro_costo_id: ""
+  })
 
-    setLoading(false)
-    setSuccess(true)
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-    setTimeout(() => {
-      setSuccess(false)
-      setNewUserName("")
-      setNewUserEmail("")
-      setShowAddDialog(false)
-    }, 2000)
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Error fetching users");
+
+      const usersData = await res.json();
+
+      const usersMapped = usersData.map((user: any) => ({
+        id: user.id.toString(),
+        nombre: user.nombre,
+        rut: user.rut,
+        email: user.email,
+        rol: user.rol,
+        empresa_id: user.empresa_id?.toString() || "",
+        centro_costo_id: user.centro_costo_id?.toString() || "",
+        estado: user.estado,
+      }));
+
+      setUsers(usersMapped);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los usuarios",
+        variant: "destructive",
+      });
+    }
   }
 
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      rut: "",
+      email: "",
+      password: "",
+      rol: "user",
+      estado: true,
+      empresa_id: "",
+      centro_costo_id: ""
+    });
+  };
+
+  const handleAdd = async () => {
+    if (!formData.nombre || !formData.rut || !formData.email || !formData.password) {
+      toast({
+        title: "Error",
+        description: "Por favor complete todos los campos requeridos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          rut: formData.rut,
+          email: formData.email,
+          password: formData.password,
+          rol: formData.rol,
+          estado: formData.estado,
+          empresa_id: formData.empresa_id || null,
+          centro_costo_id: formData.centro_costo_id || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al crear usuario");
+      }
+
+      setIsAddDialogOpen(false);
+      resetForm();
+      toast({
+        title: "Usuario agregado",
+        description: `${formData.nombre} ha sido agregado exitosamente`,
+      });
+      fetchUsers();
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "No se pudo agregar el usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!selectedUser) return;
+
+    if (!formData.nombre || !formData.rut || !formData.email) {
+      toast({
+        title: "Error",
+        description: "Por favor complete todos los campos requeridos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updateData: any = {
+        nombre: formData.nombre,
+        rut: formData.rut,
+        email: formData.email,
+        rol: formData.rol,
+        estado: formData.estado,
+        empresa_id: formData.empresa_id || null,
+        centro_costo_id: formData.centro_costo_id || null,
+      };
+
+      // Solo incluir password si se proporcionó uno nuevo
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+
+      const res = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al actualizar usuario");
+      }
+
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      resetForm();
+
+      fetchUsers();
+
+      toast({
+        title: "Usuario actualizado",
+        description: `${formData.nombre} ha sido actualizado exitosamente`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "No se pudo actualizar el usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+
+    if (!confirm(`¿Está seguro que desea eliminar a ${user.nombre}?`)) return;
+
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Error al eliminar usuario");
+
+      setUsers(users.filter((u) => u.id !== userId));
+      toast({
+        title: "Usuario eliminado",
+        description: `${user.nombre} ha sido eliminado exitosamente`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el usuario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      nombre: user.nombre,
+      rut: user.rut,
+      email: user.email,
+      password: "", // No mostrar password actual por seguridad
+      rol: user.rol,
+      estado: Boolean(user.estado),
+      empresa_id: user.empresa_id,
+      centro_costo_id: user.centro_costo_id || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openAddDialog = () => {
+    resetForm()
+    setIsAddDialogOpen(true)
+  }
+
+  const getRoleBadgeColor = (rol: string) => {
+    switch (rol) {
+      case "superuser":
+        return "px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full";
+
+      case "admin":
+        return "px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full";
+
+      case "empresa":
+        return "px-2 py-1 text-xs bg-amber-100 text-amber-700 rounded-full";
+
+      case "subusuario":
+        return "px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full";
+
+      case "auditoria":
+        return "px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full";
+
+      case "contralor":
+        return "px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full";
+
+      default:
+        return "px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full";
+    }
+  };
+
+
+  const getRoleDisplayName = (rol: string) => {
+    switch (rol) {
+      case "superuser": return "Super Usuario";
+      case "admin": return "Administrador";
+      case "user": return "Usuario";
+      default: return rol;
+    }
+  };
+
+  const getStatusBadge = (estado: boolean) => {
+    return estado ? (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Activo</span>
+    ) : (
+      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Inactivo</span>
+    );
+  };
+
   return (
-    <>
-      <Card className="border-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle>Usuarios de la Empresa</CardTitle>
-              <CardDescription>Gestiona los usuarios que tienen acceso al sistema</CardDescription>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Gestión de Usuarios</h2>
+          <p className="text-muted-foreground">Administre los usuarios del sistema</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Toggle de Vista */}
+          <div className="flex border rounded-lg p-1 bg-muted/50">
             <Button
-              onClick={() => setShowAddDialog(true)}
-              className="bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-all hover:scale-105"
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
+              className="h-8 px-3"
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Agregar Usuario
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="h-8 px-3"
+            >
+              <Table className="h-4 w-4" />
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {companyUsers.map((companyUser, index) => (
-              <div
-                key={companyUser.id}
-                className="p-4 border-2 rounded-lg hover:border-primary transition-all duration-300 hover:shadow-md animate-in fade-in slide-in-from-left-4"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-full">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-bold">{companyUser.name}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {companyUser.email}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-medium capitalize">
-                      {companyUser.role === "user" ? "Usuario" : "Controlador"}
-                    </span>
-                    {companyUser.active && (
-                      <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Activo
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
-            <DialogDescription>Crea un nuevo usuario para tu empresa</DialogDescription>
-          </DialogHeader>
-
-          {success ? (
-            <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
-              <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-green-600 mb-2">¡Usuario Creado!</h3>
-              <p className="text-muted-foreground">Se ha enviado un correo con las credenciales</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-4">
+          <Button onClick={() => fetchUsers()} className="bg-secondary hover:bg-secondary/90 justify-center">
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Usuario
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+                <DialogDescription>Complete los datos del usuario</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="userName">Nombre Completo</Label>
+                  <Label htmlFor="nombre">Nombre Completo *</Label>
                   <Input
-                    id="userName"
-                    placeholder="Juan Pérez"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
+                    id="nombre"
+                    placeholder="Ej: Juan Pérez"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="userEmail">Correo Electrónico</Label>
+                  <Label htmlFor="rut">RUT *</Label>
                   <Input
-                    id="userEmail"
+                    id="rut"
+                    placeholder="Ej: 12345678-9"
+                    value={formData.rut}
+                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
                     type="email"
-                    placeholder="juan@empresa.com"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="Ej: usuario@empresa.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
-
-                <Alert className="bg-primary/10 border-primary/20">
-                  <AlertDescription className="text-sm">
-                    El usuario recibirá un correo con sus credenciales de acceso
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Ingrese la contraseña"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rol">Rol</Label>
+                  <select
+                    id="rol"
+                    value={formData.rol}
+                    onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="user">Usuario</option>
+                    <option value="admin">Administrador</option>
+                    <option value="superuser">Super Usuario</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado</Label>
+                  <select
+                    id="estado"
+                    value={formData.estado.toString()}
+                    onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="empresa_id">ID Empresa</Label>
+                  <Input
+                    id="empresa_id"
+                    placeholder="ID de la empresa (opcional)"
+                    value={formData.empresa_id}
+                    onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="centro_costo_id">ID Centro de Costo</Label>
+                  <Input
+                    id="centro_costo_id"
+                    placeholder="ID del centro de costo (opcional)"
+                    value={formData.centro_costo_id}
+                    onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+                  />
+                </div>
               </div>
-
-              <DialogFooter className="gap-2">
-                <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={loading}>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleAddUser}
-                  disabled={!newUserName || !newUserEmail || loading}
-                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-                >
-                  {loading ? "Creando..." : "Crear Usuario"}
+                <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+                  Agregar
                 </Button>
               </DialogFooter>
-            </>
-          )}
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Vista de Tarjetas */}
+      {viewMode === "cards" && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {users.map((user, index) => (
+            <Card
+              key={user.id}
+              className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <User className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg flex items-center gap-3">
+                        {user.nombre}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <span className={getRoleBadgeColor(user.rol)}>
+                          {getRoleDisplayName(user.rol)}
+                        </span>
+                        {getStatusBadge(user.estado)}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <Mail className="h-3 w-3" />
+                      Email
+                    </div>
+                    <p className="text-sm font-medium truncate">{user.email}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <Key className="h-3 w-3" />
+                      RUT
+                    </div>
+                    <p className="text-sm font-medium">{user.rut}</p>
+                  </div>
+                  {user.empresa_id && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <Building2 className="h-3 w-3" />
+                        Empresa ID
+                      </div>
+                      <p className="text-sm font-medium">{user.empresa_id}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                    onClick={() => openEditDialog(user)}
+                  >
+                    <Pencil className="h-3 w-3 mr-2" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
+                    onClick={() => handleDelete(user.id)}
+                  >
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Eliminar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Vista de Tabla */}
+      {viewMode === "table" && (
+        <Card>
+          <CardContent className="p-0">
+            <UITable>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>RUT</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Empresa ID</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.nombre}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Key className="h-3 w-3 text-muted-foreground" />
+                        {user.rut}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        {user.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={getRoleBadgeColor(user.rol)}>
+                        {getRoleDisplayName(user.rol)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(user.estado)}
+                    </TableCell>
+                    <TableCell>
+                      {user.empresa_id ? (
+                        <div className="flex items-center gap-2">
+                          {user.empresa_id}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(user)}
+                          className="h-8 px-3"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(user.id)}
+                          className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </UITable>
+            {users.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No hay usuarios registrados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>Modifique los datos del usuario</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nombre">Nombre Completo *</Label>
+              <Input
+                id="edit-nombre"
+                placeholder="Ej: Juan Pérez"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-rut">RUT *</Label>
+              <Input
+                id="edit-rut"
+                placeholder="Ej: 12345678-9"
+                value={formData.rut}
+                onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                placeholder="Ej: usuario@empresa.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Nueva Contraseña</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                placeholder="Dejar vacío para mantener la actual"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-rol">Rol</Label>
+              <select
+                id="edit-rol"
+                value={formData.rol}
+                onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="user">Usuario</option>
+                <option value="admin">Administrador</option>
+                <option value="superuser">Super Usuario</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-estado">Estado</Label>
+              <select
+                id="edit-estado"
+                value={formData.estado.toString()}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-empresa_id">ID Empresa</Label>
+              <Input
+                id="edit-empresa_id"
+                placeholder="ID de la empresa (opcional)"
+                value={formData.empresa_id}
+                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-centro_costo_id">ID Centro de Costo</Label>
+              <Input
+                id="edit-centro_costo_id"
+                placeholder="ID del centro de costo (opcional)"
+                value={formData.centro_costo_id}
+                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
