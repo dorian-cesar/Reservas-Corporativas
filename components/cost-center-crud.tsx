@@ -72,7 +72,6 @@ export function CostCentersCRUD() {
         fetchCompanies();
     }, []);
 
-
     const fetchCompanies = async () => {
         try {
             const res = await fetch("/api/companies", {
@@ -316,9 +315,8 @@ export function CostCentersCRUD() {
                             <div className="space-y-2">
                                 <select
                                     id="empresa_id"
-                                    value={formData.empresa_id}
+                                    value={empresaId}
                                     onChange={(e) => {
-                                        setFormData({ ...formData, empresa_id: e.target.value });
                                         setEmpresaId(e.target.value);
                                     }}
                                     className="w-full p-2 border rounded-md"
@@ -333,14 +331,13 @@ export function CostCentersCRUD() {
                             </div>
                             <Button
                                 onClick={handleSearch}
-                                disabled={isLoading || !formData.empresa_id}
+                                disabled={isLoading || !empresaId}
                                 className="bg-accent hover:bg-accent/90"
                             >
                                 <Search className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
-
 
                     {/* Toggle de Vista - Solo mostrar si hay datos */}
                     {costCenters.length > 0 && (
@@ -400,14 +397,20 @@ export function CostCentersCRUD() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="empresa_id">ID Empresa *</Label>
-                                        <Input
+                                        <Label htmlFor="empresa_id">Empresa *</Label>
+                                        <select
                                             id="empresa_id"
-                                            type="number"
-                                            placeholder="Ej: 1"
                                             value={formData.empresa_id}
                                             onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                                        />
+                                            className="w-full p-2 border rounded-md"
+                                        >
+                                            <option value="">Selecciona una empresa</option>
+                                            {companies.map((company) => (
+                                                <option key={company.id} value={company.id}>
+                                                    {company.id} - {company.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="estado">Estado</Label>
@@ -499,23 +502,24 @@ export function CostCentersCRUD() {
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="p-3 bg-muted/50 rounded-lg">
-                                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                                            <Building2 className="h-3 w-3" />
-                                            Empresa ID
+                                <div className="flex items-center gap-4">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                                                <FolderTree className="h-3 w-3" />
+                                                Creado
+                                            </div>
+                                            <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
                                         </div>
-                                        <p className="text-sm font-medium">
-                                            {costCenter.empresa_id}
-                                            {costCenter.empresa && ` - ${costCenter.empresa.nombre}`}
-                                        </p>
                                     </div>
-                                    <div className="p-3 bg-muted/50 rounded-lg">
-                                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                                            <FolderTree className="h-3 w-3" />
-                                            Creado
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                                                <FolderTree className="h-3 w-3" />
+                                                Creado
+                                            </div>
+                                            <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
                                         </div>
-                                        <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
                                     </div>
                                 </div>
 
@@ -529,7 +533,7 @@ export function CostCentersCRUD() {
                                         <Pencil className="h-3 w-3 mr-2" />
                                         Editar
                                     </Button>
-                                    <Button
+                                    {/* <Button
                                         variant="outline"
                                         size="sm"
                                         className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -537,7 +541,7 @@ export function CostCentersCRUD() {
                                     >
                                         <Trash2 className="h-3 w-3 mr-2" />
                                         Eliminar
-                                    </Button>
+                                    </Button> */}
                                 </div>
                             </CardContent>
                         </Card>
@@ -553,7 +557,6 @@ export function CostCentersCRUD() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Centro de Costo</TableHead>
-                                    <TableHead>Empresa</TableHead>
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Creado</TableHead>
                                     <TableHead>Actualizado</TableHead>
@@ -570,21 +573,10 @@ export function CostCentersCRUD() {
                                                 </div>
                                                 <div>
                                                     <p className="font-medium">{costCenter.nombre}</p>
-                                                    <p className="text-sm text-muted-foreground">ID: {costCenter.id}</p>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Building2 className="h-3 w-3 text-muted-foreground" />
-                                                <div>
-                                                    <p className="font-medium">ID: {costCenter.empresa_id}</p>
-                                                    {costCenter.empresa && (
-                                                        <p className="text-sm text-muted-foreground">{costCenter.empresa.nombre}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </TableCell>
+
                                         <TableCell>
                                             {getStatusBadge(costCenter.estado)}
                                         </TableCell>
@@ -604,14 +596,14 @@ export function CostCentersCRUD() {
                                                 >
                                                     <Pencil className="h-3 w-3" />
                                                 </Button>
-                                                <Button
+                                                {/* <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleDelete(costCenter.id)}
                                                     className="h-8 px-3 text-destructive hover:bg-destructive/10"
                                                 >
                                                     <Trash2 className="h-3 w-3" />
-                                                </Button>
+                                                </Button> */}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -640,14 +632,20 @@ export function CostCentersCRUD() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="edit-empresa_id">ID Empresa *</Label>
-                            <Input
+                            <Label htmlFor="edit-empresa_id">Empresa *</Label>
+                            <select
                                 id="edit-empresa_id"
-                                type="number"
-                                placeholder="Ej: 1"
                                 value={formData.empresa_id}
                                 onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                            />
+                                className="w-full p-2 border rounded-md"
+                            >
+                                <option value="">Selecciona una empresa</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.id} - {company.nombre}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-estado">Estado</Label>

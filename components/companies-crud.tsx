@@ -434,7 +434,7 @@ export function CompaniesCRUD() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -442,7 +442,7 @@ export function CompaniesCRUD() {
                   >
                     <Trash2 className="h-3 w-3 mr-2" />
                     Eliminar
-                  </Button>
+                  </Button> */}
                 </div>
               </CardContent>
             </Card>
@@ -483,13 +483,13 @@ export function CompaniesCRUD() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{company.surchargePercentage}%</span>
+                        <span className="font-medium">{company.surchargePercentage}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}%</span>
+                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -502,14 +502,14 @@ export function CompaniesCRUD() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(company.id)}
                           className="h-8 px-3 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </TableCell>
                   </TableRow>
