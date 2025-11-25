@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env.KUPOS_ENV === "prod";
     const apiKey = isProduction
       ? process.env.KUPOS_API_KEY_PROD
       : process.env.KUPOS_API_KEY_DEV;
