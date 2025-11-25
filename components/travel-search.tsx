@@ -11,7 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ComboBox } from "@/components/ui/combobox";
-import { Search, MapPin, Calendar, Loader2 } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Calendar,
+  Loader2,
+  ArrowLeftRight,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { BusServiceCard } from "@/components/bus-service-card";
 import { useTravel } from "@/components/context/travel-context";
@@ -79,6 +85,20 @@ export function TravelSearch() {
     loadCities();
   }, []);
 
+  const swapCities = () => {
+    if (origin && destination) {
+      const temp = origin;
+      setOrigin(destination);
+      setDestination(temp);
+    } else if (origin && !destination) {
+      setDestination(origin);
+      setOrigin(null);
+    } else if (!origin && destination) {
+      setOrigin(destination);
+      setDestination(null);
+    }
+  };
+
   const handleSearch = async () => {
     if (!origin || !destination || !date) {
       setServices([]);
@@ -131,6 +151,7 @@ export function TravelSearch() {
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
 
   const isSearchDisabled = !origin || !destination || !date || isLoading;
+  const isSwapDisabled = !origin && !destination;
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -155,7 +176,7 @@ export function TravelSearch() {
           </CardHeader>
 
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr_1fr] items-end">
               {/* ORIGEN */}
               <div className="space-y-2">
                 <Label htmlFor="origin" className="flex items-center gap-2">
@@ -179,6 +200,21 @@ export function TravelSearch() {
                   }
                   disabled={isLoadingCities}
                 />
+              </div>
+
+              {/* BOTÓN DE INTERCAMBIO - COLUMNA PEQUEÑA */}
+              <div className="flex items-center justify-center h-10">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={swapCities}
+                  disabled={isSwapDisabled}
+                  className="h-8 w-8 rounded-full border border-muted-foreground/30 hover:border-primary/50 hover:bg-accent/10 transition-all duration-200"
+                  title="Intercambiar origen y destino"
+                >
+                  <ArrowLeftRight className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                </Button>
               </div>
 
               {/* DESTINO */}
