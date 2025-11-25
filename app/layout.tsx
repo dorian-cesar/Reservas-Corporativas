@@ -1,11 +1,8 @@
-"use client";
-
 import type React from "react";
-import { usePathname } from "next/navigation";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { Header } from "@/components/header";
-import { TravelProvider } from "@/components/context/travel-context";
+import ClientLayout from "@/components/client-layout";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -14,8 +11,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
-export const metadata = {
-  title: "Reserva Corporativa - Pullman Bus",
+export const metadata: Metadata = {
+  title: "Reservas Corporativas - Pullman Bus",
   description:
     "Compra pasajes de bus, selecciona tu asiento, revisa servicios y reserva de forma rápida y segura.",
 };
@@ -25,20 +22,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const hideLayout = pathname === "/login" || pathname === "/unauthorized";
-
   return (
     <html lang="es">
       <body
         className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <TravelProvider>
-          <div className="min-h-screen flex flex-col">
-            {!hideLayout && <Header />}
-            <main className="flex-1">{children}</main>
-          </div>
-        </TravelProvider>
+        <ClientLayout>{children}</ClientLayout>
         <Analytics />
       </body>
     </html>
