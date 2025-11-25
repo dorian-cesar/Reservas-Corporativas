@@ -15,8 +15,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Building2, Plus, Pencil, Trash2, Mail, Users, Percent } from "lucide-react"
+import { Building2, Plus, Pencil, Trash2, Mail, Users, Percent, RefreshCcw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+
+const backendToPercent = (val: any): number => {
+  if (val === null || val === undefined || val === "") return 0;
+  const n = Number(val);
+  if (Number.isNaN(n)) return 0;
+  if (n > 0 && n <= 1) return +(n * 100);
+  return +n;
+};
+
+const percentToBackend = (percent: any): number => {
+  const n = Number(percent);
+  if (Number.isNaN(n)) return 0;
+  return +(n / 100);
+};
+
+const formatPercent = (n: number) => {
+  if (n % 1 === 0) return String(n); // entero
+  return n.toFixed(2).replace(/\.?0+$/, ""); // max 2 dec, trim zeros
+};
+
 
 export function CompaniesCRUD() {
   const { token } = useAuth.getState();
@@ -27,10 +47,10 @@ export function CompaniesCRUD() {
   type Company = {
     id: string;
     name: string;
-    state: number; // CAMBIADO: de boolean a number
+    state: boolean;
     contactEmail?: string;
     surchargePercentage?: number;
-    activeUsers?: number;
+    returnPercentage?: string;
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -38,8 +58,9 @@ export function CompaniesCRUD() {
 
   const [formData, setFormData] = useState({
     name: "",
-    state: 1,
-    surchargePercentage: "20", // DEFAULT = 20%
+    state: true,
+    surchargePercentage: "20",
+    returnPercentage: "80"
   })
 
   useEffect(() => {
@@ -53,14 +74,18 @@ export function CompaniesCRUD() {
       });
       const empresas = await res.json();
 
-      const companiesMapped = empresas.map((empresa: any) => ({
-        id: empresa.id.toString(),
-        name: empresa.nombre,
-        state: empresa.estado, // número (1 o 0)
-        contactEmail: empresa.email || "email@ejemplo.com",
-        surchargePercentage: empresa.recargo || 0,
-        activeUsers: empresa.usuariosActivos || 0
-      }));
+      const companiesMapped = empresas.map((empresa: any) => {
+        const raw = empresa.porcentaje_devolucion;
+        const percent = backendToPercent(raw); // ahora 80 en lugar de 0.8
+        return {
+          id: empresa.id.toString(),
+          name: empresa.nombre,
+          state: empresa.estado,
+          contactEmail: empresa.email || "email@ejemplo.com",
+          surchargePercentage: empresa.recargo || 0,
+          returnPercentage: percent, // número 80
+        };
+      });
 
       setCompanies(companiesMapped);
     } catch (err) {
@@ -71,8 +96,9 @@ export function CompaniesCRUD() {
   const resetForm = () => {
     setFormData({
       name: "",
-      state: 1,
+      state: true,
       surchargePercentage: "20",
+      returnPercentage: "50",
     });
   };
 
@@ -95,15 +121,14 @@ export function CompaniesCRUD() {
         },
         body: JSON.stringify({
           nombre: formData.name,
-          estado: formData.state, // número
+          estado: formData.state,
           recargo: Number(formData.surchargePercentage),
+          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage))
         }),
       });
 
       if (!res.ok) throw new Error("Error al crear empresa");
 
-      // const newCompany = await res.json();
-      // setCompanies([...companies, newCompany]);
       setIsAddDialogOpen(false);
       resetForm();
       toast({
@@ -144,22 +169,16 @@ export function CompaniesCRUD() {
           nombre: formData.name,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
+          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage))
         }),
       });
 
       if (!res.ok) throw new Error("Error al actualizar empresa");
 
-      // ELIMINA esta línea ↓
-      // const updatedCompany = await res.json();
-      // setCompanies(
-      //   companies.map((c) => (c.id === selectedCompany.id ? updatedCompany : c))
-      // );
-
       setIsEditDialogOpen(false);
       setSelectedCompany(null);
       resetForm();
 
-      // SOLO mantener fetchCompanies() para refrescar todos los datos
       fetchCompanies();
 
       toast({
@@ -208,14 +227,15 @@ export function CompaniesCRUD() {
   };
 
   const openEditDialog = (company: Company) => {
-    setSelectedCompany(company)
+    setSelectedCompany(company);
     setFormData({
       name: company.name,
-      state: company.state,
+      state: Boolean(company.state),
       surchargePercentage: company.surchargePercentage?.toString() ?? "0",
-    })
-    setIsEditDialogOpen(true)
-  }
+      returnPercentage: company.returnPercentage?.toString() ?? "0",
+    });
+    setIsEditDialogOpen(true);
+  };
 
   const openAddDialog = () => {
     resetForm()
@@ -229,70 +249,91 @@ export function CompaniesCRUD() {
           <h2 className="text-2xl font-bold">Empresas en Convenio</h2>
           <p className="text-muted-foreground">Gestione las empresas y sus porcentajes de recargo</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Empresa
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Agregar Nueva Empresa</DialogTitle>
-              <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la Empresa *</Label>
-                <Input
-                  id="name"
-                  placeholder="Ej: Empresa Ejemplo S.A."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <select
-                  name="estado"
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: Number(e.target.value) })}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="1">Activa</option>
-                  <option value="0">Inactiva</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
-                <Input
-                  id="surcharge"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  value={formData.surchargePercentage}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      surchargePercentage: e.target.value, // ← permite string vacío
-                    });
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">Recargo aplicado sobre el precio base de los pasajes</p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancelar
+        <div className="flex items-center gap-4">
+          <Button onClick={() => fetchCompanies()} className="bg-secondary hover:bg-secondary/90 justify-center">
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Empresa
               </Button>
-              <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                Agregar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Agregar Nueva Empresa</DialogTitle>
+                <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre de la Empresa *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Ej: Empresa Ejemplo S.A."
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado</Label>
+                  <select
+                    name="estado"
+                    id="state"
+                    value={formData.state.toString()}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="true">Activa</option>
+                    <option value="false">Inactiva</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
+                  <Input
+                    id="surcharge"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    value={formData.surchargePercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        surchargePercentage: e.target.value, // ← permite string vacío
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="return">Porcentaje de Recargo (%)</Label>
+                  <Input
+                    id="return"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    value={formData.returnPercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        returnPercentage: e.target.value, // ← permite string vacío
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+                  Agregar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -311,8 +352,8 @@ export function CompaniesCRUD() {
                   <div>
                     <CardTitle className="text-lg flex items-center gap-3">
                       {company.name} ·
-                      <span className={company.state === 1 ? "text-green-600" : "text-red-600"}>
-                        {company.state === 1 ? "Activa" : "Inactiva"}
+                      <span className={company.state ? "text-green-600" : "text-red-600"}>
+                        {company.state ? "Activa" : "Inactiva"}
                       </span>
                     </CardTitle>
                   </div>
@@ -327,6 +368,13 @@ export function CompaniesCRUD() {
                     Recargo
                   </div>
                   <p className="text-2xl font-bold">{company.surchargePercentage}%</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                    <Percent className="h-3 w-3" />
+                    Devolución
+                  </div>
+                  <p className="text-2xl font-bold">{formatPercent(Number(company.returnPercentage) || 0)}%</p>
                 </div>
               </div>
 
@@ -364,28 +412,29 @@ export function CompaniesCRUD() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
+              <Label htmlFor="name">Nombre de la Empresa *</Label>
               <Input
-                id="edit-name"
+                id="name"
                 placeholder="Ej: Empresa Ejemplo S.A."
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-state">Estado</Label>
+              <Label htmlFor="state">Estado</Label>
               <select
-                id="edit-state"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: Number(e.target.value) })}
+                name="estado"
+                id="state"
+                value={formData.state.toString()}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="1">Activa</option>
-                <option value="0">Inactiva</option>
+                <option value="true">Activa</option>
+                <option value="false">Inactiva</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
+              <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
               <Input
                 id="surcharge"
                 type="number"
@@ -400,7 +449,23 @@ export function CompaniesCRUD() {
                   });
                 }}
               />
-              <p className="text-xs text-muted-foreground">Recargo aplicado sobre el precio base de los pasajes</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="return">Porcentaje de Recargo (%)</Label>
+              <Input
+                id="return"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="0"
+                value={formData.returnPercentage}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    returnPercentage: e.target.value, // ← permite string vacío
+                  });
+                }}
+              />
             </div>
           </div>
           <DialogFooter>

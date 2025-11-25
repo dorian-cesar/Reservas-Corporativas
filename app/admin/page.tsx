@@ -4,12 +4,13 @@ import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AllCompanies } from "@/components/all-companies"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { CompaniesCRUD } from "@/components/companies-crud"
+import { UsersCrud } from "@/components/users-crud"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -24,7 +25,7 @@ export default function AdminPage() {
     <AuthGuard allowedRoles={["superuser"]}>
       <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5">
         {/* Header */}
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        {/* <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div>
@@ -48,18 +49,26 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-        </header>
+        </header> */}
 
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-6">
+            <div>
+              <h1 className="text-xl font-bold">Panel de Administración</h1>
+              <p className="text-sm text-muted-foreground">Super Usuario</p>
+            </div>
             <AdminStats />
 
             <Tabs defaultValue="companies-crud" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+              <TabsList className="grid w-full grid-cols-4 max-w-2xl">
                 <TabsTrigger value="companies-crud" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Gestión de Empresas
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Usuarios
                 </TabsTrigger>
                 <TabsTrigger value="companies" className="gap-2">
                   <Building2 className="h-4 w-4" />
@@ -73,6 +82,10 @@ export default function AdminPage() {
 
               <TabsContent value="companies-crud" className="mt-6">
                 <CompaniesCRUD />
+              </TabsContent>
+
+              <TabsContent value="users" className="mt-6">
+                <UsersCrud />
               </TabsContent>
 
               <TabsContent value="companies" className="mt-6">
