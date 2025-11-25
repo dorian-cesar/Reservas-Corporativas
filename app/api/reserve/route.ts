@@ -97,8 +97,7 @@ export async function POST(request: NextRequest) {
 
     const apiUrl = `${URL_KUPOS}/tentative_booking/${serviceId}.json?api_key=${apiKey}`;
 
-    console.log("Calling booking API:", apiUrl);
-    console.log("Booking payload:", JSON.stringify(bookingPayload, null, 2));
+    // console.log("Booking payload:", JSON.stringify(bookingPayload, null, 2));
 
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -110,11 +109,18 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Booking API error:", response.status, errorText);
+      let kuposError: any;
+      try {
+        kuposError = await response.json();
+      } catch {
+        kuposError = await response.text();
+      }
       return NextResponse.json(
         {
-          error: `Error en reserva: ${response.status} ${response.statusText}`,
+          success: false,
+          type: "KUPOS_ERROR",
+          error: "Error al reservar el asiento",
+          details: kuposError,
         },
         { status: response.status }
       );
@@ -124,8 +130,13 @@ export async function POST(request: NextRequest) {
 
     if (!data.result || !data.result.ticket_details) {
       return NextResponse.json(
-        { error: "Respuesta inválida de la API de reserva", data },
-        { status: 500 }
+        {
+          success: false,
+          type: "INTERNAL_ERROR",
+          error: "Respuesta inválida de la API de reserva",
+          details: data,
+        },
+        { status: 400 }
       );
     }
 

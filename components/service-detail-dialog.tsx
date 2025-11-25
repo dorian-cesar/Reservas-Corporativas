@@ -49,6 +49,7 @@ export function ServiceDetailDialog({
   const [error, setError] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<any>(null);
   const { origin, destination } = useTravel();
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
@@ -142,17 +143,34 @@ export function ServiceDetailDialog({
     return allSeats.filter((seat) => !availableSeats.includes(seat));
   };
 
+  const markSeatAsUnavailable = (seatNumber: string) => {
+    if (!serviceDetail) return;
+
+    const available = serviceDetail.bus_layout.available
+      .split(",")
+      .filter((s) => !s.startsWith(seatNumber + "|"))
+      .join(",");
+
+    setServiceDetail({
+      ...serviceDetail,
+      bus_layout: {
+        ...serviceDetail.bus_layout,
+        available,
+      },
+    });
+  };
+
   const handleBooking = async () => {
-    // if (!selectedSeat || !user || !serviceDetail) return;
     if (!selectedSeat || !serviceDetail) return;
 
     setLoading(true);
-    setError(null);
+    setBookingError(null);
 
     try {
       const boardingPoint = serviceDetail.boarding_stages?.split("|")[0];
+      const seatPrice =
+        availableSeats.find((s) => s.number === selectedSeat)?.price || 0;
 
-      // 1. Reservar el asiento con datos dinámicos
       const bookResponse = await fetch("/api/reserve", {
         method: "POST",
         headers: {
@@ -161,8 +179,7 @@ export function ServiceDetailDialog({
         body: JSON.stringify({
           serviceId: serviceId.toString(),
           seatNumber: selectedSeat,
-          price:
-            availableSeats.find((s) => s.number === selectedSeat)?.price || 0,
+          price: seatPrice,
           originId: serviceDetail.origin_id,
           destinationId: serviceDetail.destination_id,
           travelDate: serviceDetail.travel_date,
@@ -177,27 +194,65 @@ export function ServiceDetailDialog({
       const bookData = await bookResponse.json();
 
       if (!bookResponse.ok || !bookData.success) {
-        throw new Error(bookData.error || "Error al reservar el asiento");
+        console.error("Error booking:", bookData);
+
+        let errorMessage = bookData?.error || "No se pudo reservar el asiento.";
+        let shouldMarkUnavailable = false;
+
+        if (
+          bookData.type === "INTERNAL_ERROR" &&
+          bookData.details?.response?.message
+        ) {
+          const message = bookData.details.response.message;
+          if (
+            message.includes("Seat Number not Found") ||
+            message.includes("Seat Fare mismatched") ||
+            message.includes("434")
+          ) {
+            shouldMarkUnavailable = true;
+            errorMessage =
+              "El asiento ya no está disponible. Por favor selecciona otro.";
+          }
+        }
+
+        if (
+          !shouldMarkUnavailable &&
+          errorMessage.toLowerCase().includes("seat")
+        ) {
+          shouldMarkUnavailable = true;
+          errorMessage =
+            "El asiento ya no está disponible. Por favor selecciona otro.";
+        }
+
+        if (shouldMarkUnavailable) {
+          markSeatAsUnavailable(selectedSeat);
+          setSelectedSeat(null);
+          setBookingError(errorMessage);
+          setLoading(false);
+          return;
+        }
+
+        setBookingError(errorMessage);
+        setLoading(false);
+        return;
       }
 
-      // 2. Confirmar la reserva
       const confirmResponse = await fetch("/api/confirm", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          pnrNumber: bookData.pnrNumber,
-        }),
+        body: JSON.stringify({ pnrNumber: bookData.pnrNumber }),
       });
 
       const confirmData = await confirmResponse.json();
 
       if (!confirmResponse.ok || !confirmData.success) {
-        throw new Error(confirmData.error || "Error al confirmar la reserva");
+        setError(confirmData.error || "Error al confirmar la reserva");
+        setLoading(false);
+        return;
       }
 
-      // Combinar datos de booking y confirmación
       const completeBookingData = {
         ...bookData,
         ...confirmData,
@@ -213,10 +268,8 @@ export function ServiceDetailDialog({
         onOpenChange(false);
       }, 5000);
     } catch (err) {
-      console.error("Error processing booking:", err);
-      setError(
-        err instanceof Error ? err.message : "Error al procesar la reserva"
-      );
+      console.error("Error inesperado:", err);
+      setBookingError("Error inesperado al procesar la reserva");
     } finally {
       setLoading(false);
     }
@@ -274,6 +327,12 @@ export function ServiceDetailDialog({
           </div>
         ) : serviceDetail ? (
           <>
+            {bookingError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{bookingError}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-6">
               {/* Información del servicio */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">

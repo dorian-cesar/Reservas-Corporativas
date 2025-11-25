@@ -14,6 +14,12 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+export const metadata = {
+  title: "Reserva Corporativa - Pullman Bus",
+  description:
+    "Compra pasajes de bus, selecciona tu asiento, revisa servicios y reserva de forma rápida y segura.",
+};
+
 export default function RootLayout({
   children,
 }: {
