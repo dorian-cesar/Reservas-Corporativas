@@ -10,6 +10,7 @@ import { AllCompanies } from "@/components/all-companies"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { CompaniesCRUD } from "@/components/companies-crud"
 import { CompanyUsers } from "@/components/company-users"
+import { CostCentersCRUD } from "@/components/cost-center-crud"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -63,7 +64,7 @@ export default function AdminPage() {
                   <Building2 className="h-4 w-4" />
                   Empresas
                 </TabsTrigger>
-                <TabsTrigger value="centro_costo" className="gap-2">
+                <TabsTrigger value="cost-center" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Centros de Costo
                 </TabsTrigger>
@@ -83,6 +84,10 @@ export default function AdminPage() {
 
               <TabsContent value="companies-crud" className="mt-6">
                 <CompaniesCRUD />
+              </TabsContent>
+
+              <TabsContent value="cost-center" className="mt-6">
+                <CostCentersCRUD />
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
