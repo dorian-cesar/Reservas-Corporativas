@@ -72,9 +72,9 @@ export default function AdminPage() {
                   <Users className="h-4 w-4" />
                   Usuarios
                 </TabsTrigger>
-                <TabsTrigger value="companies" className="gap-2">
+                <TabsTrigger value="esp" className="gap-2">
                   <Calendar className="h-4 w-4" />
-                  Reportes
+                  Estados de Pago
                 </TabsTrigger>
                 <TabsTrigger value="bookings" className="gap-2">
                   <BarChart className="h-4 w-4" />
@@ -94,7 +94,7 @@ export default function AdminPage() {
                 <CompanyUsers />
               </TabsContent>
 
-              <TabsContent value="companies" className="mt-6">
+              <TabsContent value="esp" className="mt-6">
                 <AllCompanies />
               </TabsContent>
 
