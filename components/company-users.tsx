@@ -50,7 +50,7 @@ export function CompanyUsers() {
   const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
 
   type User = {
-    id: string;
+    id: number;
     nombre: string;
     rut: string;
     email: string;
@@ -300,7 +300,7 @@ export function CompanyUsers() {
   };
 
   const handleDelete = async (userId: string) => {
-    const user = users.find((u) => u.id === userId);
+    const user = users.find((u) => u.id.toString() === userId);
     if (!user) return;
 
     if (!confirm(`¿Está seguro que desea eliminar a ${user.nombre}?`)) return;
@@ -315,7 +315,7 @@ export function CompanyUsers() {
 
       if (!res.ok) throw new Error("Error al eliminar usuario");
 
-      setUsers(users.filter((u) => u.id !== userId));
+      setUsers(users.filter((u) => u.id.toString() !== userId));
       toast({
         title: "Usuario eliminado",
         description: `${user.nombre} ha sido eliminado exitosamente`,
@@ -492,7 +492,10 @@ export function CompanyUsers() {
                   >
                     <option value="user">Usuario</option>
                     <option value="admin">Administrador</option>
-                    <option value="superuser">Super Usuario</option>
+                    <option value="empresa">Empresa</option>
+                    <option value="subusuario">Subusuario</option>
+                    <option value="auditoria">Auditoria</option>
+                    <option value="contralor">Contralor</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -812,7 +815,10 @@ export function CompanyUsers() {
               >
                 <option value="user">Usuario</option>
                 <option value="admin">Administrador</option>
-                <option value="superuser">Super Usuario</option>
+                <option value="empresa">Empresa</option>
+                <option value="subusuario">Subusuario</option>
+                <option value="auditoria">Auditoria</option>
+                <option value="contralor">Contralor</option>
               </select>
             </div>
             <div className="space-y-2">
