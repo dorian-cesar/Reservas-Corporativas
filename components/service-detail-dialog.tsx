@@ -327,12 +327,6 @@ export function ServiceDetailDialog({
           </div>
         ) : serviceDetail ? (
           <>
-            {bookingError && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{bookingError}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-6">
               {/* Información del servicio */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
@@ -438,6 +432,14 @@ export function ServiceDetailDialog({
                 </AlertDescription>
               </Alert>
             </div>
+
+            {bookingError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription className="flex justify-center items-center">
+                  {bookingError}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <DialogFooter className="gap-2">
               <Button

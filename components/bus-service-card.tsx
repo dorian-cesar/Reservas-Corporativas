@@ -71,7 +71,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
 
   return (
     <>
-      <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg">
+      <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg gap-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-2">
@@ -142,7 +142,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
             </div>
           )}
 
-          <div className="space-y-1">
+          <div className="space-y-1 pb-4">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Disponibilidad</span>
               <span>{Math.round(availabilityPercentage)}%</span>
@@ -151,10 +151,10 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               <div
                 className={`h-full transition-all duration-500 rounded-full ${
                   availabilityPercentage > 50
-                    ? "bg-green-500"
+                    ? "bg-green-600"
                     : availabilityPercentage > 20
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                    ? "bg-yellow-600"
+                    : "bg-red-600"
                 }`}
                 style={{ width: `${availabilityPercentage}%` }}
               />
