@@ -116,7 +116,7 @@ export function CompaniesCRUD() {
       name: "",
       state: true,
       surchargePercentage: "20",
-      returnPercentage: "50",
+      returnPercentage: "80",
     });
   };
 

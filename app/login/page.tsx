@@ -36,7 +36,16 @@ export default function LoginPage() {
       const success = await login(email, password);
 
       if (success) {
-        router.push("/dashboard");
+        const currentUser = useAuth.getState().user;
+        const role = currentUser?.role ?? "user";
+
+        if (role === "superuser") {
+          router.push("/admin");
+        } else if (role === "contralor") {
+          router.push("/controller");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError("Credenciales incorrectas");
       }
@@ -46,7 +55,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/10 via-background to-accent/10 p-4">
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">

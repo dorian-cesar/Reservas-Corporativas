@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type UserRole = "user" | "admin" | "superuser";
+export type UserRole = 'superuser' | 'admin' | 'empresa' | 'subusuario' | 'auditoria' | 'contralor';
 
 export interface User {
   id: string;
