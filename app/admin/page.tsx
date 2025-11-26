@@ -57,7 +57,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger value="bookings" className="gap-2">
                   <BarChart className="h-4 w-4" />
-                  Todas las Reservas
+                  Tickets
                 </TabsTrigger>
               </TabsList>
 
