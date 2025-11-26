@@ -13,19 +13,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Building2,
   Plus,
   Pencil,
   Trash2,
-  Mail,
-  Users,
   Percent,
-  RefreshCcw,
-  Table,
-  LayoutGrid
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -36,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+
+import ToolBar from "./tool-bar";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -52,16 +48,19 @@ const percentToBackend = (percent: any): number => {
 };
 
 const formatPercent = (n: number) => {
-  if (n % 1 === 0) return String(n); // entero
-  return n.toFixed(2).replace(/\.?0+$/, ""); // max 2 dec, trim zeros
+  if (n % 1 === 0) return String(n);
+  return n.toFixed(2).replace(/\.?0+$/, "");
 };
 
 export function CompaniesCRUD() {
   const { token } = useAuth.getState();
   const [companies, setCompanies] = useState<Company[]>([])
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards") // Estado para cambiar vista
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [empresaId, setEmpresaId] = useState("")
+  const [searchMode, setSearchMode] = useState<"all" | "single">("all")
 
   type Company = {
     id: string;
@@ -85,6 +84,10 @@ export function CompaniesCRUD() {
     fetchCompanies();
   }, []);
 
+  useEffect(() => {
+    setFilteredCompanies(companies);
+  }, [companies]);
+
   const fetchCompanies = async () => {
     try {
       const res = await fetch("/api/companies", {
@@ -92,24 +95,95 @@ export function CompaniesCRUD() {
       });
       const empresas = await res.json();
 
-      const companiesMapped = empresas.map((empresa: any) => {
-        const raw = empresa.porcentaje_devolucion;
-        const percent = backendToPercent(raw); // ahora 80 en lugar de 0.8
-        return {
-          id: empresa.id.toString(),
-          name: empresa.nombre,
-          state: empresa.estado,
-          contactEmail: empresa.email || "email@ejemplo.com",
-          surchargePercentage: empresa.recargo || 0,
-          returnPercentage: percent, // número 80
-        };
-      });
+      if (empresas) {
+        const companiesMapped = empresas.map((empresa: any) => {
+          const raw = empresa.porcentaje_devolucion;
+          const percent = backendToPercent(raw);
+          return {
+            id: empresa.id.toString(),
+            name: empresa.nombre,
+            state: empresa.estado,
+            contactEmail: empresa.email || "email@ejemplo.com",
+            surchargePercentage: empresa.recargo || 0,
+            returnPercentage: percent,
+          };
+        });
 
-      setCompanies(companiesMapped);
+        setCompanies(companiesMapped);
+        setSearchMode("all");
+      }
     } catch (err) {
       console.error("Error fetching companies:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
     }
   }
+
+  const handleSearch = async () => {
+    if (!empresaId.trim()) {
+      // Si el campo está vacío, mostrar todas las empresas
+      setFilteredCompanies(companies);
+      setSearchMode("all");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/companies/${empresaId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast({
+            title: "No encontrado",
+            description: "No se encontró ninguna empresa con ese ID",
+            variant: "destructive",
+          });
+        } else {
+          throw new Error("Error al buscar empresa");
+        }
+        return;
+      }
+
+      const empresa = await res.json();
+
+      const companyMapped = {
+        id: empresa.id.toString(),
+        name: empresa.nombre,
+        state: empresa.estado,
+        contactEmail: empresa.email || "email@ejemplo.com",
+        surchargePercentage: empresa.recargo || 0,
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
+      };
+
+      setFilteredCompanies([companyMapped]);
+      setSearchMode("single");
+
+      toast({
+        title: "Búsqueda exitosa",
+        description: `Empresa "${empresa.nombre}" encontrada`,
+      });
+
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "No se pudo realizar la búsqueda",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearSearch = () => {
+    setEmpresaId("");
+    setFilteredCompanies(companies);
+    setSearchMode("all");
+  };
 
   const resetForm = () => {
     setFormData({
@@ -197,7 +271,12 @@ export function CompaniesCRUD() {
       setSelectedCompany(null);
       resetForm();
 
-      fetchCompanies();
+      // Recargar los datos según el modo actual
+      if (searchMode === "single" && empresaId) {
+        handleSearch();
+      } else {
+        fetchCompanies();
+      }
 
       toast({
         title: "Empresa actualizada",
@@ -229,7 +308,18 @@ export function CompaniesCRUD() {
 
       if (!res.ok) throw new Error("Error al eliminar empresa");
 
-      setCompanies(companies.filter((c) => c.id !== companyId));
+      // Actualizar los estados según el modo actual
+      if (searchMode === "single" && empresaId === companyId) {
+        // Si estamos viendo una empresa individual y la eliminamos
+        setEmpresaId("");
+        setSearchMode("all");
+        fetchCompanies();
+      } else {
+        // Actualizar las listas locales
+        setCompanies(companies.filter((c) => c.id !== companyId));
+        setFilteredCompanies(filteredCompanies.filter((c) => c.id !== companyId));
+      }
+
       toast({
         title: "Empresa eliminada",
         description: `${company.name} ha sido eliminada exitosamente`,
@@ -270,122 +360,125 @@ export function CompaniesCRUD() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Empresas en Convenio</h2>
-          <p className="text-muted-foreground">Gestione las empresas y sus porcentajes de recargo</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Toggle de Vista */}
-          <div className="flex border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
-          </div>
+      <ToolBar
+        title="Empresas en Convenio"
+        description="Gestione las empresas y sus porcentajes de recargo"
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        refreshAction={fetchCompanies}
+        showSearch
+        searchValue={empresaId}
+        onSearchChange={setEmpresaId}
+        onSearch={handleSearch}
+        searchPlaceholder="ID de empresa..."
+        primaryAction={{
+          label: "Agregar Empresa",
+          icon: <Plus className="h-4 w-4" />,
+          onClick: openAddDialog,
+        }}
+      />
 
-          <Button onClick={() => fetchCompanies()} className="bg-secondary hover:bg-secondary/90 justify-center">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Empresa
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Agregar Nueva Empresa</DialogTitle>
-                <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la Empresa *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Ej: Empresa Ejemplo S.A."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">Estado</Label>
-                  <select
-                    name="estado"
-                    id="state"
-                    value={formData.state.toString()}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="true">Activa</option>
-                    <option value="false">Inactiva</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
-                  <Input
-                    id="surcharge"
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="0"
-                    value={formData.surchargePercentage}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        surchargePercentage: e.target.value,
-                      });
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
-                  <Input
-                    id="return"
-                    type="number"
-                    min="0"
-                    max="100"
-                    placeholder="0"
-                    value={formData.returnPercentage}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        returnPercentage: e.target.value,
-                      });
-                    }}
-                  />
+      {/* Indicador de búsqueda */}
+      {searchMode === "single" && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-blue-900">Viendo empresa específica</p>
+                  <p className="text-sm text-blue-700">
+                    Mostrando 1 de {companies.length} empresas
+                  </p>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                  Agregar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              <Button variant="outline" size="sm" onClick={handleClearSearch}>
+                Ver todas las empresas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Nueva Empresa</DialogTitle>
+            <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nombre de la Empresa *</Label>
+              <Input
+                id="name"
+                placeholder="Ej: Empresa Ejemplo S.A."
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">Estado</Label>
+              <select
+                name="estado"
+                id="state"
+                value={formData.state.toString()}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="true">Activa</option>
+                <option value="false">Inactiva</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
+              <Input
+                id="surcharge"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="0"
+                value={formData.surchargePercentage}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    surchargePercentage: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
+              <Input
+                id="return"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="0"
+                value={formData.returnPercentage}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    returnPercentage: e.target.value,
+                  });
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {companies.map((company, index) => (
+          {filteredCompanies.map((company, index) => (
             <Card
               key={company.id}
               className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
@@ -401,6 +494,7 @@ export function CompaniesCRUD() {
                       <CardTitle className="text-lg">{company.name}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">
                         {getStatusBadge(company.state)}
+                        <span className="text-xs text-muted-foreground">ID: {company.id}</span>
                       </CardDescription>
                     </div>
                   </div>
@@ -434,7 +528,7 @@ export function CompaniesCRUD() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  {/* <Button
+                  <Button
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -442,7 +536,7 @@ export function CompaniesCRUD() {
                   >
                     <Trash2 className="h-3 w-3 mr-2" />
                     Eliminar
-                  </Button> */}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -457,6 +551,7 @@ export function CompaniesCRUD() {
             <UITable>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Recargo</TableHead>
@@ -465,8 +560,11 @@ export function CompaniesCRUD() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {companies.map((company) => (
+                {filteredCompanies.map((company) => (
                   <TableRow key={company.id} className="hover:bg-muted/50">
+                    <TableCell className="font-mono text-sm">
+                      {company.id}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-lg">
@@ -483,13 +581,13 @@ export function CompaniesCRUD() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{company.surchargePercentage}</span>
+                        <span className="font-medium">{company.surchargePercentage}%</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
+                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}%</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -502,24 +600,24 @@ export function CompaniesCRUD() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        {/* <Button
+                        <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(company.id)}
                           className="h-8 px-3 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button> */}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </UITable>
-            {companies.length === 0 && (
+            {filteredCompanies.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay empresas registradas</p>
+                <p>No hay empresas que coincidan con la búsqueda</p>
               </div>
             )}
           </CardContent>

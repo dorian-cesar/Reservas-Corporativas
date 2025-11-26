@@ -29,7 +29,8 @@ import {
   CheckCircle,
   XCircle,
   Clock4,
-  Search
+  Search,
+  Building2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/table"
 
 import * as XLSX from "xlsx";
+import ToolBar from "./tool-bar";
 
 export function AllBookingsAdmin() {
   const { token } = useAuth.getState();
@@ -52,6 +54,10 @@ export function AllBookingsAdmin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
+  const [empresaId, setEmpresaId] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+
   const { toast } = useToast();
 
   type Ticket = {
@@ -72,35 +78,116 @@ export function AllBookingsAdmin() {
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    if (!Number(empresaId)) return;
+    fetchTickets(Number(empresaId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId]);
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch("/api/companies", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error fetching companies");
+      const data = await res.json();
+      const mapped = data.map((c: any) => ({
+        id: c.id.toString(),
+        nombre: c.nombre,
+      }));
+      setCompanies(mapped);
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+    }
+  };
+
+  const fetchTickets = async (targetEmpresaId: number) => {
+    if (!targetEmpresaId) {
+      toast({
+        title: "Información",
+        description: "Por favor selecciona una empresa",
+        variant: "default",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const url = `/api/confirm-db/empresa/${targetEmpresaId}`;
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 404) {
+        // Manejar específicamente el 404 como "no hay tickets"
+        const errorData = await res.json().catch(() => ({}));
+        setTickets([]); // ← Asegurar que sea array vacío
+        setFilteredTickets([]); // ← Asegurar que sea array vacío
+        toast({
+          title: "Información",
+          description: errorData.message || "No se encontraron tickets para esta empresa",
+          variant: "default",
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const responseData = await res.json();
+
+      // Verificar si la respuesta es un objeto con propiedad 'empty'
+      if (responseData && responseData.empty) {
+        setTickets([]); // ← Asegurar que sea array vacío
+        setFilteredTickets([]); // ← Asegurar que sea array vacío
+        toast({
+          title: "Información",
+          description: responseData.message || "No se encontraron tickets para esta empresa",
+          variant: "default",
+        });
+        return;
+      }
+
+      // Asegurar que siempre sea un array
+      const ticketsArray = Array.isArray(responseData) ? responseData : [];
+
+      setTickets(ticketsArray);
+      setFilteredTickets(ticketsArray);
+
+      if (ticketsArray.length === 0) {
+        toast({
+          title: "Información",
+          description: "No se encontraron tickets para esta empresa",
+          variant: "default",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching tickets:", err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "No se pudieron cargar los tickets",
+        variant: "destructive",
+      });
+      setTickets([]);
+      setFilteredTickets([]); // ← Asegurar que sea array vacío en caso de error
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
     filterTickets();
   }, [tickets, searchTerm, statusFilter, dateFilter]);
 
-  const fetchTickets = async () => {
-    try {
-      const res = await fetch("/api/confirm-db", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Error fetching tickets");
-
-      const data = await res.json();
-      setTickets(data);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los tickets",
-        variant: "destructive"
-      });
-    }
-  };
-
   const filterTickets = () => {
-    let filtered = tickets;
+    // Asegurar que tickets sea siempre un array
+    let filtered = Array.isArray(tickets) ? tickets : [];
 
     // Filtro por búsqueda
     if (searchTerm) {
@@ -151,18 +238,11 @@ export function AllBookingsAdmin() {
             Confirmado
           </span>
         );
-      // case "Pending":
-      //   return (
-      //     <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full flex items-center gap-1 w-fit">
-      //       <Clock4 className="h-3 w-3" />
-      //       Pendiente
-      //     </span>
-      //   );
       case "Anulado":
         return (
           <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full flex items-center gap-1 w-fit">
             <XCircle className="h-3 w-3" />
-            Cancelado
+            Anulado
           </span>
         );
       default:
@@ -178,8 +258,6 @@ export function AllBookingsAdmin() {
     switch (status) {
       case "Confirmed":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
-      // case "Pending":
-      //   return <Clock4 className="h-5 w-5 text-yellow-600" />;
       case "Anulado":
         return <XCircle className="h-5 w-5 text-red-600" />;
       default:
@@ -188,6 +266,11 @@ export function AllBookingsAdmin() {
   };
 
   const exportToCSV = () => {
+
+    const ticketsToExport = Array.isArray(filteredTickets) ? filteredTickets : [];
+
+    if (ticketsToExport.length === 0) return;
+
     const headers = [
       "Número de Ticket",
       "Estado",
@@ -243,7 +326,10 @@ export function AllBookingsAdmin() {
   };
 
   const exportToXLSX = () => {
-    if (!filteredTickets || filteredTickets.length === 0) return;
+
+    const ticketsToExport = Array.isArray(filteredTickets) ? filteredTickets : [];
+
+    if (ticketsToExport.length === 0) return;
 
     const data = filteredTickets.map(ticket => ({
       "Número de Ticket": ticket.ticketNumber,
@@ -277,132 +363,153 @@ export function AllBookingsAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Gestión de Tickets</h2>
-          <p className="text-muted-foreground">Visualice y exporte los tickets del sistema</p>
+      <ToolBar
+        title="Gestión de Tickets"
+        description="Visualice y exporte los tickets del sistema"
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+
+        // company select
+        showCompanySelect
+        companies={companies}
+        selectedCompany={empresaId}
+        onCompanyChange={(id) => setEmpresaId(id)}
+
+        refreshAction={() => empresaId && fetchTickets(Number(empresaId))}
+
+        secondaryAction={{
+          label: "Exportar",
+          icon: <Download className="h-4 w-4" />,
+          onClick: () => setIsExportDialogOpen(true),
+          disabled: !empresaId || filteredTickets.length === 0
+        }}
+      />
+
+      {/* Estado de carga */}
+      {isLoading && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-2">Cargando tickets...</p>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Toggle de Vista */}
-          <div className="flex border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
-          </div>
+      )}
 
-          <Button onClick={() => fetchTickets()} className="bg-secondary hover:bg-secondary/90 justify-center">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
+      {/* Estado inicial - Sin empresa seleccionada */}
+      {!empresaId && !isLoading && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">Selecciona una empresa</h3>
+            <p className="text-muted-foreground">
+              Selecciona una empresa para ver sus tickets
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-          <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-            <Button onClick={() => setIsExportDialogOpen(true)} className="bg-accent hover:bg-accent/90">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <DialogContent className="sm:max-w-[400px]">
-              <DialogHeader>
-                <DialogTitle>Exportar Tickets</DialogTitle>
-                <DialogDescription>
-                  Exporte los tickets filtrados ({filteredTickets.length} registros)
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>Formato de exportación</Label>
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={exportToCSV}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                    >
-                      CSV
-                    </Button>
-                    <Button
-                      onClick={exportToXLSX}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      XLSX
-                    </Button>
-                  </div>
+      {/* Sin resultados */}
+      {empresaId && !isLoading && tickets.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
+            <p className="text-muted-foreground mb-4">
+              No se encontraron tickets para la empresa seleccionada
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filtros (solo se muestran cuando hay tickets) */}
+      {!isLoading && tickets.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="search">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Número, origen, destino..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
-                  Cancelar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <select
+                  id="status"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="Confirmed">Confirmados</option>
+                  <option value="Anulado">Anulado</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Fecha de Viaje</Label>
                 <Input
-                  id="search"
-                  placeholder="Número, origen, destino..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  id="date"
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Estado</Label>
-              <select
-                id="status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="Confirmed">Confirmados</option>
-                <option value="Pending">Pendientes</option>
-                <option value="Cancelled">Cancelados</option>
-              </select>
+              <div className="space-y-2">
+                <Label>Resultados</Label>
+                <div className="text-sm text-muted-foreground pt-2">
+                  {filteredTickets.length} de {tickets.length} tickets
+                </div>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
 
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar Tickets</DialogTitle>
+            <DialogDescription>
+              Exporte los tickets filtrados ({filteredTickets.length} registros)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Fecha de Viaje</Label>
-              <Input
-                id="date"
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Resultados</Label>
-              <div className="text-sm text-muted-foreground pt-2">
-                {filteredTickets.length} de {tickets.length} tickets
+              <Label>Formato de exportación</Label>
+              <div className="flex gap-4">
+                <Button
+                  onClick={exportToCSV}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  CSV
+                </Button>
+                <Button
+                  onClick={exportToXLSX}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  XLSX
+                </Button>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Vista de Tarjetas */}
-      {viewMode === "cards" && (
+      {!isLoading && tickets.length > 0 && viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredTickets.map((ticket, index) => (
             <Card
@@ -479,7 +586,7 @@ export function AllBookingsAdmin() {
       )}
 
       {/* Vista de Tabla */}
-      {viewMode === "table" && (
+      {!isLoading && tickets.length > 0 && viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <UITable>
