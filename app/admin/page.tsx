@@ -3,14 +3,15 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
-import { AllCompanies } from "@/components/all-companies"
+import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { CompaniesCRUD } from "@/components/companies-crud"
 import { CompanyUsers } from "@/components/company-users"
 import { CostCentersCRUD } from "@/components/cost-center-crud"
+import { EstadoPago } from "@/components/estado-pago"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -24,32 +25,6 @@ export default function AdminPage() {
   return (
     <AuthGuard allowedRoles={["superuser"]}>
       <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-accent/5">
-        {/* <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold">Panel de Administración</h1>
-                <p className="text-sm text-muted-foreground">Super Usuario</p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="font-medium">{user?.name}</p>
-                  <p className="text-sm text-muted-foreground">Super Usuario</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleLogout}
-                  className="transition-all hover:scale-105 bg-transparent"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header> */}
-
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-6">
             <div>
@@ -59,7 +34,7 @@ export default function AdminPage() {
             <AdminStats />
 
             <Tabs defaultValue="companies-crud" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="companies-crud" className="gap-2">
                   <Building2 className="h-4 w-4" />
                   Empresas
@@ -73,8 +48,12 @@ export default function AdminPage() {
                   Usuarios
                 </TabsTrigger>
                 <TabsTrigger value="esp" className="gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Estado de pago
+                </TabsTrigger>
+                <TabsTrigger value="cuenta-corriente" className="gap-2">
                   <Calendar className="h-4 w-4" />
-                  Estados de Pago
+                  Cuenta corriente
                 </TabsTrigger>
                 <TabsTrigger value="bookings" className="gap-2">
                   <BarChart className="h-4 w-4" />
@@ -93,9 +72,12 @@ export default function AdminPage() {
               <TabsContent value="users" className="mt-6">
                 <CompanyUsers />
               </TabsContent>
-
               <TabsContent value="esp" className="mt-6">
-                <AllCompanies />
+                <EstadoPago />
+              </TabsContent>
+
+              <TabsContent value="cuenta-corriente" className="mt-6">
+                <CurrentAccounts />
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
