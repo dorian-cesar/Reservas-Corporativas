@@ -41,6 +41,7 @@ export function ServiceDetailDialog({
   onOpenChange,
 }: ServiceDetailDialogProps) {
   const { user } = useUserStore();
+  const { token } = useAuth();
   const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(
     null
   );
@@ -183,9 +184,7 @@ export function ServiceDetailDialog({
 
       const bookResponse = await fetch("/api/reserve", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceId: serviceId.toString(),
           seatNumber: selectedSeat,
@@ -209,25 +208,14 @@ export function ServiceDetailDialog({
         let errorMessage = bookData?.error || "No se pudo reservar el asiento.";
         let shouldMarkUnavailable = false;
 
-        if (
-          bookData.type === "INTERNAL_ERROR" &&
-          bookData.details?.response?.message
-        ) {
-          const message = bookData.details.response.message;
-          if (
-            message.includes("Seat Number not Found") ||
-            message.includes("Seat Fare mismatched") ||
-            message.includes("434")
-          ) {
-            shouldMarkUnavailable = true;
-            errorMessage =
-              "El asiento ya no está disponible. Por favor selecciona otro.";
-          }
-        }
+        const apiMessage =
+          bookData?.details?.response?.message || bookData?.error || "";
 
         if (
-          !shouldMarkUnavailable &&
-          errorMessage.toLowerCase().includes("seat")
+          apiMessage.includes("Seat Number not Found") ||
+          apiMessage.includes("Seat Fare mismatched") ||
+          apiMessage.includes("434") ||
+          apiMessage.toLowerCase().includes("seat")
         ) {
           shouldMarkUnavailable = true;
           errorMessage =
@@ -237,9 +225,6 @@ export function ServiceDetailDialog({
         if (shouldMarkUnavailable) {
           markSeatAsUnavailable(selectedSeat);
           setSelectedSeat(null);
-          setBookingError(errorMessage);
-          setLoading(false);
-          return;
         }
 
         setBookingError(errorMessage);
@@ -249,9 +234,7 @@ export function ServiceDetailDialog({
 
       const confirmResponse = await fetch("/api/confirm", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pnrNumber: bookData.pnrNumber }),
       });
 
@@ -263,12 +246,54 @@ export function ServiceDetailDialog({
         return;
       }
 
-      const completeBookingData = {
-        ...bookData,
-        ...confirmData,
+      const baseFare = confirmData.totalFare || 0;
+      const recargo =
+        user?.companyRecargo && !isNaN(user.companyRecargo)
+          ? (baseFare * user.companyRecargo) / 100
+          : 0;
+      const monto_boleto = baseFare + recargo;
+
+      const payload = {
+        ticketNumber: confirmData.ticketNumber,
+        ticketStatus: confirmData.ticketStatus,
+        origin: confirmData.origin,
+        destination: confirmData.destination,
+        travelDate: confirmData.travelDate,
+        departureTime: serviceDetail.dep_time,
+        seatNumbers: confirmData.seatNumbers,
+        fare: baseFare,
+        confirmedAt: confirmData.confirmedAt,
+        monto_boleto,
+        id_User: user?.id,
       };
 
-      setBookingData(completeBookingData);
+      try {
+        const saveRes = await fetch("/api/confirm-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const saveData = await saveRes.json();
+
+        if (!saveData.success) {
+          console.error("Error al guardar ticket:", saveData.error);
+        } else {
+          console.log("Ticket guardado exitosamente");
+        }
+      } catch (e) {
+        console.error("Error al enviar ticket:", e);
+      }
+
+      setBookingData({
+        ...bookData,
+        ...confirmData,
+        monto_boleto,
+      });
+
       setSuccess(true);
 
       setTimeout(() => {
@@ -408,11 +433,7 @@ export function ServiceDetailDialog({
                         Precio total:
                       </span>
                       <span className="text-xl font-bold text-green-700">
-                        $
-                        {bookingData.totalFare?.toLocaleString("es-CL") ||
-                          availableSeats
-                            .find((s) => s.number === selectedSeat)
-                            ?.price.toLocaleString("es-CL")}
+                        ${bookingData.monto_boleto.toLocaleString("es-CL")}
                       </span>
                     </div>
                   </div>
