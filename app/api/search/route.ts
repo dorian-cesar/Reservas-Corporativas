@@ -47,7 +47,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validar formato de fecha (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(date)) {
       return NextResponse.json(

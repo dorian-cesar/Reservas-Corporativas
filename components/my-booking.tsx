@@ -23,8 +23,10 @@ import {
   AlertCircle,
   Building,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { generateTicketPDF } from "@/lib/ticket-generator";
+import Swal from "sweetalert2";
 
 interface MyBookingsProps {
   showActiveOnly?: boolean;
@@ -66,6 +68,7 @@ export function MyBookings({
   const { token } = useAuth();
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !token) {
@@ -100,12 +103,19 @@ export function MyBookings({
           price: booking.monto_boleto || booking.fare,
           bookedAt: booking.confirmedAt || booking.created_at,
           companyName: user?.companyName,
+          departureTime: booking.departureTime,
         }));
 
         console.log("Mapped bookings:", mappedBookings);
         setUserBookings(mappedBookings);
       } catch (error) {
         console.error("Error cargando tickets", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Error al cargar las reservas",
+          confirmButtonText: "Entendido",
+        });
       } finally {
         setLoading(false);
       }
@@ -113,6 +123,222 @@ export function MyBookings({
 
     loadTickets();
   }, [user, token]);
+
+  // const handleDownloadTicket = (booking: Booking) => {
+  //   generateTicketPDF(booking);
+  // };
+
+  const handleCancelBooking = async (booking: Booking) => {
+    const refundAmount = calculateRefundAmount(booking.monto_boleto);
+
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      html: `
+        <div class="text-left">
+          <p>¿Deseas anular esta reserva? Esta acción no se puede deshacer.</p>
+        </div>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, anular reserva",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const bookingId = booking.id?.toString() || booking._id || "";
+    setCancelingId(bookingId);
+
+    try {
+      const cancelResponse = await fetch("/api/tickets/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticketNumber: booking.ticketNumber,
+          seatNumbers: booking.seatNumbers,
+        }),
+      });
+
+      const cancelResult = await cancelResponse.json();
+
+      if (!cancelResponse.ok) {
+        throw new Error(
+          cancelResult.error || "Error al anular la reserva en Kupos"
+        );
+      }
+
+      if (cancelResult.success) {
+        const updateResponse = await fetch(`/api/cancel-db/${booking.id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ticketStatus: "Anulado",
+            monto_devolucion: cancelResult.refundAmount || 0,
+          }),
+        });
+
+        const updateResult = await updateResponse.json();
+
+        if (!updateResponse.ok) {
+          console.error("Error actualizando BD:", updateResult.error);
+          Swal.fire({
+            icon: "warning",
+            title: "Reserva anulada con observaciones",
+            html: `
+              <div class="text-center">
+                <p>La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
+                <p class="mt-2 text-sm">Por favor, contacte al administrador.</p>
+                ${
+                  cancelResult.refundAmount
+                    ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
+                        cancelResult.refundAmount
+                      )}</p>`
+                    : ""
+                }
+              </div>
+            `,
+            confirmButtonText: "Entendido",
+          });
+        } else {
+          Swal.fire({
+            icon: "success",
+            title: "¡Reserva anulada!",
+            html: `
+              <div class="text-center">
+                <p>La reserva ha sido anulada exitosamente.</p>
+                ${
+                  cancelResult.refundAmount
+                    ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
+                        cancelResult.refundAmount
+                      )}</p>`
+                    : ""
+                }
+              </div>
+            `,
+            confirmButtonText: "Entendido",
+          });
+        }
+
+        setUserBookings((prevBookings) =>
+          prevBookings.map((b) =>
+            b.id?.toString() === bookingId || b._id === bookingId
+              ? {
+                  ...b,
+                  ticketStatus: "Anulado",
+                  status: "anulado",
+                  monto_devolucion: cancelResult.refundAmount || 0,
+                }
+              : b
+          )
+        );
+      } else {
+        throw new Error(cancelResult.error || "Error al anular la reserva");
+      }
+    } catch (error) {
+      console.error("Error anulando reserva:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          error instanceof Error ? error.message : "Error al anular la reserva",
+        confirmButtonText: "Entendido",
+      });
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+    }).format(price);
+
+  const formatTravelDate = (date: string) => {
+    try {
+      const [year, month, day] = date.split("-").map(Number);
+
+      const weekdays = [
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado",
+      ];
+      const months = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+
+      const localDate = new Date(year, month - 1, day);
+      const weekday = weekdays[localDate.getDay()];
+      const monthName = months[month - 1];
+
+      return `${weekday} ${day} de ${monthName} de ${year}`;
+    } catch (error) {
+      console.error("Error formateando fecha de viaje:", error);
+      return date;
+    }
+  };
+
+  const formatBookingDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("es-CL", {
+        timeZone: "America/Santiago",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch (error) {
+      console.error("Error formateando fecha de reserva:", error);
+      return dateString;
+    }
+  };
+
+  const formatBookingTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("es-CL", {
+        timeZone: "America/Santiago",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    } catch (error) {
+      console.error("Error formateando hora de reserva:", error);
+      return dateString;
+    }
+  };
+
+  const calculateRefundAmount = (monto_boleto: number): number => {
+    const refundPercentage = Number(user?.companyPorcentajeDevolucion) || 0;
+    return monto_boleto * refundPercentage;
+  };
 
   if (loading) {
     return (
@@ -139,36 +365,6 @@ export function MyBookings({
       ? sortedBookings.slice(0, limit)
       : sortedBookings;
 
-  // const handleDownloadTicket = (booking: Booking) => {
-  //   generateTicketPDF(booking);
-  // };
-
-  const handleCancelBooking = (bookingId: string) => {
-    if (confirm("¿Estás seguro de que deseas anular esta reserva?")) {
-      console.log("Anulando reserva:", bookingId);
-      alert("Funcionalidad de anulación en desarrollo");
-    }
-  };
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: "CLP",
-    }).format(price);
-
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("es-CL", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-  const calculateRefundAmount = (monto_boleto: number): number => {
-    const refundPercentage = Number(user?.companyPorcentajeDevolucion) || 0;
-    return monto_boleto * refundPercentage;
-  };
-
   const content = (
     <>
       {finalBookings.length === 0 ? (
@@ -183,11 +379,12 @@ export function MyBookings({
       ) : (
         <div className="space-y-4 sm:space-y-6">
           {finalBookings.map((booking, index) => {
-            const refundAmount = calculateRefundAmount(booking.monto_boleto);
+            const bookingId = booking.id?.toString() || booking._id || "";
+            const isCanceling = cancelingId === bookingId;
 
             return (
               <div
-                key={booking.id || booking._id}
+                key={bookingId}
                 className="p-4 sm:p-6 border-2 rounded-lg hover:border-primary transition-all duration-300 hover:shadow-md animate-in fade-in slide-in-from-left-4 bg-card mx-2 sm:mx-0"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -242,7 +439,7 @@ export function MyBookings({
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <div className="font-medium">
-                        {formatDate(booking.travelDate)}
+                        {formatTravelDate(booking.travelDate)}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Fecha de viaje
@@ -278,30 +475,15 @@ export function MyBookings({
                     <div className="font-bold text-lg text-accent">
                       {formatPrice(booking.monto_boleto || booking.fare)}
                     </div>
-                    {refundAmount > 0 && (
-                      <div className="text-xs text-orange-400 pl-1">
-                        <span className="font-semibold">
-                          {formatPrice(refundAmount)}
-                        </span>{" "}
-                        devolución
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* FECHA RESERVA */}
                 <div className="text-xs text-muted-foreground mb-4">
                   Reservado el{" "}
-                  {new Date(
-                    booking.confirmedAt || booking.created_at
-                  ).toLocaleDateString("es-CL")}{" "}
+                  {formatBookingDate(booking.confirmedAt || booking.created_at)}{" "}
                   a las{" "}
-                  {new Date(
-                    booking.confirmedAt || booking.created_at
-                  ).toLocaleTimeString("es-CL", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
+                  {formatBookingTime(booking.confirmedAt || booking.created_at)}{" "}
                   hrs
                 </div>
 
@@ -322,14 +504,20 @@ export function MyBookings({
                       size="sm"
                       variant="outline"
                       className="flex-1 gap-2 text-red-600 border-red-300"
-                      onClick={() =>
-                        handleCancelBooking(
-                          booking.id?.toString() || booking._id || ""
-                        )
-                      }
+                      onClick={() => handleCancelBooking(booking)}
+                      disabled={isCanceling}
                     >
-                      <XCircle className="h-4 w-4" />
-                      Anular Reserva
+                      {isCanceling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Anulando...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4" />
+                          Anular Reserva
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
