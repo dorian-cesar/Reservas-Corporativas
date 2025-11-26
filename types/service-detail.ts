@@ -41,6 +41,7 @@ export interface ServiceDetail {
 export interface Seat {
   number: string;
   price: number;
+  basePrice: number;
   available: boolean;
   type?: string;
   row: number;

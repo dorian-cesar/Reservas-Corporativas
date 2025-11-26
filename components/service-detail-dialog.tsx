@@ -26,6 +26,8 @@ import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
 import type { ServiceDetail, Seat } from "@/types/service-detail";
 import { useTravel } from "@/components/context/travel-context";
+import { useUserStore } from "@/lib/user-store";
+import { useRouter } from "next/navigation";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -38,7 +40,7 @@ export function ServiceDetailDialog({
   open,
   onOpenChange,
 }: ServiceDetailDialogProps) {
-  const { user } = useAuth();
+  const { user } = useUserStore();
   const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(
     null
   );
@@ -50,15 +52,16 @@ export function ServiceDetailDialog({
   const [bookingData, setBookingData] = useState<any>(null);
   const { origin, destination } = useTravel();
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const router = useRouter();
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
     const priceMatch = costString.match(/(\d+\.?\d*)/);
-    if (priceMatch) {
-      const price = parseFloat(priceMatch[1]);
-      return price.toLocaleString("es-CL");
-    }
-    return "0";
+    if (!priceMatch) return "0";
+    const base = parseFloat(priceMatch[1]);
+    const recargo = (base * (user?.companyRecargo || 0)) / 100;
+    const finalPrice = base + recargo;
+    return finalPrice.toLocaleString("es-CL");
   };
 
   const getMainBusType = (busType: string | null | undefined): string => {
@@ -114,13 +117,20 @@ export function ServiceDetailDialog({
 
     const seats: Seat[] = [];
     const availableSeats = serviceDetail.bus_layout.available.split(",");
+    const companyRecargo = user?.companyRecargo || 0;
 
     availableSeats.forEach((seatInfo) => {
       const [seatNumber, priceStr] = seatInfo.split("|");
+
       if (seatNumber && priceStr) {
+        const base = parseFloat(priceStr.trim());
+        const recargo = (base * companyRecargo) / 100;
+        const finalPrice = base + recargo;
+
         seats.push({
           number: seatNumber.trim(),
-          price: parseFloat(priceStr),
+          price: finalPrice,
+          basePrice: base,
           available: true,
           row: Math.ceil(parseInt(seatNumber) / 4),
           position: (parseInt(seatNumber) - 1) % 4,
@@ -168,8 +178,8 @@ export function ServiceDetailDialog({
 
     try {
       const boardingPoint = serviceDetail.boarding_stages?.split("|")[0];
-      const seatPrice =
-        availableSeats.find((s) => s.number === selectedSeat)?.price || 0;
+      const seatObj = availableSeats.find((s) => s.number === selectedSeat);
+      const seatPrice = seatObj?.basePrice || 0;
 
       const bookResponse = await fetch("/api/reserve", {
         method: "POST",
@@ -266,7 +276,8 @@ export function ServiceDetailDialog({
         setSelectedSeat(null);
         setBookingData(null);
         onOpenChange(false);
-      }, 5000);
+        router.push("/dashboard");
+      }, 10000);
     } catch (err) {
       console.error("Error inesperado:", err);
       setBookingError("Error inesperado al procesar la reserva");
@@ -322,7 +333,7 @@ export function ServiceDetailDialog({
               </div>
 
               {bookingData && (
-                <div className="w-full max-w-md bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
+                <div className="w-full max-w-md bg-linear-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
                   {/* Header de la tarjeta */}
                   <div className="text-center mb-4">
                     <Badge
@@ -418,7 +429,7 @@ export function ServiceDetailDialog({
               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-600">
                   Esta ventana se cerrará automáticamente en{" "}
-                  <span className="font-bold">5 segundos</span>
+                  <span className="font-bold">10 segundos</span>
                 </p>
               </div>
             </div>

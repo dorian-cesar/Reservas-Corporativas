@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, Users, CheckCircle2, Bus } from "lucide-react";
 import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 import { useTravel } from "@/components/context/travel-context";
+import { useUserStore } from "@/lib/user-store";
 
 interface BusService {
   id: number;
@@ -40,6 +41,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
   const availabilityPercentage =
     (service.available_seats / service.total_seats) * 100;
   const { origin, destination } = useTravel();
+  const { user } = useUserStore();
 
   const getAvailabilityVariant = () => {
     if (service.available_seats === 0) return "destructive";
@@ -68,6 +70,9 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
   };
 
   const amenities = getAmenities();
+
+  const recargo = user?.companyRecargo ?? 0;
+  const precioFinal = Math.round(service.price * (1 + recargo / 100));
 
   return (
     <>
@@ -121,7 +126,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
             </div>
             <div className="flex items-center gap-1 text-2xl font-bold text-primary">
               <span>$</span>
-              {service.price.toLocaleString("es-CL")}
+              {precioFinal.toLocaleString("es-CL")}
             </div>
           </div>
 

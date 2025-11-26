@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { BusServiceCard } from "@/components/bus-service-card";
 import { useTravel } from "@/components/context/travel-context";
+import { useUserStore } from "@/lib/user-store";
 
 interface City {
   id: number;
@@ -64,14 +65,15 @@ export function TravelSearch() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
     useTravel();
+  const user = useUserStore((s) => s.user);
+  const loadingUser = useUserStore((s) => s.loading);
 
   useEffect(() => {
     const loadCities = async () => {
       try {
         const res = await fetch("/api/cities");
-        if (!res.ok) {
-          throw new Error("Error loading cities");
-        }
+        if (!res.ok) throw new Error("Error loading cities");
+
         const data = await res.json();
         setCities(data.cities || []);
       } catch (error) {
@@ -127,16 +129,15 @@ export function TravelSearch() {
       }
 
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      const mapped =
+        data.services?.map((s: any) => ({
+          ...s,
+          user: user ?? null,
+        })) ?? [];
 
-      if (data.services) {
-        setServices(data.services);
-      } else {
-        setServices([]);
-      }
+      setServices(mapped);
     } catch (error) {
       console.error("Error searching services:", error);
       setSearchError(
@@ -149,11 +150,17 @@ export function TravelSearch() {
   };
 
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
-
   const isSearchDisabled = !origin || !destination || !date || isLoading;
   const isSwapDisabled = !origin && !destination;
-
   const today = new Date().toISOString().split("T")[0];
+
+  if (loadingUser) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -202,7 +209,6 @@ export function TravelSearch() {
                 />
               </div>
 
-              {/* BOTÓN DE INTERCAMBIO - COLUMNA PEQUEÑA */}
               <div className="flex items-center justify-center h-10">
                 <Button
                   type="button"
