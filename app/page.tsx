@@ -13,7 +13,16 @@ export default function HomePage() {
     if (!hydrated) return;
 
     if (isAuthenticated) {
-      router.push("/dashboard");
+      const currentUser = useAuth.getState().user;
+      const role = currentUser?.role ?? "user";
+
+      if (role === "superuser") {
+        router.push("/admin");
+      } else if (role === "contralor") {
+        router.push("/controller");
+      } else {
+        router.push("/dashboard");
+      }
     } else {
       router.push("/login");
     }
