@@ -41,6 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import * as XLSX from "xlsx";
+
 export function AllBookingsAdmin() {
   const { token } = useAuth.getState();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -240,22 +242,36 @@ export function AllBookingsAdmin() {
     });
   };
 
-  const exportToJSON = () => {
-    const dataStr = JSON.stringify(filteredTickets, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `tickets_${new Date().toISOString().split('T')[0]}.json`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportToXLSX = () => {
+    if (!filteredTickets || filteredTickets.length === 0) return;
+
+    const data = filteredTickets.map(ticket => ({
+      "Número de Ticket": ticket.ticketNumber,
+      "Estado": ticket.ticketStatus,
+      "Origen": ticket.origin,
+      "Destino": ticket.destination,
+      "Fecha de Viaje": ticket.travelDate,
+      "Hora de Salida": ticket.departureTime,
+      "Asiento": ticket.seatNumbers,
+      "Valor Asiento": ticket.fare,
+      "Monto Boleto": ticket.monto_boleto,
+      "Confirmado En": ticket.confirmedAt,
+      "ID Usuario": ticket.id_User,
+      "Creado En": ticket.created_at,
+      "Actualizado En": ticket.updated_at
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+
+    XLSX.writeFile(workbook, `tickets_${new Date().toISOString().split('T')[0]}.xlsx`);
 
     setIsExportDialogOpen(false);
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${filteredTickets.length} tickets a JSON`,
+      description: `Se exportaron ${filteredTickets.length} tickets a XLSX`,
     });
   };
 
@@ -314,10 +330,10 @@ export function AllBookingsAdmin() {
                       CSV
                     </Button>
                     <Button
-                      onClick={exportToJSON}
+                      onClick={exportToXLSX}
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
                     >
-                      JSON
+                      XLSX
                     </Button>
                   </div>
                 </div>
