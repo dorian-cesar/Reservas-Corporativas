@@ -40,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import ToolBar from "./tool-bar";
 
 export function CurrentAccounts() {
   const { token } = useAuth.getState();
@@ -240,125 +241,108 @@ export function CurrentAccounts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Cuenta corriente</h2>
-          <p className="text-muted-foreground">Gestione los movimientos de cuenta corriente por empresa</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Toggle de Vista */}
-          <div className="flex border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
+      <ToolBar
+        title="Cuenta corriente"
+        description="Gestione los movimientos de cuenta corriente por empresa"
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+
+        showCompanySelect
+        companies={companies}
+        selectedCompany={selectedCompany}
+        onCompanyChange={(id) => setSelectedCompany(id)}
+
+        refreshAction={() => selectedCompany && fetchMovements(selectedCompany)}
+
+        primaryAction={{
+          label: "Nuevo Movimiento",
+          icon: <Plus className="h-4 w-4" />,
+          onClick: openAddDialog,
+          disabled: !selectedCompany,
+        }}
+      />
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogTrigger asChild>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Nuevo Movimiento</DialogTitle>
+            <DialogDescription>Registre un nuevo movimiento en la cuenta corriente</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="empresa">Empresa</Label>
+              <select
+                id="empresa"
+                value={formData.empresa_id}
+                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                className="w-full p-2 border rounded-md"
+                disabled
+              >
+                <option value="">Seleccione una empresa</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Movimiento</Label>
+              <select
+                id="tipo"
+                value={formData.tipo_movimiento}
+                onChange={(e) => setFormData({ ...formData, tipo_movimiento: e.target.value as 'abono' | 'cargo' })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="abono">Abono</option>
+                <option value="cargo">Cargo</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="monto">Monto *</Label>
+              <Input
+                id="monto"
+                type="number"
+                step="1"
+                placeholder="0"
+                value={formData.monto}
+                onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descripcion">Descripción</Label>
+              <Input
+                id="descripcion"
+                placeholder="Descripción del movimiento"
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="referencia">Referencia</Label>
+              <Input
+                id="referencia"
+                placeholder="Número de referencia"
+                value={formData.referencia}
+                onChange={(e) => setFormData({ ...formData, referencia: e.target.value })}
+              />
+            </div>
           </div>
-
-          <Button onClick={() => selectedCompany && fetchMovements(selectedCompany)} className="bg-secondary hover:bg-secondary/90 justify-center">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90" disabled={!selectedCompany}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Movimiento
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Agregar Nuevo Movimiento</DialogTitle>
-                <DialogDescription>Registre un nuevo movimiento en la cuenta corriente</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="empresa">Empresa</Label>
-                  <select
-                    id="empresa"
-                    value={formData.empresa_id}
-                    onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                    disabled
-                  >
-                    <option value="">Seleccione una empresa</option>
-                    {companies.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tipo">Tipo de Movimiento</Label>
-                  <select
-                    id="tipo"
-                    value={formData.tipo_movimiento}
-                    onChange={(e) => setFormData({ ...formData, tipo_movimiento: e.target.value as 'abono' | 'cargo' })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="abono">Abono</option>
-                    <option value="cargo">Cargo</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="monto">Monto *</Label>
-                  <Input
-                    id="monto"
-                    type="number"
-                    step="1"
-                    placeholder="0"
-                    value={formData.monto}
-                    onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="descripcion">Descripción</Label>
-                  <Input
-                    id="descripcion"
-                    placeholder="Descripción del movimiento"
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="referencia">Referencia</Label>
-                  <Input
-                    id="referencia"
-                    placeholder="Número de referencia"
-                    value={formData.referencia}
-                    onChange={(e) => setFormData({ ...formData, referencia: e.target.value })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                  Agregar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Selector de Empresa */}
       <Card>
         <CardContent className="pt-6">

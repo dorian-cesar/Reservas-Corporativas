@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table"
 
 import * as XLSX from "xlsx";
+import ToolBar from "./tool-bar";
 
 export function AllBookingsAdmin() {
   const { token } = useAuth.getState();
@@ -277,76 +278,53 @@ export function AllBookingsAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Gestión de Tickets</h2>
-          <p className="text-muted-foreground">Visualice y exporte los tickets del sistema</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Toggle de Vista */}
-          <div className="flex border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
-          </div>
+      <ToolBar
+        title="Gestión de Tickets"
+        description="Visualice y exporte los tickets del sistema"
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        refreshAction={fetchTickets}
+        secondaryAction={{
+          label: "Exportar",
+          icon: <Download className="h-4 w-4" />,
+          onClick: () => setIsExportDialogOpen(true),
+        }}
+      />
 
-          <Button onClick={() => fetchTickets()} className="bg-secondary hover:bg-secondary/90 justify-center">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-
-          <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-            <Button onClick={() => setIsExportDialogOpen(true)} className="bg-accent hover:bg-accent/90">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <DialogContent className="sm:max-w-[400px]">
-              <DialogHeader>
-                <DialogTitle>Exportar Tickets</DialogTitle>
-                <DialogDescription>
-                  Exporte los tickets filtrados ({filteredTickets.length} registros)
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>Formato de exportación</Label>
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={exportToCSV}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                    >
-                      CSV
-                    </Button>
-                    <Button
-                      onClick={exportToXLSX}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      XLSX
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
-                  Cancelar
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar Tickets</DialogTitle>
+            <DialogDescription>
+              Exporte los tickets filtrados ({filteredTickets.length} registros)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Formato de exportación</Label>
+              <div className="flex gap-4">
+                <Button
+                  onClick={exportToCSV}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  CSV
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+                <Button
+                  onClick={exportToXLSX}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  XLSX
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filtros */}
       <Card>

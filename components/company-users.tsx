@@ -38,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import ToolBar from "./tool-bar";
 
 export function CompanyUsers() {
   const { token } = useAuth.getState();
@@ -68,7 +69,7 @@ export function CompanyUsers() {
     rut: "",
     email: "",
     password: "",
-    rol: "user",
+    rol: "subusuario",
     estado: true,
     empresa_id: "",
     centro_costo_id: ""
@@ -178,7 +179,7 @@ export function CompanyUsers() {
       rut: "",
       email: "",
       password: "",
-      rol: "user",
+      rol: "subusuario",
       estado: true,
       empresa_id: "",
       centro_costo_id: ""
@@ -387,7 +388,7 @@ export function CompanyUsers() {
     switch (rol) {
       case "superuser": return "Super Usuario";
       case "admin": return "Administrador";
-      case "user": return "Usuario";
+      case "subusuario": return "Usuario";
       default: return rol;
     }
   };
@@ -402,167 +403,143 @@ export function CompanyUsers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Gestión de Usuarios</h2>
-          <p className="text-muted-foreground">Administre los usuarios del sistema</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Toggle de Vista */}
-          <div className="flex border rounded-lg p-1 bg-muted/50">
-            <Button
-              variant={viewMode === "cards" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
+      <ToolBar
+        title="Gestión de Usuarios"
+        description="Administre los usuarios del sistema"
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        refreshAction={fetchUsers}
+        primaryAction={{
+          label: "Agregar Usuario",
+          icon: <Plus className="h-4 w-4" />,
+          onClick: openAddDialog,
+        }}
+      />
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogTrigger asChild>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
+            <DialogDescription>Complete los datos del usuario</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nombre">Nombre Completo *</Label>
+              <Input
+                id="nombre"
+                placeholder="Ej: Juan Pérez"
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rut">RUT *</Label>
+              <Input
+                id="rut"
+                placeholder="Ej: 12345678-9"
+                value={formData.rut}
+                onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Ej: usuario@empresa.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña *</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Ingrese la contraseña"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rol">Rol</Label>
+              <select
+                id="rol"
+                value={formData.rol}
+                onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="admin">Administrador</option>
+                <option value="empresa">Empresa</option>
+                <option value="subusuario">usuario</option>
+                <option value="auditoria">Auditoria</option>
+                <option value="contralor">Contralor</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="empresa_id">Empresa</Label>
+              <select
+                id="empresa_id"
+                value={formData.empresa_id}
+                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Selecciona una empresa</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.id} - {company.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="centro_costo_id">Centro de Costo</Label>
+              <select
+                id="centro_costo_id"
+                value={formData.centro_costo_id}
+                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+                disabled={!formData.empresa_id || isLoadingCostCenters}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Selecciona un centro de costo</option>
+                {isLoadingCostCenters ? (
+                  <option value="" disabled>Cargando centros de costo...</option>
+                ) : (
+                  costCenters.map((costCenter) => (
+                    <option key={costCenter.id} value={costCenter.id}>
+                      {costCenter.nombre}
+                    </option>
+                  ))
+                )}
+              </select>
+              {!formData.empresa_id && (
+                <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="estado">Estado</Label>
+              <select
+                id="estado"
+                value={formData.estado.toString()}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
+              </select>
+            </div>
           </div>
-
-          <Button onClick={() => fetchUsers()} className="bg-secondary hover:bg-secondary/90 justify-center">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Usuario
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
-                <DialogDescription>Complete los datos del usuario</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre Completo *</Label>
-                  <Input
-                    id="nombre"
-                    placeholder="Ej: Juan Pérez"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rut">RUT *</Label>
-                  <Input
-                    id="rut"
-                    placeholder="Ej: 12345678-9"
-                    value={formData.rut}
-                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Ej: usuario@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Ingrese la contraseña"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rol">Rol</Label>
-                  <select
-                    id="rol"
-                    value={formData.rol}
-                    onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="user">Usuario</option>
-                    <option value="admin">Administrador</option>
-                    <option value="empresa">Empresa</option>
-                    <option value="subusuario">Subusuario</option>
-                    <option value="auditoria">Auditoria</option>
-                    <option value="contralor">Contralor</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="empresa_id">Empresa</Label>
-                  <select
-                    id="empresa_id"
-                    value={formData.empresa_id}
-                    onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Selecciona una empresa</option>
-                    {companies.map((company) => (
-                      <option key={company.id} value={company.id}>
-                        {company.id} - {company.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="centro_costo_id">Centro de Costo</Label>
-                  <select
-                    id="centro_costo_id"
-                    value={formData.centro_costo_id}
-                    onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
-                    disabled={!formData.empresa_id || isLoadingCostCenters}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Selecciona un centro de costo</option>
-                    {isLoadingCostCenters ? (
-                      <option value="" disabled>Cargando centros de costo...</option>
-                    ) : (
-                      costCenters.map((costCenter) => (
-                        <option key={costCenter.id} value={costCenter.id}>
-                          {costCenter.nombre}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  {!formData.empresa_id && (
-                    <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estado">Estado</Label>
-                  <select
-                    id="estado"
-                    value={formData.estado.toString()}
-                    onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                  </select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                  Agregar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
@@ -813,10 +790,9 @@ export function CompanyUsers() {
                 onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="user">Usuario</option>
                 <option value="admin">Administrador</option>
                 <option value="empresa">Empresa</option>
-                <option value="subusuario">Subusuario</option>
+                <option value="subusuario">Usuario</option>
                 <option value="auditoria">Auditoria</option>
                 <option value="contralor">Contralor</option>
               </select>

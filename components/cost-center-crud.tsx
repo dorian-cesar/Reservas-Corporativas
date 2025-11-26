@@ -35,6 +35,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import ToolBar from "./tool-bar";
 
 export function CostCentersCRUD() {
     const { token } = useAuth.getState();
@@ -71,6 +72,12 @@ export function CostCentersCRUD() {
     useEffect(() => {
         fetchCompanies();
     }, []);
+
+    useEffect(() => {
+        if (!empresaId) return;
+        fetchCostCenters(empresaId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [empresaId]);
 
     const fetchCompanies = async () => {
         try {
@@ -300,145 +307,91 @@ export function CostCentersCRUD() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold">Centros de Costo</h2>
-                    <p className="text-muted-foreground">Gestione los centros de costo de las empresas</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    {/* Buscador de Empresa */}
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="empresa_id" className="text-sm font-medium">
-                            Empresa
-                        </Label>
-                        <div className="flex gap-2">
-                            <div className="space-y-2">
-                                <select
-                                    id="empresa_id"
-                                    value={empresaId}
-                                    onChange={(e) => {
-                                        setEmpresaId(e.target.value);
-                                    }}
-                                    className="w-full p-2 border rounded-md"
-                                >
-                                    <option value="">Selecciona una empresa</option>
-                                    {companies.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.id} - {c.nombre}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <Button
-                                onClick={handleSearch}
-                                disabled={isLoading || !empresaId}
-                                className="bg-accent hover:bg-accent/90"
+            <ToolBar
+                title="Centros de Costo"
+                description="Gestione los centros de costo de las empresas"
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+
+                // company select (usa tu estado companies / empresaId)
+                showCompanySelect
+                companies={companies}
+                selectedCompany={empresaId}
+                onCompanyChange={(id) => setEmpresaId(id)}
+
+                // search: aquí usaremos el mismo comportamiento del botón de buscar
+                // showSearch
+                // searchValue={empresaId}
+                // onSearchChange={(v) => setEmpresaId(v)}
+                // onSearch={handleSearch}
+                // searchPlaceholder="ID de empresa..."
+
+                refreshAction={() => handleSearch()}
+
+                primaryAction={{
+                    label: "Agregar Centro",
+                    icon: <Plus className="h-4 w-4" />,
+                    onClick: openAddDialog,
+                    className: "bg-accent hover:bg-accent/90",
+                }}
+            />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Agregar Nuevo Centro de Costo</DialogTitle>
+                        <DialogDescription>Complete los datos del centro de costo</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="nombre">Nombre del Centro de Costo *</Label>
+                            <Input
+                                id="nombre"
+                                placeholder="Ej: Departamento de Ventas"
+                                value={formData.nombre}
+                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="empresa_id">Empresa *</Label>
+                            <select
+                                id="empresa_id"
+                                value={formData.empresa_id}
+                                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                                className="w-full p-2 border rounded-md"
                             >
-                                <Search className="h-4 w-4" />
-                            </Button>
+                                <option value="">Selecciona una empresa</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.id} - {company.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="estado">Estado</Label>
+                            <select
+                                id="estado"
+                                value={formData.estado.toString()}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                                className="w-full p-2 border rounded-md"
+                            >
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
                         </div>
                     </div>
-
-                    {/* Toggle de Vista - Solo mostrar si hay datos */}
-                    {costCenters.length > 0 && (
-                        <div className="flex border rounded-lg p-1 bg-muted/50">
-                            <Button
-                                variant={viewMode === "cards" ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => setViewMode("cards")}
-                                className="h-8 px-3"
-                            >
-                                <LayoutGrid className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant={viewMode === "table" ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => setViewMode("table")}
-                                className="h-8 px-3"
-                            >
-                                <Table className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Botón Actualizar - Solo mostrar si hay empresa seleccionada */}
-                    {empresaId && (
-                        <Button
-                            onClick={handleSearch}
-                            disabled={isLoading}
-                            className="bg-secondary hover:bg-secondary/90 justify-center"
-                        >
-                            <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                            Cancelar
                         </Button>
-                    )}
-
-                    {/* Botón Agregar - Solo mostrar si hay empresa seleccionada */}
-                    {empresaId && (
-                        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Agregar Centro
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[500px]">
-                                <DialogHeader>
-                                    <DialogTitle>Agregar Nuevo Centro de Costo</DialogTitle>
-                                    <DialogDescription>Complete los datos del centro de costo</DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="nombre">Nombre del Centro de Costo *</Label>
-                                        <Input
-                                            id="nombre"
-                                            placeholder="Ej: Departamento de Ventas"
-                                            value={formData.nombre}
-                                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="empresa_id">Empresa *</Label>
-                                        <select
-                                            id="empresa_id"
-                                            value={formData.empresa_id}
-                                            onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                                            className="w-full p-2 border rounded-md"
-                                        >
-                                            <option value="">Selecciona una empresa</option>
-                                            {companies.map((company) => (
-                                                <option key={company.id} value={company.id}>
-                                                    {company.id} - {company.nombre}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="estado">Estado</Label>
-                                        <select
-                                            id="estado"
-                                            value={formData.estado.toString()}
-                                            onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
-                                            className="w-full p-2 border rounded-md"
-                                        >
-                                            <option value="true">Activo</option>
-                                            <option value="false">Inactivo</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                                        Cancelar
-                                    </Button>
-                                    <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                                        Agregar
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
-                </div>
-            </div>
-
+                        <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+                            Agregar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             {/* Estado de carga */}
             {isLoading && (
                 <div className="text-center py-8">
