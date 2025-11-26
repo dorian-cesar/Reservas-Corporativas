@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
+import { useAuth, useTokenExpiration } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Users, BarChart } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -13,9 +13,12 @@ interface HeaderProps {
 }
 
 export function Header({ onLogout }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+
+  // arrancar watcher con check cada 30s y force logout si quedan < 15 minutos
+  useTokenExpiration(30_000, 15 * 60 * 1000);
 
   const navigation = [
     { name: "Inicio", href: "/" },
@@ -24,11 +27,8 @@ export function Header({ onLogout }: HeaderProps) {
 
   const handleLogout = () => {
     logout();
-    if (onLogout) {
-      onLogout();
-    } else {
-      router.push("/login");
-    }
+    if (onLogout) onLogout();
+    else router.push("/login");
   };
 
   const allowedRoles = ["user", "subusuario"];
@@ -48,9 +48,7 @@ export function Header({ onLogout }: HeaderProps) {
             />
             <div>
               <h1 className="text-xl font-bold">Pullman Bus</h1>
-              <p className="text-sm text-muted-foreground">
-                Reservas Corporativas
-              </p>
+              <p className="text-sm text-muted-foreground">Reservas Corporativas</p>
             </div>
           </div>
 
@@ -67,33 +65,18 @@ export function Header({ onLogout }: HeaderProps) {
 
             <div className="flex gap-2">
               {user?.role === "admin" && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => router.push("/controller")}
-                  className="transition-all hover:scale-105"
-                >
+                <Button variant="outline" size="icon" onClick={() => router.push("/controller")}>
                   <Users className="h-4 w-4" />
                 </Button>
               )}
 
               {user?.role === "superuser" && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => router.push("/admin")}
-                  className="transition-all hover:scale-105"
-                >
+                <Button variant="outline" size="icon" onClick={() => router.push("/admin")}>
                   <BarChart className="h-4 w-4" />
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleLogout}
-                className="transition-all hover:scale-105 bg-transparent"
-              >
+              <Button variant="outline" size="icon" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
