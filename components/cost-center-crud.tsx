@@ -110,10 +110,13 @@ export function CostCentersCRUD() {
         setIsLoading(true);
         try {
             const url = `/api/centros-costo/empresa/${targetEmpresaId}`;
+            console.log("🔄 Fetching from:", url); // ← Agregar log
 
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
+            console.log("📡 Response status:", res.status); // ← Agregar log
 
             if (!res.ok) {
                 if (res.status === 404) {
@@ -123,6 +126,7 @@ export function CostCentersCRUD() {
             }
 
             const costCentersData = await res.json();
+            console.log("✅ Cost centers data:", costCentersData); // ← Agregar log
 
             const costCentersMapped = costCentersData.map((costCenter: any) => ({
                 id: costCenter.id.toString(),
@@ -147,7 +151,7 @@ export function CostCentersCRUD() {
                 });
             }
         } catch (err) {
-            console.error("Error fetching cost centers:", err);
+            console.error("❌ Error fetching cost centers:", err);
             toast({
                 title: "Error",
                 description: err instanceof Error ? err.message : "No se pudieron cargar los centros de costo",
