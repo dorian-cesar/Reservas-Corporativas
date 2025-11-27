@@ -70,6 +70,32 @@ export function MyBookings({
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
+  };
+
   useEffect(() => {
     if (!user || !token) {
       console.log("No user or token:", { user, token });
@@ -128,20 +154,41 @@ export function MyBookings({
   const handleCancelBooking = async (booking: Booking) => {
     const refundAmount = calculateRefundAmount(booking.monto_boleto);
 
+    // Mostrar el monto de devolución en la confirmación
     const result = await Swal.fire({
       title: "¿Estás seguro?",
       html: `
-      <div class="text-left">
-        <p>¿Deseas anular esta reserva? Esta acción no se puede deshacer.</p>
+      <div class="text-left space-y-3">
+        <p class="text-foreground text-center mb-2">¿Deseas anular esta reserva?</p>
+        <p class="text-foreground text-center">Esta acción no se puede deshacer.</p>
+        <div class="bg-muted/50 p-3 rounded-lg border">
+          <p class="text-sm text-muted-foreground mb-1">Detalles de la anulación:</p>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="text-foreground">Asiento:</div>
+            <div class="font-medium">${booking.seatNumbers}</div>
+            <div class="text-foreground">Monto original:</div>
+            <div class="font-medium">${formatPrice(
+              booking.monto_boleto || booking.fare
+            )}</div>
+            <div class="text-foreground">Porcentaje devolución:</div>
+            <div class="font-medium">${
+              (Number(user?.companyPorcentajeDevolucion) || 0) * 100
+            }%</div>
+            <div class="text-foreground font-semibold">Monto a devolver:</div>
+            <div class="font-bold text-green-600">${formatPrice(
+              refundAmount
+            )}</div>
+          </div>
+        </div>
+        <p class="text-sm text-muted-foreground mt-2">* El monto de devolución será acreditado según las políticas de tu empresa.</p>
       </div>
     `,
       icon: "warning",
+      iconColor: "#f59e0b",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
       confirmButtonText: "Sí, anular reserva",
       cancelButtonText: "Cancelar",
-      reverseButtons: true,
+      ...swalConfig,
     });
 
     if (!result.isConfirmed) {
@@ -204,38 +251,51 @@ export function MyBookings({
             icon: "warning",
             title: "Reserva anulada con observaciones",
             html: `
-            <div class="text-center">
-              <p>La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
-              <p class="mt-2 text-sm">Error: ${updateResult.error}</p>
-              <p class="mt-2 text-sm">Por favor, contacte al administrador.</p>
+            <div class="text-center space-y-3">
+              <p class="text-foreground">La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
+              <div class="bg-muted/50 p-3 rounded-lg border">
+                <p class="text-sm text-muted-foreground mb-2">Error técnico:</p>
+                <p class="text-sm font-medium text-foreground">${
+                  updateResult.error
+                }</p>
+              </div>
+              <p class="text-sm text-muted-foreground">Por favor, contacte al administrador.</p>
               ${
                 refundAmount
-                  ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
-                      refundAmount
-                    )}</p>`
+                  ? `<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p class="font-semibold text-green-800">Monto a devolver: ${formatPrice(
+                        refundAmount
+                      )}</p>
+                    </div>`
                   : ""
               }
             </div>
           `,
             confirmButtonText: "Entendido",
+            ...swalConfig,
           });
         } else {
           Swal.fire({
             icon: "success",
             title: "¡Reserva anulada!",
             html: `
-            <div class="text-center">
-              <p>La reserva ha sido anulada exitosamente.</p>
+            <div class="text-center space-y-3">
+              <p class="text-foreground">La reserva ha sido anulada exitosamente.</p>
               ${
                 refundAmount
-                  ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
-                      refundAmount
-                    )}</p>`
+                  ? `<div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <p class="text-sm text-green-700 mb-1">Se ha procesado la devolución:</p>
+                      <p class="text-xl font-bold text-green-800">${formatPrice(
+                        refundAmount
+                      )}</p>
+                      <p class="text-xs text-green-600 mt-1">Este monto será acreditado según las políticas de tu empresa</p>
+                    </div>`
                   : ""
               }
             </div>
           `,
             confirmButtonText: "Entendido",
+            ...swalConfig,
           });
         }
 
@@ -260,9 +320,18 @@ export function MyBookings({
       Swal.fire({
         icon: "error",
         title: "Error",
-        text:
-          error instanceof Error ? error.message : "Error al anular la reserva",
+        html: `
+        <div class="text-center">
+          <p class="text-foreground mb-3">${
+            error instanceof Error
+              ? error.message
+              : "Error al anular la reserva"
+          }</p>
+          <p class="text-sm text-muted-foreground">Por favor, intente nuevamente o contacte al administrador.</p>
+        </div>
+      `,
         confirmButtonText: "Entendido",
+        ...swalConfig,
       });
     } finally {
       setCancelingId(null);
@@ -346,7 +415,8 @@ export function MyBookings({
 
   const calculateRefundAmount = (monto_boleto: number): number => {
     const refundPercentage = Number(user?.companyPorcentajeDevolucion) || 0;
-    return monto_boleto * refundPercentage;
+    const amount = monto_boleto * refundPercentage;
+    return Math.round(amount);
   };
 
   if (loading) {
