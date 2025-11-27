@@ -301,7 +301,6 @@ export function ServiceDetailDialog({
         setSelectedSeat(null);
         setBookingData(null);
         onOpenChange(false);
-        router.push("/dashboard");
       }, 10000);
     } catch (err) {
       console.error("Error inesperado:", err);

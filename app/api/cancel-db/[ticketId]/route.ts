@@ -10,6 +10,9 @@ export async function POST(
     const { ticketId } = await params;
     const { ticketStatus, monto_devolucion } = await req.json();
 
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
+
     if (!ticketId) {
       return NextResponse.json(
         { error: "Ticket ID es requerido" },
@@ -26,14 +29,19 @@ export async function POST(
 
     const url = `${URL_BACKEND}/api/tickets/${ticketId}`;
 
-    console.log("Actualizando ticket en backend:", url);
-    console.log("Datos a actualizar:", { ticketStatus, monto_devolucion });
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    } else {
+      console.warn("No se encontró token en la request");
+    }
 
     const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      method: "PUT",
+      headers,
       body: JSON.stringify({
         ticketStatus,
         monto_devolucion,
@@ -43,7 +51,10 @@ export async function POST(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Error actualizando ticket en backend:", errorText);
+      console.error("Error actualizando ticket en backend:", {
+        status: response.status,
+        error: errorText,
+      });
       return NextResponse.json(
         {
           error: "Error al actualizar el ticket en la base de datos",
@@ -54,7 +65,6 @@ export async function POST(
     }
 
     const data = await response.json();
-    console.log("Ticket actualizado exitosamente:", data);
 
     return NextResponse.json({
       success: true,

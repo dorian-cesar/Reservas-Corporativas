@@ -89,11 +89,9 @@ export function MyBookings({
         }
 
         const data = await res.json();
-        console.log("Raw data from API:", data);
 
         const mappedBookings = data.map((booking: Booking) => ({
           ...booking,
-          _id: booking.id?.toString(),
           status:
             booking.ticketStatus?.toLowerCase() === "confirmed"
               ? "confirmed"
@@ -106,7 +104,6 @@ export function MyBookings({
           departureTime: booking.departureTime,
         }));
 
-        console.log("Mapped bookings:", mappedBookings);
         setUserBookings(mappedBookings);
       } catch (error) {
         console.error("Error cargando tickets", error);
@@ -134,10 +131,10 @@ export function MyBookings({
     const result = await Swal.fire({
       title: "¿Estás seguro?",
       html: `
-        <div class="text-left">
-          <p>¿Deseas anular esta reserva? Esta acción no se puede deshacer.</p>
-        </div>
-      `,
+      <div class="text-left">
+        <p>¿Deseas anular esta reserva? Esta acción no se puede deshacer.</p>
+      </div>
+    `,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -151,8 +148,8 @@ export function MyBookings({
       return;
     }
 
-    const bookingId = booking.id?.toString() || booking._id || "";
-    setCancelingId(bookingId);
+    const bookingId = booking.id;
+    setCancelingId(String(bookingId));
 
     try {
       const cancelResponse = await fetch("/api/tickets/cancel", {
@@ -176,7 +173,8 @@ export function MyBookings({
       }
 
       if (cancelResult.success) {
-        const updateResponse = await fetch(`/api/cancel-db/${booking.id}`, {
+        const bookingId = booking.id;
+        const updateResponse = await fetch(`/api/cancel-db/${bookingId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -184,9 +182,19 @@ export function MyBookings({
           },
           body: JSON.stringify({
             ticketStatus: "Anulado",
-            monto_devolucion: cancelResult.refundAmount || 0,
+            monto_devolucion: refundAmount,
           }),
         });
+
+        const contentType = updateResponse.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          const htmlText = await updateResponse.text();
+          console.error(
+            "Se recibió HTML en lugar de JSON:",
+            htmlText.substring(0, 500)
+          );
+          throw new Error("La ruta de API no existe (404)");
+        }
 
         const updateResult = await updateResponse.json();
 
@@ -196,18 +204,19 @@ export function MyBookings({
             icon: "warning",
             title: "Reserva anulada con observaciones",
             html: `
-              <div class="text-center">
-                <p>La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
-                <p class="mt-2 text-sm">Por favor, contacte al administrador.</p>
-                ${
-                  cancelResult.refundAmount
-                    ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
-                        cancelResult.refundAmount
-                      )}</p>`
-                    : ""
-                }
-              </div>
-            `,
+            <div class="text-center">
+              <p>La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
+              <p class="mt-2 text-sm">Error: ${updateResult.error}</p>
+              <p class="mt-2 text-sm">Por favor, contacte al administrador.</p>
+              ${
+                refundAmount
+                  ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
+                      refundAmount
+                    )}</p>`
+                  : ""
+              }
+            </div>
+          `,
             confirmButtonText: "Entendido",
           });
         } else {
@@ -215,24 +224,24 @@ export function MyBookings({
             icon: "success",
             title: "¡Reserva anulada!",
             html: `
-              <div class="text-center">
-                <p>La reserva ha sido anulada exitosamente.</p>
-                ${
-                  cancelResult.refundAmount
-                    ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
-                        cancelResult.refundAmount
-                      )}</p>`
-                    : ""
-                }
-              </div>
-            `,
+            <div class="text-center">
+              <p>La reserva ha sido anulada exitosamente.</p>
+              ${
+                refundAmount
+                  ? `<p class="mt-2 font-semibold text-green-600">Monto a devolver: ${formatPrice(
+                      refundAmount
+                    )}</p>`
+                  : ""
+              }
+            </div>
+          `,
             confirmButtonText: "Entendido",
           });
         }
 
         setUserBookings((prevBookings) =>
           prevBookings.map((b) =>
-            b.id?.toString() === bookingId || b._id === bookingId
+            b.id === bookingId
               ? {
                   ...b,
                   ticketStatus: "Anulado",
@@ -355,10 +364,11 @@ export function MyBookings({
     ? userBookings.filter((b) => b.ticketStatus?.toLowerCase() === "confirmed")
     : userBookings;
 
-  const sortedBookings = [...filteredBookings].sort(
-    (a, b) =>
-      new Date(b.travelDate).getTime() - new Date(a.travelDate).getTime()
-  );
+  const sortedBookings = [...filteredBookings].sort((a, b) => {
+    const dateA = new Date(a.confirmedAt || a.created_at).getTime();
+    const dateB = new Date(b.confirmedAt || b.created_at).getTime();
+    return dateB - dateA;
+  });
 
   const finalBookings =
     limit && sortedBookings.length > limit
@@ -420,7 +430,7 @@ export function MyBookings({
                     ) : (
                       <XCircle className="h-3 w-3 mr-1" />
                     )}
-                    {booking.ticketStatus === "Confirmed"
+                    {booking.ticketStatus.toLowerCase() === "confirmed"
                       ? "Confirmado"
                       : "Anulado"}
                   </Badge>
