@@ -50,7 +50,7 @@ interface BusService {
   amenities: string | null;
   travel_name: string;
   is_direct_trip: boolean;
-  price: number;
+  cost: number;
 }
 
 export function TravelSearch() {
@@ -160,12 +160,6 @@ export function TravelSearch() {
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const formattedDate = `${year}-${month}-${day}`;
-
-      console.log("Fecha seleccionada (objeto Date):", selectedDate);
-      console.log(
-        "Fecha formateada (string para API YYYY-MM-DD):",
-        formattedDate
-      );
 
       setSearchDateString(formattedDate);
     } else {

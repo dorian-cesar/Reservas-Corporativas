@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
       route_id: routeId,
     };
 
-    const apiUrl = `${URL_KUPOS}/tentative_booking/${serviceId}.json?api_key=${apiKey}`;
-
     // console.log("Booking payload:", JSON.stringify(bookingPayload, null, 2));
+
+    const apiUrl = `${URL_KUPOS}/tentative_booking/${serviceId}.json?api_key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
       method: "POST",

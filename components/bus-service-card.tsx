@@ -19,6 +19,10 @@ interface BusService {
   number: string;
   name: string;
   operator_service_name: string;
+  origin_id: number;
+  destination_id: number;
+  route_id: number;
+  travel_id: number;
   bus_type: string;
   dep_time: string;
   arr_time: string;
@@ -26,10 +30,11 @@ interface BusService {
   available_seats: number;
   total_seats: number;
   fare_str: string;
-  travel_name: string;
-  price: number;
-  amenities: string | null;
   is_cancellable: boolean;
+  amenities: string | null;
+  travel_name: string;
+  is_direct_trip: boolean;
+  cost: number;
 }
 
 interface BusServiceCardProps {
@@ -72,7 +77,12 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
   const amenities = getAmenities();
 
   const recargo = user?.companyRecargo ?? 0;
-  const precioFinal = Math.round(service.price * (1 + recargo / 100));
+  let costoBase = 0;
+  if (service.fare_str) {
+    const fareMatch = service.fare_str.match(/(\d+\.?\d*)/);
+    costoBase = fareMatch ? parseFloat(fareMatch[1]) : 0;
+  }
+  const precioFinal = Math.round(costoBase * (1 + recargo / 100));
 
   return (
     <>

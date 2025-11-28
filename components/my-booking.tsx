@@ -131,7 +131,6 @@ export function MyBookings({
         }));
 
         setUserBookings(mappedBookings);
-        console.log("mapped bookings:", mappedBookings);
       } catch (error) {
         console.error("Error cargando tickets", error);
         Swal.fire({
