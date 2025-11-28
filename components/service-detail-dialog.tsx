@@ -345,6 +345,13 @@ export function ServiceDetailDialog({
     <Dialog
       open={open}
       onOpenChange={(state) => {
+        if (!state && success) {
+          setSuccess(false);
+          setSelectedSeat(null);
+          setBookingData(null);
+          onOpenChange(false);
+          return;
+        }
         if (!loading && !loadingDetail) {
           onOpenChange(state);
         }
