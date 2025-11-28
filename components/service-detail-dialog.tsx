@@ -313,10 +313,37 @@ export function ServiceDetailDialog({
   const availableSeats = parseSeats();
   const occupiedSeats = getOccupiedSeats();
 
+  const formatTravelDate = (date: string) => {
+    try {
+      const [year, month, day] = date.split("-").map(Number);
+
+      const months = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+
+      const monthName = months[month - 1];
+
+      return `${day} de ${monthName} de ${year}`;
+    } catch (error) {
+      console.error("Error formateando fecha de viaje:", error);
+      return date;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        {/* Mostrar header solo cuando NO está en estado success */}
         {!success && (
           <DialogHeader>
             <DialogTitle className="text-2xl">
@@ -340,7 +367,6 @@ export function ServiceDetailDialog({
         ) : success ? (
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col items-center justify-center space-y-6">
-              {/* Icono de éxito animado */}
               <div className="relative">
                 <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
                 <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
@@ -408,9 +434,7 @@ export function ServiceDetailDialog({
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Fecha:</span>
                           <span className="font-medium text-green-800">
-                            {new Date(
-                              serviceDetail.travel_date
-                            ).toLocaleDateString("es-CL")}
+                            {formatTravelDate(serviceDetail.travel_date)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
@@ -485,16 +509,7 @@ export function ServiceDetailDialog({
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {new Date(serviceDetail.travel_date).toLocaleDateString(
-                        "es-CL",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        }
-                      )}
-                    </span>
+                    <span>{formatTravelDate(serviceDetail.travel_date)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />

@@ -18,10 +18,10 @@ import {
   Loader2,
   ArrowLeftRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { BusServiceCard } from "@/components/bus-service-card";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 
 interface City {
   id: number;
@@ -56,7 +56,10 @@ interface BusService {
 export function TravelSearch() {
   const [origin, setOrigin] = useState<City | null>(null);
   const [destination, setDestination] = useState<City | null>(null);
-  const [date, setDate] = useState("");
+  const [selectedDateObject, setSelectedDateObject] = useState<Date | null>(
+    null
+  );
+  const [searchDateString, setSearchDateString] = useState("");
   const [services, setServices] = useState<BusService[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -102,7 +105,7 @@ export function TravelSearch() {
   };
 
   const handleSearch = async () => {
-    if (!origin || !destination || !date) {
+    if (!origin || !destination || !searchDateString) {
       setServices([]);
       setHasSearched(true);
       return;
@@ -118,7 +121,7 @@ export function TravelSearch() {
       const params = new URLSearchParams({
         originId: origin.id.toString(),
         destinationId: destination.id.toString(),
-        date: date,
+        date: searchDateString,
       });
 
       const res = await fetch(`/api/search?${params}`);
@@ -149,10 +152,31 @@ export function TravelSearch() {
     }
   };
 
+  const handleDateChange = (selectedDate: Date | null) => {
+    setSelectedDateObject(selectedDate);
+
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+
+      console.log("Fecha seleccionada (objeto Date):", selectedDate);
+      console.log(
+        "Fecha formateada (string para API YYYY-MM-DD):",
+        formattedDate
+      );
+
+      setSearchDateString(formattedDate);
+    } else {
+      setSearchDateString("");
+    }
+  };
+
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
-  const isSearchDisabled = !origin || !destination || !date || isLoading;
+  const isSearchDisabled =
+    !origin || !destination || !searchDateString || isLoading;
   const isSwapDisabled = !origin && !destination;
-  const today = new Date().toISOString().split("T")[0];
 
   if (loadingUser) {
     return (
@@ -253,14 +277,12 @@ export function TravelSearch() {
                   <Calendar className="h-4 w-4 text-secondary" />
                   Fecha
                 </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  min={today}
-                  className="w-full"
+                <ModernDatePicker
+                  selected={selectedDateObject}
+                  onChange={handleDateChange}
+                  placeholderText="Seleccionar fecha"
                   disabled={isLoading}
+                  className="w-full"
                 />
               </div>
             </div>

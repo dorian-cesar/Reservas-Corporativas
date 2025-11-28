@@ -25,8 +25,8 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
-import { generateTicketPDF } from "@/lib/ticket-generator";
 import Swal from "sweetalert2";
+import TicketPDFButton from "@/components/ticket-pdf";
 
 interface MyBookingsProps {
   showActiveOnly?: boolean;
@@ -131,6 +131,7 @@ export function MyBookings({
         }));
 
         setUserBookings(mappedBookings);
+        console.log("mapped bookings:", mappedBookings);
       } catch (error) {
         console.error("Error cargando tickets", error);
         Swal.fire({
@@ -146,10 +147,6 @@ export function MyBookings({
 
     loadTickets();
   }, [user, token]);
-
-  // const handleDownloadTicket = (booking: Booking) => {
-  //   generateTicketPDF(booking);
-  // };
 
   const handleCancelBooking = async (booking: Booking) => {
     const refundAmount = calculateRefundAmount(booking.monto_boleto);
@@ -170,17 +167,17 @@ export function MyBookings({
             <div class="font-medium">${formatPrice(
               booking.monto_boleto || booking.fare
             )}</div>
-            <div class="text-foreground">Porcentaje devolución:</div>
+            <div class="text-foreground">Porcentaje reembolso:</div>
             <div class="font-medium">${
               (Number(user?.companyPorcentajeDevolucion) || 0) * 100
             }%</div>
-            <div class="text-foreground font-semibold">Monto a devolver:</div>
+            <div class="text-foreground font-semibold">Reembolso a Cuenta Corriente:</div>
             <div class="font-bold text-green-600">${formatPrice(
               refundAmount
             )}</div>
           </div>
         </div>
-        <p class="text-sm text-muted-foreground mt-2">* El monto de devolución será acreditado según las políticas de tu empresa.</p>
+        <p class="text-sm text-muted-foreground mt-2">* El monto de reembolso será acreditado según las políticas de tu empresa.</p>
       </div>
     `,
       icon: "warning",
@@ -263,7 +260,7 @@ export function MyBookings({
               ${
                 refundAmount
                   ? `<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p class="font-semibold text-green-800">Monto a devolver: ${formatPrice(
+                      <p class="font-semibold text-green-800">Reembolso a Cuenta Corriente: ${formatPrice(
                         refundAmount
                       )}</p>
                     </div>`
@@ -284,7 +281,7 @@ export function MyBookings({
               ${
                 refundAmount
                   ? `<div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p class="text-sm text-green-700 mb-1">Se ha procesado la devolución:</p>
+                      <p class="text-sm text-green-700 mb-1">Se ha procesado el reembolso:</p>
                       <p class="text-xl font-bold text-green-800">${formatPrice(
                         refundAmount
                       )}</p>
@@ -570,16 +567,7 @@ export function MyBookings({
                 {/* BOTONES */}
                 {booking.ticketStatus?.toLowerCase() === "confirmed" && (
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 gap-2"
-                      // onClick={() => handleDownloadTicket(booking)}
-                    >
-                      <Download className="h-4 w-4" />
-                      Descargar Pasaje
-                    </Button>
-
+                    <TicketPDFButton booking={booking} />
                     <Button
                       size="sm"
                       variant="outline"
