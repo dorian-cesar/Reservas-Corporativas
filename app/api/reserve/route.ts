@@ -133,7 +133,8 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           type: "INTERNAL_ERROR",
-          error: "Respuesta inválida de la API de reserva",
+          error:
+            "No se pudo reservar el asiento. Intente nuevamente o busque otro servicio.",
           details: data,
         },
         { status: 400 }

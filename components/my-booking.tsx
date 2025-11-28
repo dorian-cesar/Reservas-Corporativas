@@ -284,7 +284,7 @@ export function MyBookings({
                       <p class="text-xl font-bold text-green-800">${formatPrice(
                         refundAmount
                       )}</p>
-                      <p class="text-xs text-green-600 mt-1">Este monto será acreditado según las políticas de tu empresa</p>
+                      <p class="text-xs text-green-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
                     </div>`
                   : ""
               }
