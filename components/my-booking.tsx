@@ -566,7 +566,7 @@ export function MyBookings({
                 {/* BOTONES */}
                 {booking.ticketStatus?.toLowerCase() === "confirmed" && (
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                    <TicketPDFButton booking={booking} />
+                    <TicketPDFButton ticketNumber={booking.ticketNumber} />
                     <Button
                       size="sm"
                       variant="outline"
