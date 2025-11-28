@@ -342,8 +342,23 @@ export function ServiceDetailDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(state) => {
+        if (!loading && !loadingDetail) {
+          onOpenChange(state);
+        }
+      }}
+    >
+      <DialogContent
+        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+        onEscapeKeyDown={(e) => {
+          if (loading || loadingDetail) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (loading || loadingDetail) e.preventDefault();
+        }}
+      >
         {!success && (
           <DialogHeader>
             <DialogTitle className="text-2xl">

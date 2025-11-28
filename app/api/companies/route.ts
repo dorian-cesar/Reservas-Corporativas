@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE = process.env.URL_BACKEND ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_URL_BACKEND ?? "";
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get("authorization");
-    if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+    if (!token)
+      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
     const body = await req.json();
 

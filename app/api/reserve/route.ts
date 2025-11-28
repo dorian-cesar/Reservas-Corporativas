@@ -45,13 +45,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isProduction = process.env.KUPOS_ENV === "prod";
+    const isProduction = process.env.NEXT_PUBLIC_KUPOS_ENV === "prod";
     const apiKey = isProduction
-      ? process.env.KUPOS_API_KEY_PROD
-      : process.env.KUPOS_API_KEY_DEV;
+      ? process.env.NEXT_PUBLIC_KUPOS_API_KEY_PROD
+      : process.env.NEXT_PUBLIC_KUPOS_API_KEY_DEV;
     const URL_KUPOS = isProduction
-      ? process.env.URL_KUPOS_PROD
-      : process.env.URL_KUPOS_DEV;
+      ? process.env.NEXT_PUBLIC_URL_KUPOS_PROD
+      : process.env.NEXT_PUBLIC_URL_KUPOS_DEV;
 
     if (!apiKey || !URL_KUPOS) {
       return NextResponse.json(

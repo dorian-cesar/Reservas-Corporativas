@@ -32,15 +32,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const isProd = process.env.KUPOS_ENV === "prod";
+    const isProd = process.env.NEXT_PUBLIC_KUPOS_ENV === "prod";
 
     const apiKey = isProd
-      ? process.env.KUPOS_API_KEY_PROD
-      : process.env.KUPOS_API_KEY_DEV;
+      ? process.env.NEXT_PUBLIC_KUPOS_API_KEY_PROD
+      : process.env.NEXT_PUBLIC_KUPOS_API_KEY_DEV;
 
     const URL_KUPOS = isProd
-      ? process.env.URL_KUPOS_PROD
-      : process.env.URL_KUPOS_DEV;
+      ? process.env.NEXT_PUBLIC_URL_KUPOS_PROD
+      : process.env.NEXT_PUBLIC_URL_KUPOS_DEV;
 
     if (!apiKey || !URL_KUPOS) {
       return NextResponse.json(

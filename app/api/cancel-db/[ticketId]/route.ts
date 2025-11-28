@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const URL_BACKEND = process.env.URL_BACKEND;
+const NEXT_PUBLIC_URL_BACKEND = process.env.NEXT_PUBLIC_URL_BACKEND;
 
 export async function POST(
   req: Request,
@@ -20,14 +20,14 @@ export async function POST(
       );
     }
 
-    if (!URL_BACKEND) {
+    if (!NEXT_PUBLIC_URL_BACKEND) {
       return NextResponse.json(
-        { error: "URL_BACKEND no configurada" },
+        { error: "NEXT_PUBLIC_URL_BACKEND no configurada" },
         { status: 500 }
       );
     }
 
-    const url = `${URL_BACKEND}/api/tickets/${ticketId}`;
+    const url = `${NEXT_PUBLIC_URL_BACKEND}/api/tickets/${ticketId}`;
 
     const headers: HeadersInit = {
       "Content-Type": "application/json",

@@ -9,8 +9,8 @@ type City = {
 
 export async function GET() {
   try {
-    const apiKey = process.env.KUPOS_API_KEY_PROD;
-    const URL_KUPOS = process.env.URL_KUPOS_PROD;
+    const apiKey = process.env.NEXT_PUBLIC_KUPOS_API_KEY_PROD;
+    const URL_KUPOS = process.env.NEXT_PUBLIC_URL_KUPOS_PROD;
 
     if (!apiKey) {
       return NextResponse.json(

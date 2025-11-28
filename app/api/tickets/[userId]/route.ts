@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const URL_BACKEND = process.env.URL_BACKEND;
+const NEXT_PUBLIC_URL_BACKEND = process.env.NEXT_PUBLIC_URL_BACKEND;
 
 export async function GET(
   req: Request,
@@ -21,7 +21,7 @@ export async function GET(
   }
 
   try {
-    const backendUrl = `${URL_BACKEND}/api/tickets/usuario/${userId}`;
+    const backendUrl = `${NEXT_PUBLIC_URL_BACKEND}/api/tickets/usuario/${userId}`;
 
     const res = await fetch(backendUrl, {
       method: "GET",
