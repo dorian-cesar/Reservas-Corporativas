@@ -167,6 +167,12 @@ export function TravelSearch() {
     }
   };
 
+  useEffect(() => {
+    if (origin && destination && searchDateString) {
+      handleSearch();
+    }
+  }, [searchDateString]);
+
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
   const isSearchDisabled =
     !origin || !destination || !searchDateString || isLoading;
