@@ -487,13 +487,13 @@ export function AllBookingsAdmin() {
               <div className="flex gap-4">
                 <Button
                   onClick={exportToCSV}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-accent hover:bg-accent/90"
                 >
                   CSV
                 </Button>
                 <Button
                   onClick={exportToXLSX}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-accent hover:bg-accent/90"
                 >
                   XLSX
                 </Button>
