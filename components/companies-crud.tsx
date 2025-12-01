@@ -68,6 +68,8 @@ export function CompaniesCRUD() {
     state: boolean;
     surchargePercentage?: number;
     returnPercentage?: string;
+    billingDay: number;
+    expirationDay: number;
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -77,7 +79,9 @@ export function CompaniesCRUD() {
     name: "",
     state: true,
     surchargePercentage: "20",
-    returnPercentage: "80"
+    returnPercentage: "80",
+    billingDay: "5",
+    expirationDay: "15"
   })
 
   useEffect(() => {
@@ -103,9 +107,10 @@ export function CompaniesCRUD() {
             id: empresa.id.toString(),
             name: empresa.nombre,
             state: empresa.estado,
-            contactEmail: empresa.email || "email@ejemplo.com",
             surchargePercentage: empresa.recargo || 0,
             returnPercentage: percent,
+            billingDay: empresa.dia_facturacion,
+            expirationDay: empresa.dia_vencimiento
           };
         });
 
@@ -156,9 +161,10 @@ export function CompaniesCRUD() {
         id: empresa.id.toString(),
         name: empresa.nombre,
         state: empresa.estado,
-        contactEmail: empresa.email || "email@ejemplo.com",
         surchargePercentage: empresa.recargo || 0,
         returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
+        billingDay: empresa.dia_facturacion,
+        expirationDay: empresa.dia_vencimiento
       };
 
       setFilteredCompanies([companyMapped]);
@@ -191,6 +197,8 @@ export function CompaniesCRUD() {
       state: true,
       surchargePercentage: "20",
       returnPercentage: "80",
+      billingDay: "5",
+      expirationDay: "15"
     });
   };
 
@@ -215,7 +223,9 @@ export function CompaniesCRUD() {
           nombre: formData.name,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
-          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage))
+          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
+          dia_facturacion: Number(formData.billingDay),
+          dia_vencimiento: Number(formData.expirationDay)
         }),
       });
 
@@ -261,7 +271,9 @@ export function CompaniesCRUD() {
           nombre: formData.name,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
-          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage))
+          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
+          dia_facturacion: Number(formData.billingDay),
+          dia_vencimiento: Number(formData.expirationDay)
         }),
       });
 
@@ -341,6 +353,8 @@ export function CompaniesCRUD() {
       state: Boolean(company.state),
       surchargePercentage: company.surchargePercentage?.toString() ?? "0",
       returnPercentage: company.returnPercentage?.toString() ?? "0",
+      billingDay: company.billingDay?.toString() ?? "0",
+      expirationDay: company.expirationDay?.toString() ?? "0",
     });
     setIsEditDialogOpen(true);
   };
@@ -463,6 +477,40 @@ export function CompaniesCRUD() {
                 }}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="billingDay">Dia de Facturación</Label>
+              <Input
+                id="billingDay"
+                type="number"
+                min="0"
+                max="31"
+                placeholder="5"
+                value={formData.billingDay}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    billingDay: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expirationDay">Dia de Vencimiento</Label>
+              <Input
+                id="expirationDay"
+                type="number"
+                min="0"
+                max="31"
+                placeholder="15"
+                value={formData.expirationDay}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    expirationDay: e.target.value,
+                  });
+                }}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -516,6 +564,18 @@ export function CompaniesCRUD() {
                     </div>
                     <p className="text-2xl font-bold">{formatPercent(Number(company.returnPercentage) || 0)}%</p>
                   </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Día de Facturación
+                    </div>
+                    <p className="text-2xl font-bold">{company.billingDay}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Día de Vencimiento
+                    </div>
+                    <p className="text-2xl font-bold">{company.expirationDay}</p>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -528,7 +588,7 @@ export function CompaniesCRUD() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -536,7 +596,7 @@ export function CompaniesCRUD() {
                   >
                     <Trash2 className="h-3 w-3 mr-2" />
                     Eliminar
-                  </Button>
+                  </Button> */}
                 </div>
               </CardContent>
             </Card>
@@ -556,6 +616,8 @@ export function CompaniesCRUD() {
                   <TableHead>Estado</TableHead>
                   <TableHead>Recargo</TableHead>
                   <TableHead>Devolución</TableHead>
+                  <TableHead>Día Facturación</TableHead>
+                  <TableHead>Día Vencimiento</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -581,13 +643,23 @@ export function CompaniesCRUD() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{company.surchargePercentage}%</span>
+                        <span className="font-medium">{company.surchargePercentage}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}%</span>
+                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{company.billingDay || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{company.expirationDay || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -600,14 +672,14 @@ export function CompaniesCRUD() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(company.id)}
                           className="h-8 px-3 text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -684,6 +756,40 @@ export function CompaniesCRUD() {
                   setFormData({
                     ...formData,
                     returnPercentage: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-billingDay">Dia de Facturación</Label>
+              <Input
+                id="edit-billingDay"
+                type="number"
+                min="0"
+                max="31"
+                placeholder="5"
+                value={formData.billingDay}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    billingDay: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-expirationDay">Dia de Vencimiento</Label>
+              <Input
+                id="edit-expirationDay"
+                type="number"
+                min="0"
+                max="31"
+                placeholder="15"
+                value={formData.expirationDay}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    expirationDay: e.target.value,
                   });
                 }}
               />
