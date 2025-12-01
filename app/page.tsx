@@ -17,7 +17,13 @@ export default function HomePage() {
       const role = currentUser?.role ?? "user";
 
       if (role === "superuser") {
+        router.push("/superuser");
+      } else if (role === "admin") {
         router.push("/admin");
+      } else if (role === "empresa") {
+        router.push("/empresa");
+      } else if (role === "auditoria") {
+        router.push("/auditoria");
       } else if (role === "contralor") {
         router.push("/controller");
       } else {

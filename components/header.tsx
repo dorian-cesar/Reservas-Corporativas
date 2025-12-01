@@ -56,25 +56,28 @@ export function Header({ onLogout }: HeaderProps) {
             <div className="text-right">
               <p className="font-medium">{user?.name}</p>
               <p className="text-sm text-muted-foreground">
-                {user?.role === "user" && "Usuario"}
-                {user?.role === "admin" && "Controlador"}
+                {user?.role === "contralor" && "Controlador"}
+                {user?.role === "auditoria" && "Auditoria"}
+                {user?.role === "subusuario" && "Usuario"}
+                {user?.role === "empresa" && "Empresa"}
+                {user?.role === "admin" && "Administrador"}
                 {user?.role === "superuser" && "Super Usuario"}
                 {user?.companyName && ` - ${user.companyName}`}
               </p>
             </div>
 
             <div className="flex gap-2">
-              {user?.role === "admin" && (
+              {/* {user?.role === "admin" && (
                 <Button variant="outline" size="icon" onClick={() => router.push("/controller")}>
                   <Users className="h-4 w-4" />
                 </Button>
-              )}
+              )} */}
 
-              {user?.role === "superuser" && (
+              {/* {user?.role === "superuser" && (
                 <Button variant="outline" size="icon" onClick={() => router.push("/admin")}>
                   <BarChart className="h-4 w-4" />
                 </Button>
-              )}
+              )} */}
 
               <Button variant="outline" size="icon" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />

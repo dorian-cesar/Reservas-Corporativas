@@ -20,7 +20,7 @@ export default function ControllerPage() {
   };
 
   return (
-    <AuthGuard allowedRoles={["admin"]}>
+    <AuthGuard allowedRoles={["contralor"]}>
       <div className="min-h-screen bg-linear-to-br from-primary/5 via-background to-secondary/5">
         {/* Header */}
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
