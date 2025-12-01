@@ -1,0 +1,679 @@
+"use client"
+
+import { useAuth } from "@/lib/auth";
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    Building2,
+    Plus,
+    Pencil,
+    Trash2,
+    RefreshCcw,
+    Table,
+    LayoutGrid,
+    FolderTree,
+    Search,
+    User
+} from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import {
+    Table as UITable,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import ToolBarAdmin from "./ToolBarAdmin";
+
+export function AdminCostCentersCRUD() {
+    const { token, user } = useAuth.getState(); // Obtener también el usuario
+    const [costCenters, setCostCenters] = useState<CostCenter[]>([])
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+    const [isLoading, setIsLoading] = useState(false)
+    const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+    const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
+
+    type CostCenter = {
+        id: string;
+        nombre: string;
+        empresa_id: string;
+        estado: boolean;
+        created_at?: string;
+        updated_at?: string;
+        empresa?: {
+            id: string;
+            nombre: string;
+        };
+    };
+
+    const [selectedCostCenter, setSelectedCostCenter] = useState<CostCenter | null>(null);
+    const { toast } = useToast()
+
+    const [formData, setFormData] = useState({
+        nombre: "",
+        companyId: "",
+        estado: true
+    })
+
+    useEffect(() => {
+        // Obtener información del usuario y empresas
+        const fetchUserAndCompanies = async () => {
+            try {
+                // Si el usuario ya está en el estado de auth, usar esa información
+                if (user?.companyId) {
+                    // Buscar la empresa del usuario en la lista de empresas
+                    await fetchCompanies();
+
+                    // También puedes obtener la empresa específica del usuario
+                    await fetchUserCompanyInfo();
+                }
+            } catch (error) {
+                console.error("Error fetching user/company info:", error);
+            }
+        };
+
+        fetchUserAndCompanies();
+    }, [user]);
+
+    // Obtener información específica de la empresa del usuario
+    const fetchUserCompanyInfo = async () => {
+        if (!user?.companyId || !token) return;
+
+        try {
+            const res = await fetch(`/api/companies/${user.companyId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.ok) {
+                const companyData = await res.json();
+                setUserCompany({
+                    id: companyData.id.toString(),
+                    nombre: companyData.nombre
+                });
+
+                // Cargar centros de costo automáticamente
+                fetchCostCenters(user.companyId.toString());
+            }
+        } catch (err) {
+            console.error("Error fetching user company:", err);
+        }
+    };
+
+    const fetchCompanies = async () => {
+        try {
+            const res = await fetch("/api/companies", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Error fetching companies");
+            const data = await res.json();
+            const mapped = data.map((c: any) => ({
+                id: c.id.toString(),
+                nombre: c.nombre,
+            }));
+            setCompanies(mapped);
+
+            // Si el usuario tiene empresa_id, establecerla automáticamente
+            if (user?.companyId) {
+                const userCompany = user?.companyId ? mapped.find((c: any) => c.id === user?.companyId?.toString()) : undefined;
+                if (userCompany) {
+                    setUserCompany(userCompany);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+        }
+    };
+
+    const fetchCostCenters = async (targetEmpresaId: string) => {
+        if (!targetEmpresaId || targetEmpresaId === "") {
+            toast({
+                title: "Información",
+                description: "No se pudo identificar la empresa del usuario",
+                variant: "default",
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const url = `/api/centros-costo/empresa/${targetEmpresaId}`;
+            console.log("🔄 Fetching cost centers for company:", targetEmpresaId);
+
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            console.log("📡 Response status:", res.status);
+
+            if (!res.ok) {
+                if (res.status === 404) {
+                    throw new Error("No se encontraron centros de costo para esta empresa");
+                }
+                throw new Error(`Error ${res.status}: ${res.statusText}`);
+            }
+
+            const costCentersData = await res.json();
+            console.log("✅ Cost centers data:", costCentersData);
+
+            const costCentersMapped = costCentersData.map((costCenter: any) => ({
+                id: costCenter.id.toString(),
+                nombre: costCenter.nombre,
+                empresa_id: costCenter.empresa_id?.toString() || "",
+                estado: costCenter.estado,
+                created_at: costCenter.created_at,
+                updated_at: costCenter.updated_at,
+                empresa: costCenter.empresa ? {
+                    id: costCenter.empresa.id.toString(),
+                    nombre: costCenter.empresa.nombre
+                } : undefined
+            }));
+
+            setCostCenters(costCentersMapped);
+
+            if (costCentersMapped.length === 0) {
+                toast({
+                    title: "Información",
+                    description: "No se encontraron centros de costo para esta empresa",
+                    variant: "default",
+                });
+            }
+        } catch (err) {
+            console.error("❌ Error fetching cost centers:", err);
+            toast({
+                title: "Error",
+                description: err instanceof Error ? err.message : "No se pudieron cargar los centros de costo",
+                variant: "destructive",
+            });
+            setCostCenters([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const resetForm = () => {
+        setFormData({
+            nombre: "",
+            companyId: userCompany?.id || "",
+            estado: true
+        });
+    };
+
+    const handleAdd = async () => {
+        if (!formData.nombre || !formData.companyId) {
+            toast({ title: "Error", description: "Complete todos los campos", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/centros-costo", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    nombre: formData.nombre,
+                    empresa_id: Number(formData.companyId),
+                    estado: formData.estado
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Error al crear centro de costo");
+            }
+
+            setIsAddDialogOpen(false);
+            resetForm();
+            toast({ title: "Centro de costo agregado", description: `${formData.nombre} agregado exitosamente` });
+
+            // Recargar los centros de la empresa actual
+            if (userCompany) {
+                fetchCostCenters(userCompany.id);
+            }
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "No se pudo agregar", variant: "destructive" });
+        }
+    };
+
+    const handleEdit = async () => {
+        if (!selectedCostCenter) return;
+
+        if (!formData.nombre || !formData.companyId) {
+            toast({ title: "Error", description: "Complete todos los campos", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/centros-costo/${selectedCostCenter.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                    nombre: formData.nombre,
+                    empresa_id: Number(formData.companyId),
+                    estado: formData.estado
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Error al actualizar");
+            }
+
+            setIsEditDialogOpen(false);
+            setSelectedCostCenter(null);
+            resetForm();
+
+            // Recargar los centros de la empresa actual
+            if (userCompany) {
+                fetchCostCenters(userCompany.id);
+            }
+
+            toast({ title: "Centro de costo actualizado", description: `${formData.nombre} actualizado exitosamente` });
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message || "No se pudo actualizar", variant: "destructive" });
+        }
+    };
+
+    const handleDelete = async (costCenterId: string) => {
+        const costCenter = costCenters.find((c) => c.id === costCenterId);
+        if (!costCenter) return;
+
+        if (!confirm(`¿Está seguro que desea eliminar ${costCenter.nombre}?`)) return;
+
+        try {
+            const res = await fetch(`/api/centros-costo/${costCenterId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!res.ok) throw new Error("Error al eliminar centro de costo");
+
+            setCostCenters(costCenters.filter((c) => c.id !== costCenterId));
+            toast({ title: "Centro de costo eliminado", description: `${costCenter.nombre} eliminado exitosamente` });
+        } catch (err) {
+            toast({ title: "Error", description: "No se pudo eliminar", variant: "destructive" });
+        }
+    };
+
+    const openEditDialog = (costCenter: CostCenter) => {
+        setSelectedCostCenter(costCenter);
+        setFormData({
+            nombre: costCenter.nombre,
+            companyId: costCenter.empresa_id,
+            estado: Boolean(costCenter.estado)
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    const openAddDialog = () => {
+        // Pre-llenar el campo empresa_id con la empresa del usuario
+        setFormData({
+            nombre: "",
+            companyId: userCompany?.id || "",
+            estado: true
+        });
+        setIsAddDialogOpen(true);
+    }
+
+    const getStatusBadge = (estado: boolean) => {
+        return estado ? (
+            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Activo</span>
+        ) : (
+            <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Inactivo</span>
+        );
+    };
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return "-";
+        return new Date(dateString).toLocaleDateString('es-ES');
+    };
+
+    // Si el usuario no tiene empresa asignada
+    if (!user?.companyId) {
+        return (
+            <div className="space-y-6">
+                <ToolBarAdmin
+                    title="Centros de Costo"
+                    description="Gestione los centros de costo de las empresas"
+                    viewMode={viewMode}
+                    setViewMode={setViewMode}
+                    refreshAction={() => userCompany && fetchCostCenters(userCompany.id)}
+                    primaryAction={{
+                        label: "Agregar Centro",
+                        icon: <Plus className="h-4 w-4" />,
+                        onClick: openAddDialog,
+                        className: "bg-accent hover:bg-accent/90",
+                    }}
+                />
+                <Card>
+                    <CardContent className="text-center py-12">
+                        <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">Usuario sin empresa asignada</h3>
+                        <p className="text-muted-foreground">
+                            Tu usuario no tiene una empresa asignada. Contacta al administrador.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <ToolBarAdmin
+                title="Centros de Costo"
+                description={`Gestione los centros de costo de ${userCompany?.nombre || 'su empresa'}`}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+
+                // Mostrar información de la empresa del usuario en lugar del selector
+                companyInfo={userCompany ? {
+                    id: userCompany.id,
+                    nombre: userCompany.nombre
+                } : undefined}
+
+                refreshAction={() => userCompany && fetchCostCenters(userCompany.id)}
+                primaryAction={{
+                    label: "Agregar Centro",
+                    icon: <Plus className="h-4 w-4" />,
+                    onClick: openAddDialog,
+                    className: "bg-accent hover:bg-accent/90",
+                }}
+            />
+
+
+
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Agregar Nuevo Centro de Costo</DialogTitle>
+                        <DialogDescription>Complete los datos del centro de costo</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="nombre">Nombre del Centro de Costo *</Label>
+                            <Input
+                                id="nombre"
+                                placeholder="Ej: Departamento de Ventas"
+                                value={formData.nombre}
+                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="empresa_id">Empresa *</Label>
+                            <select
+                                id="empresa_id"
+                                value={formData.companyId}
+                                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                                className="w-full p-2 border rounded-md"
+                                disabled // Deshabilitado porque solo puede crear para su empresa
+                            >
+                                <option value={userCompany?.id}>
+                                    {userCompany?.id} - {userCompany?.nombre}
+                                </option>
+                            </select>
+                            <p className="text-xs text-muted-foreground">
+                                Solo puede crear centros de costo para su empresa asignada
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="estado">Estado</Label>
+                            <select
+                                id="estado"
+                                value={formData.estado.toString()}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                                className="w-full p-2 border rounded-md"
+                            >
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+                            Agregar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Estado de carga */}
+            {isLoading && (
+                <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Cargando centros de costo...</p>
+                </div>
+            )}
+
+            {/* Sin resultados */}
+            {!isLoading && userCompany && costCenters.length === 0 && (
+                <Card>
+                    <CardContent className="text-center py-12">
+                        <FolderTree className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">No hay centros de costo</h3>
+                        <p className="text-muted-foreground mb-4">
+                            No se encontraron centros de costo para {userCompany.nombre}
+                        </p>
+                        <Button onClick={openAddDialog} className="bg-accent hover:bg-accent/90">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar Primer Centro
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Vista de Tarjetas */}
+            {!isLoading && costCenters.length > 0 && viewMode === "cards" && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {costCenters.map((costCenter, index) => (
+                        <Card
+                            key={costCenter.id}
+                            className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                            <CardHeader>
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-primary/10 rounded-lg">
+                                            <FolderTree className="h-6 w-6 text-primary" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg">{costCenter.nombre}</CardTitle>
+                                            <CardDescription className="flex items-center gap-2 mt-1">
+                                                {getStatusBadge(costCenter.estado)}
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                                                <FolderTree className="h-3 w-3" />
+                                                Creado
+                                            </div>
+                                            <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="p-3 bg-muted/50 rounded-lg">
+                                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                                                <FolderTree className="h-3 w-3" />
+                                                Creado
+                                            </div>
+                                            <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                                        onClick={() => openEditDialog(costCenter)}
+                                    >
+                                        <Pencil className="h-3 w-3 mr-2" />
+                                        Editar
+                                    </Button>
+                                    {/* <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
+                                        onClick={() => handleDelete(costCenter.id)}
+                                    >
+                                        <Trash2 className="h-3 w-3 mr-2" />
+                                        Eliminar
+                                    </Button> */}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* Vista de Tabla */}
+            {!isLoading && costCenters.length > 0 && viewMode === "table" && (
+                <Card>
+                    <CardContent className="p-0">
+                        <UITable>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Centro de Costo</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Creado</TableHead>
+                                    <TableHead>Actualizado</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {costCenters.map((costCenter) => (
+                                    <TableRow key={costCenter.id} className="hover:bg-muted/50">
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-lg">
+                                                    <FolderTree className="h-4 w-4 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium">{costCenter.nombre}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+
+                                        <TableCell>
+                                            {getStatusBadge(costCenter.estado)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">{formatDate(costCenter.created_at)}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">{formatDate(costCenter.updated_at)}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(costCenter)}
+                                                    className="h-8 px-3"
+                                                >
+                                                    <Pencil className="h-3 w-3" />
+                                                </Button>
+                                                {/* <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(costCenter.id)}
+                                                    className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button> */}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </UITable>
+                    </CardContent>
+                </Card>
+            )}
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Editar Centro de Costo</DialogTitle>
+                        <DialogDescription>Modifique los datos del centro de costo</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-nombre">Nombre del Centro de Costo *</Label>
+                            <Input
+                                id="edit-nombre"
+                                placeholder="Ej: Departamento de Ventas"
+                                value={formData.nombre}
+                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-empresa_id">Empresa *</Label>
+                            <select
+                                id="edit-empresa_id"
+                                value={formData.companyId}
+                                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                                className="w-full p-2 border rounded-md"
+                                disabled
+                            >
+                                <option value="">Selecciona una empresa</option>
+                                {companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                        {company.id} - {company.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-estado">Estado</Label>
+                            <select
+                                id="edit-estado"
+                                value={formData.estado.toString()}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                                className="w-full p-2 border rounded-md"
+                            >
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
+                            Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    )
+}

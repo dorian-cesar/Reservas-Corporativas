@@ -13,7 +13,7 @@ import { CompanyUsers } from "@/components/company-users"
 import { CostCentersCRUD } from "@/components/cost-center-crud"
 import { EstadoPago } from "@/components/estado-pago"
 
-export default function AdminPage() {
+export default function SuperUserPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
 
