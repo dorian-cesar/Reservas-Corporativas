@@ -343,39 +343,6 @@ export function CurrentAccounts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Selector de Empresa */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            <div className="flex-1">
-              <Label htmlFor="company-select">Seleccionar Empresa</Label>
-              <select
-                id="company-select"
-                value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
-                className="w-full p-2 border rounded-md mt-1"
-              >
-                <option value="">Seleccione una empresa</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedCompany && (
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Saldo Actual</p>
-                <p className={`text-2xl font-bold ${getCurrentBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(getCurrentBalance())}
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {selectedCompany ? (
         <>

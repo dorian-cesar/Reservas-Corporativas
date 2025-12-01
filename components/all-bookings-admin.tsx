@@ -63,7 +63,7 @@ export function AllBookingsAdmin() {
   type Ticket = {
     id: number;
     ticketNumber: string;
-    ticketStatus: "Confirmed" | "Pending" | "Cancelled";
+    ticketStatus: "Confirmed" | "Anulado";
     origin: string;
     destination: string;
     travelDate: string;
