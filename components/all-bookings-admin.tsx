@@ -71,10 +71,31 @@ export function AllBookingsAdmin() {
     seatNumbers: string;
     fare: number;
     monto_boleto: number;
+    monto_devolucion: number;
     confirmedAt: string;
     id_User: number;
     created_at: string;
     updated_at: string;
+
+    user: User;
+  };
+
+  type User = {
+    id: number;
+    nombre: string;
+    rut: string;
+    email: string;
+    rol: string;
+    empresa_id: number;
+    centro_costo_id: number;
+    estado: boolean;
+    created_at: string;
+    updated_at: string;
+    centroCosto: {
+      id: number;
+      nombre: string;
+      empresa_id: number;
+    };
   };
 
   useEffect(() => {
@@ -273,6 +294,10 @@ export function AllBookingsAdmin() {
 
     const headers = [
       "Número de Ticket",
+      "Nombre Usuario",
+      "RUT Usuario",
+      "Correo Usuario",
+      "Centro Costo",
       "Estado",
       "Origen",
       "Destino",
@@ -289,6 +314,10 @@ export function AllBookingsAdmin() {
 
     const csvData = filteredTickets.map(ticket => [
       ticket.ticketNumber,
+      ticket.user.nombre,
+      ticket.user.rut,
+      ticket.user.email,
+      ticket.user.centroCosto.nombre,
       ticket.ticketStatus,
       ticket.origin,
       ticket.destination,
@@ -333,6 +362,10 @@ export function AllBookingsAdmin() {
 
     const data = filteredTickets.map(ticket => ({
       "Número de Ticket": ticket.ticketNumber,
+      "Nombre Usuario": ticket.user.nombre,
+      "RUT Usuario": ticket.user.rut,
+      "Correo Usuario": ticket.user.email,
+      "Centro Costo": ticket.user.centroCosto.nombre,
       "Estado": ticket.ticketStatus,
       "Origen": ticket.origin,
       "Destino": ticket.destination,
@@ -532,8 +565,35 @@ export function AllBookingsAdmin() {
                   </div>
                 </div>
               </CardHeader>
+
               <CardContent className="space-y-4">
-                <div className="space-y-3">
+                {/* Bloque: Usuario / Centro de Costo */}
+                <div className="p-3 bg-muted/10 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Usuario</p>
+                      <p className="font-medium">{ticket.user?.nombre || "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">RUT</p>
+                      <p className="font-medium">{ticket.user?.rut || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Correo</p>
+                      <p className="text-sm">{ticket.user?.email || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Centro de Costo</p>
+                      <p className="text-sm">{ticket.user?.centroCosto?.nombre || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque: Origen / Destino / Fecha / Hora / Asiento */}
+                <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{ticket.origin}</span>
@@ -541,22 +601,23 @@ export function AllBookingsAdmin() {
                     <span className="font-medium">{ticket.destination}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(ticket.travelDate)}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{ticket.departureTime}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>Asiento: {ticket.seatNumbers}</span>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatDate(ticket.travelDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{ticket.departureTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>Asiento: {ticket.seatNumbers}</span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Bloque: Valores */}
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -574,10 +635,16 @@ export function AllBookingsAdmin() {
                   </div>
                 </div>
 
+                {/* Pie: Metadatos */}
                 <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    Confirmado: {formatDate(ticket.confirmedAt)}
-                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div>
+                      <p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p>ID Usuario: {ticket.id_User ?? "—"}</p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -593,6 +660,10 @@ export function AllBookingsAdmin() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Ticket</TableHead>
+                  <TableHead>Nombre Usuario</TableHead>
+                  <TableHead>RUT Usuario</TableHead>
+                  <TableHead>Correo Usuario</TableHead>
+                  <TableHead>Centro De Costo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Origen</TableHead>
                   <TableHead>Destino</TableHead>
@@ -615,6 +686,26 @@ export function AllBookingsAdmin() {
                         <div>
                           <p className="text-sm text-muted-foreground">{ticket.ticketNumber}</p>
                         </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm">{ticket.user.nombre}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">{ticket.user.rut}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">{ticket.user.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm">{ticket.user.centroCosto.nombre}</p>
                       </div>
                     </TableCell>
                     <TableCell>
