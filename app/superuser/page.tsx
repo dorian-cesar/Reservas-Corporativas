@@ -7,7 +7,7 @@ import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } f
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
-import { AllBookingsAdmin } from "@/components/all-bookings-admin"
+import { SuperAllBookings } from "@/components/super-bookings"
 import { CompaniesCRUD } from "@/components/companies-crud"
 import { CompanyUsers } from "@/components/company-users"
 import { CostCentersCRUD } from "@/components/cost-center-crud"
@@ -81,7 +81,7 @@ export default function SuperUserPage() {
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
-                <AllBookingsAdmin />
+                <SuperAllBookings />
               </TabsContent>
             </Tabs>
           </div>

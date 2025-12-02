@@ -47,7 +47,7 @@ import * as XLSX from "xlsx";
 import ToolBar from "./tool-bar";
 import ToolBarAdmin from "./ToolBarAdmin";
 
-export function AdminAllBookings() {
+export function AdminBookings() {
   const { token, user } = useAuth.getState();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
@@ -60,6 +60,8 @@ export function AdminAllBookings() {
   const [isLoading, setIsLoading] = useState(false)
   const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [dateDesde, setDateDesde] = useState<string>("");
+  const [dateHasta, setDateHasta] = useState<string>("");
 
   const { toast } = useToast();
 
@@ -112,8 +114,7 @@ export function AdminAllBookings() {
   useEffect(() => {
     if (!Number(empresaId)) return;
     fetchTickets(Number(empresaId));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [empresaId]);
+  }, [empresaId, dateDesde, dateHasta]);
 
   const fetchCompanies = async () => {
     try {
@@ -166,17 +167,28 @@ export function AdminAllBookings() {
 
     setIsLoading(true);
     try {
-      const url = `/api/confirm-db/empresa/${targetEmpresaId}`;
+      // Construir URL con parámetros de fecha correctos
+      let url = `/api/confirm-db/empresa/${targetEmpresaId}`;
+
+      const params = new URLSearchParams();
+      if (dateDesde) params.append('travelDate_desde', dateDesde);
+      if (dateHasta) params.append('travelDate_hasta', dateHasta);
+
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      console.log("Fetching tickets from:", url); // Para debug
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.status === 404) {
-        // Manejar específicamente el 404 como "no hay tickets"
         const errorData = await res.json().catch(() => ({}));
-        setTickets([]); // ← Asegurar que sea array vacío
-        setFilteredTickets([]); // ← Asegurar que sea array vacío
+        setTickets([]);
+        setFilteredTickets([]);
         toast({
           title: "Información",
           description: errorData.message || "No se encontraron tickets para esta empresa",
@@ -191,10 +203,9 @@ export function AdminAllBookings() {
 
       const responseData = await res.json();
 
-      // Verificar si la respuesta es un objeto con propiedad 'empty'
       if (responseData && responseData.empty) {
-        setTickets([]); // ← Asegurar que sea array vacío
-        setFilteredTickets([]); // ← Asegurar que sea array vacío
+        setTickets([]);
+        setFilteredTickets([]);
         toast({
           title: "Información",
           description: responseData.message || "No se encontraron tickets para esta empresa",
@@ -203,16 +214,29 @@ export function AdminAllBookings() {
         return;
       }
 
-      // Asegurar que siempre sea un array
       const ticketsArray = Array.isArray(responseData) ? responseData : [];
 
       setTickets(ticketsArray);
       setFilteredTickets(ticketsArray);
 
       if (ticketsArray.length === 0) {
+        let message = "No se encontraron tickets";
+        if (dateDesde || dateHasta) {
+          message += " para el período seleccionado";
+        }
         toast({
           title: "Información",
-          description: "No se encontraron tickets para esta empresa",
+          description: message,
+          variant: "default",
+        });
+      } else {
+        let message = `${ticketsArray.length} tickets encontrados`;
+        if (dateDesde || dateHasta) {
+          message += ` (filtrado por fecha)`;
+        }
+        toast({
+          title: "Éxito",
+          description: message,
           variant: "default",
         });
       }
@@ -224,7 +248,7 @@ export function AdminAllBookings() {
         variant: "destructive",
       });
       setTickets([]);
-      setFilteredTickets([]); // ← Asegurar que sea array vacío en caso de error
+      setFilteredTickets([]);
     } finally {
       setIsLoading(false);
     }
@@ -499,7 +523,7 @@ export function AdminAllBookings() {
       {!isLoading && tickets.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4"> {/* Cambia de 4 a 5 columnas */}
               <div className="space-y-2">
                 <Label htmlFor="search">Buscar</Label>
                 <div className="relative">
@@ -529,19 +553,38 @@ export function AdminAllBookings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Fecha de Viaje</Label>
+                <Label htmlFor="dateDesde">Fecha Desde</Label>
                 <Input
-                  id="date"
+                  id="dateDesde"
                   type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
+                  value={dateDesde}
+                  onChange={(e) => setDateDesde(e.target.value)}
+                  max={dateHasta || undefined}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dateHasta">Fecha Hasta</Label>
+                <Input
+                  id="dateHasta"
+                  type="date"
+                  value={dateHasta}
+                  onChange={(e) => setDateHasta(e.target.value)}
+                  min={dateDesde || undefined}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Resultados</Label>
                 <div className="text-sm text-muted-foreground pt-2">
-                  {filteredTickets.length} de {tickets.length} tickets
+                  {filteredTickets.length} tickets
+                  {(dateDesde || dateHasta) && (
+                    <div className="text-xs">
+                      Filtrado por fecha
+                      {dateDesde && ` desde ${dateDesde}`}
+                      {dateHasta && ` hasta ${dateHasta}`}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
