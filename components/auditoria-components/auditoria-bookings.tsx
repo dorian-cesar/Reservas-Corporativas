@@ -30,8 +30,7 @@ import {
   XCircle,
   Clock4,
   Search,
-  Building2,
-  Plus
+  Building2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -44,11 +43,11 @@ import {
 } from "@/components/ui/table"
 
 import * as XLSX from "xlsx";
-import ToolBar from "./tool-bar";
-import ToolBarAdmin from "./ToolBarAdmin";
+import ToolBar from "../tool-bar";
+import TicketPDFButton from "@/components/ticket-pdf";
 
-export function AdminBookings() {
-  const { token, user } = useAuth.getState();
+export function AuditoriaBookings() {
+  const { token } = useAuth.getState();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -58,7 +57,6 @@ export function AdminBookings() {
   const [dateFilter, setDateFilter] = useState<string>("");
   const [empresaId, setEmpresaId] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
@@ -104,12 +102,8 @@ export function AdminBookings() {
   };
 
   useEffect(() => {
-    if (user?.companyId) {
-      fetchUserCompanyInfo();
-    } else {
-      fetchCompanies();
-    }
-  }, [user]);
+    fetchCompanies();
+  }, []);
 
   useEffect(() => {
     if (!Number(empresaId)) return;
@@ -118,40 +112,19 @@ export function AdminBookings() {
 
   const fetchCompanies = async () => {
     try {
-      const res = await fetch("/api/companies", { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setCompanies(data.map((c: any) => ({ id: c.id.toString(), nombre: c.nombre })));
-    } catch {
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
-    }
-  };
-
-  const fetchUserCompanyInfo = async () => {
-    if (!user?.companyId || !token) return;
-
-    try {
-      const res = await fetch(`/api/companies/${user.companyId}`, {
+      const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (res.ok) {
-        const companyData = await res.json();
-        const company = {
-          id: companyData.id.toString(),
-          nombre: companyData.nombre
-        };
-
-        setUserCompany(company);
-        setEmpresaId(company.id.toString());
-        setCompanies([company]);
-      }
+      if (!res.ok) throw new Error("Error fetching companies");
+      const data = await res.json();
+      const mapped = data.map((c: any) => ({
+        id: c.id.toString(),
+        nombre: c.nombre,
+      }));
+      setCompanies(mapped);
     } catch (err) {
-      console.error("Error fetching user company:", err);
-      toast({
-        title: "Error",
-        description: "No se pudo cargar la empresa del usuario",
-        variant: "destructive"
-      });
+      console.error(err);
+      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
     }
   };
 
@@ -446,38 +419,28 @@ export function AdminBookings() {
     });
   };
 
-  if (!user?.companyId) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="text-center py-12">
-            <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">Usuario sin empresa asignada</h3>
-            <p className="text-muted-foreground">
-              Tu usuario no tiene una empresa asignada. Contacta al administrador.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const clearDateFilters = () => {
+    setDateDesde("");
+    setDateHasta("");
+  };
 
   return (
     <div className="space-y-6">
-      <ToolBarAdmin
+      <ToolBar
         title="Gestión de Tickets"
         description="Visualice y exporte los tickets del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
 
-        companyInfo={userCompany ? {
-          id: userCompany.id,
-          nombre: userCompany.nombre
-        } : undefined}
+        // company select
+        showCompanySelect
+        companies={companies}
+        selectedCompany={empresaId}
+        onCompanyChange={(id) => setEmpresaId(id)}
 
         refreshAction={() => empresaId && fetchTickets(Number(empresaId))}
 
-        primaryAction={{
+        secondaryAction={{
           label: "Exportar",
           icon: <Download className="h-4 w-4" />,
           onClick: () => setIsExportDialogOpen(true),
@@ -637,7 +600,7 @@ export function AdminBookings() {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-5 justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 rounded-lg">
                       {getStatusIcon(ticket.ticketStatus)}
@@ -649,6 +612,10 @@ export function AdminBookings() {
                       </CardDescription>
                     </div>
                   </div>
+                  {ticket.ticketStatus === "Confirmed" &&
+                    <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                  }
+
                 </div>
               </CardHeader>
 
@@ -682,9 +649,9 @@ export function AdminBookings() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{ticket.origin}</span>
+                    <span className="font-medium">{ticket.origin || "—"}</span>
                     <span className="text-muted-foreground">→</span>
-                    <span className="font-medium">{ticket.destination}</span>
+                    <span className="font-medium">{ticket.destination || "—"}</span>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
@@ -756,9 +723,9 @@ export function AdminBookings() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Hora</TableHead>
                   <TableHead>Asiento</TableHead>
-                  <TableHead className="text-right">Valor Asiento</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
                   <TableHead>Confirmado</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -770,38 +737,38 @@ export function AdminBookings() {
                           <FileText className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">{ticket.ticketNumber}</p>
+                          <p className="text-sm text-muted-foreground">{ticket.ticketNumber || "—"}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm">{ticket.user.nombre}</p>
+                        <p className="text-sm">{ticket.user.nombre || "—"}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">{ticket.user.rut}</p>
+                        <p className="text-sm text-muted-foreground">{ticket.user.rut || "—"}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">{ticket.user.email}</p>
+                        <p className="text-sm text-muted-foreground">{ticket.user.email || "—"}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <p className="text-sm">{ticket.user.centroCosto.nombre}</p>
+                        <p className="text-sm">{ticket?.user?.centroCosto?.nombre ?? "—"}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(ticket.ticketStatus)}
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium">{ticket.origin}</p>
+                      <p className="font-medium">{ticket.origin || "—"}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium">{ticket.destination}</p>
+                      <p className="font-medium">{ticket.destination || "—"}</p>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -818,14 +785,17 @@ export function AdminBookings() {
                     <TableCell>
                       {ticket.seatNumbers}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(ticket.fare)}
-                    </TableCell>
+
                     <TableCell className="text-right font-medium">
                       {formatCurrency(ticket.monto_boleto)}
                     </TableCell>
                     <TableCell>
                       <p className="text-sm">{formatDate(ticket.confirmedAt)}</p>
+                    </TableCell>
+                    <TableCell>
+                      {ticket.ticketStatus === "Confirmed" &&
+                        <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                      }
                     </TableCell>
                   </TableRow>
                 ))}

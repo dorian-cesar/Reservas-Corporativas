@@ -36,9 +36,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import ToolBarAdmin from "./ToolBarAdmin";
+import ToolBarAdmin from "../ToolBarAdmin";
 
-export function AdminCostCentersCRUD() {
+export function AdminCostCenters() {
     const { token, user } = useAuth.getState(); // Obtener también el usuario
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)

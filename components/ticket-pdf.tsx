@@ -44,7 +44,7 @@ export default function TicketPDFButton({
     <Button
       size="sm"
       variant="outline"
-      className="flex-1 gap-2"
+      className="flex-1 gap-2 py-2"
       onClick={handleDownload}
       disabled={loading}
     >

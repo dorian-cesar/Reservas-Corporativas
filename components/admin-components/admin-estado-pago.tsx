@@ -36,7 +36,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import * as XLSX from "xlsx";
-import ToolBarAdmin from "./ToolBarAdmin";
+import ToolBarAdmin from "../ToolBarAdmin";
 
 import { Eye } from "lucide-react";
 

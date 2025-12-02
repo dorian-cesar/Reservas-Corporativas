@@ -3,12 +3,12 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { SuperAllBookings } from "@/components/super-bookings"
-import { CompaniesCRUD } from "@/components/companies-crud"
+import { SuperCompanies } from "@/components/super-companies"
 import { CompanyUsers } from "@/components/company-users"
 import { CostCentersCRUD } from "@/components/cost-center-crud"
 import { EstadoPago } from "@/components/estado-pago"
@@ -34,7 +34,12 @@ export default function SuperUserPage() {
             <AdminStats />
 
             <Tabs defaultValue="companies-crud" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="
+                  flex items-center gap-2
+                  overflow-x-auto whitespace-nowrap
+                  p-2 -mx-2 sm:mx-0
+                  rounded-md
+                ">
                 <TabsTrigger value="companies-crud" className="gap-2">
                   <Building2 className="h-4 w-4" />
                   Empresas
@@ -55,14 +60,18 @@ export default function SuperUserPage() {
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
                 </TabsTrigger>
-                <TabsTrigger value="bookings" className="gap-2">
+                <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
+                </TabsTrigger>
+                <TabsTrigger value="bookings" className="gap-2">
+                  <AlbumIcon className="h-4 w-4" />
+                  Reservas
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
-                <CompaniesCRUD />
+                <SuperCompanies />
               </TabsContent>
 
               <TabsContent value="cost-center" className="mt-6">
@@ -80,8 +89,12 @@ export default function SuperUserPage() {
                 <CurrentAccounts />
               </TabsContent>
 
-              <TabsContent value="bookings" className="mt-6">
+              <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
+              </TabsContent>
+
+              <TabsContent value="bookings" className="mt-6">
+                componente
               </TabsContent>
             </Tabs>
           </div>

@@ -6,11 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
-import { AdminCurrentAccounts } from "@/components/admin-cuenta-corriente"
-import { AdminBookings } from "@/components/admin-bookings"
-import { AdminCompanyUsers } from "@/components/admin-company-users"
-import { AdminCostCentersCRUD } from "@/components/admin-cost-center-crud"
-import { AdminEstadoPago } from "@/components/admin-estado-pago"
+import { AdminCurrentAccounts } from "@/components/admin-components/admin-cuenta-corriente"
+import { AdminBookings } from "@/components/admin-components/admin-bookings"
+import { AdminCompanyUsers } from "@/components/admin-components/admin-company-users"
+import { AdminCostCenters } from "@/components/admin-components/admin-cost-center"
+import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -33,7 +33,12 @@ export default function AdminPage() {
             <AdminStats />
 
             <Tabs defaultValue="cost-center" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="
+                  flex items-center gap-2
+                  overflow-x-auto whitespace-nowrap
+                  p-2 -mx-2 sm:mx-0
+                  rounded-md
+                ">
                 <TabsTrigger value="cost-center" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Centros de Costo
@@ -58,7 +63,7 @@ export default function AdminPage() {
 
 
               <TabsContent value="cost-center" className="mt-6">
-                <AdminCostCentersCRUD />
+                <AdminCostCenters />
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">

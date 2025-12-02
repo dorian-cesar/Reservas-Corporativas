@@ -38,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import ToolBarAdmin from "./ToolBarAdmin";
+import ToolBarAdmin from "../ToolBarAdmin";
 
 export function AdminCompanyUsers() {
   const { token, user } = useAuth.getState(); // Obtener también el usuario

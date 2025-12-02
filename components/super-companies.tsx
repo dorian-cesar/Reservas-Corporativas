@@ -52,7 +52,7 @@ const formatPercent = (n: number) => {
   return n.toFixed(2).replace(/\.?0+$/, "");
 };
 
-export function CompaniesCRUD() {
+export function SuperCompanies() {
   const { token } = useAuth.getState();
   const [companies, setCompanies] = useState<Company[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
@@ -70,6 +70,7 @@ export function CompaniesCRUD() {
     returnPercentage?: string;
     billingDay: number;
     expirationDay: number;
+    max: number;
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -81,7 +82,8 @@ export function CompaniesCRUD() {
     surchargePercentage: "20",
     returnPercentage: "80",
     billingDay: "5",
-    expirationDay: "15"
+    expirationDay: "15",
+    max: "100000"
   })
 
   useEffect(() => {
@@ -110,7 +112,8 @@ export function CompaniesCRUD() {
             surchargePercentage: empresa.recargo || 0,
             returnPercentage: percent,
             billingDay: empresa.dia_facturacion,
-            expirationDay: empresa.dia_vencimiento
+            expirationDay: empresa.dia_vencimiento,
+            max: empresa.monto_maximo
           };
         });
 
@@ -164,7 +167,8 @@ export function CompaniesCRUD() {
         surchargePercentage: empresa.recargo || 0,
         returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
         billingDay: empresa.dia_facturacion,
-        expirationDay: empresa.dia_vencimiento
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo
       };
 
       setFilteredCompanies([companyMapped]);
@@ -198,7 +202,8 @@ export function CompaniesCRUD() {
       surchargePercentage: "20",
       returnPercentage: "80",
       billingDay: "5",
-      expirationDay: "15"
+      expirationDay: "15",
+      max: "100000"
     });
   };
 
@@ -225,7 +230,8 @@ export function CompaniesCRUD() {
           recargo: Number(formData.surchargePercentage),
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
           dia_facturacion: Number(formData.billingDay),
-          dia_vencimiento: Number(formData.expirationDay)
+          dia_vencimiento: Number(formData.expirationDay),
+          monto_maximo: Number(formData.max)
         }),
       });
 
@@ -273,7 +279,8 @@ export function CompaniesCRUD() {
           recargo: Number(formData.surchargePercentage),
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
           dia_facturacion: Number(formData.billingDay),
-          dia_vencimiento: Number(formData.expirationDay)
+          dia_vencimiento: Number(formData.expirationDay),
+          monto_maximo: Number(formData.max)
         }),
       });
 
@@ -355,6 +362,7 @@ export function CompaniesCRUD() {
       returnPercentage: company.returnPercentage?.toString() ?? "0",
       billingDay: company.billingDay?.toString() ?? "0",
       expirationDay: company.expirationDay?.toString() ?? "0",
+      max: company.max?.toString() ?? "0",
     });
     setIsEditDialogOpen(true);
   };
@@ -511,6 +519,22 @@ export function CompaniesCRUD() {
                 }}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="max">Monto Máximo</Label>
+              <Input
+                id="max"
+                type="number"
+                min="0"
+                placeholder="100000"
+                value={formData.max}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    max: e.target.value,
+                  });
+                }}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -549,7 +573,7 @@ export function CompaniesCRUD() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       <Percent className="h-3 w-3" />
@@ -575,6 +599,12 @@ export function CompaniesCRUD() {
                       Día de Vencimiento
                     </div>
                     <p className="text-2xl font-bold">{company.expirationDay}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Monto Máximo
+                    </div>
+                    <p className="text-2xl font-bold">{company.max || "0"}</p>
                   </div>
                 </div>
 
@@ -790,6 +820,22 @@ export function CompaniesCRUD() {
                   setFormData({
                     ...formData,
                     expirationDay: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-max">Monto Máximo</Label>
+              <Input
+                id="edit-max"
+                type="number"
+                min="0"
+                placeholder="100000"
+                value={formData.max}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    max: e.target.value,
                   });
                 }}
               />

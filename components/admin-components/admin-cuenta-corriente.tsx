@@ -41,8 +41,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import ToolBar from "./tool-bar";
-import ToolBarAdmin from "./ToolBarAdmin";
+import ToolBar from "../tool-bar";
+import ToolBarAdmin from "../ToolBarAdmin";
 
 export function AdminCurrentAccounts() {
   const { token, user } = useAuth.getState();
