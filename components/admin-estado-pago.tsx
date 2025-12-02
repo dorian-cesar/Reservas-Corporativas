@@ -332,7 +332,7 @@ export function AdminEstadoPago() {
                     id: userCompany.id,
                     nombre: userCompany.nombre
                 } : undefined}
-                refreshAction={() => userCompany && fetchUserCompanyInfo()}
+                refreshAction={() => userCompany && fetchEstadosCuenta(Number(userCompany.id))}
                 primaryAction={{
                     label: "Agregar Centro",
                     icon: <Plus className="h-4 w-4" />,

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
-import { CurrentAccounts } from "@/components/cuenta-corriente"
+import { AdminCurrentAccounts } from "@/components/admin-cuenta-corriente"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { AdminCompanyUsers } from "@/components/admin-company-users"
 import { AdminCostCentersCRUD } from "@/components/admin-cost-center-crud"
@@ -69,7 +69,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="cuenta-corriente" className="mt-6">
-                <CurrentAccounts />
+                <AdminCurrentAccounts />
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
