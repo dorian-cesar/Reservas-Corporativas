@@ -10,7 +10,7 @@ import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { AllBookingsAdmin } from "@/components/all-bookings-admin"
 import { AdminCompanyUsers } from "@/components/admin-company-users"
 import { AdminCostCentersCRUD } from "@/components/admin-cost-center-crud"
-import { EstadoPago } from "@/components/estado-pago"
+import { AdminEstadoPago } from "@/components/admin-estado-pago"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -65,7 +65,7 @@ export default function AdminPage() {
                 <AdminCompanyUsers />
               </TabsContent>
               <TabsContent value="esp" className="mt-6">
-                <EstadoPago />
+                <AdminEstadoPago />
               </TabsContent>
 
               <TabsContent value="cuenta-corriente" className="mt-6">

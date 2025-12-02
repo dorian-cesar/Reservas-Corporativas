@@ -470,26 +470,6 @@ export function AdminCompanyUsers() {
 
   return (
     <div className="space-y-6">
-      {/* Banner informativo de la empresa del usuario */}
-      {userCompany && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Viendo usuarios de:</p>
-                  <p className="text-lg font-bold">{userCompany.nombre}</p>
-                  <p className="text-xs text-muted-foreground">ID: {userCompany.id}</p>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {users.length} usuarios
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <ToolBarAdmin
         title="Gestión de Usuarios"
