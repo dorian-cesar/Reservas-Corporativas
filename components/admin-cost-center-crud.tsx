@@ -346,19 +346,6 @@ export function AdminCostCentersCRUD() {
     if (!user?.companyId) {
         return (
             <div className="space-y-6">
-                <ToolBarAdmin
-                    title="Centros de Costo"
-                    description="Gestione los centros de costo de las empresas"
-                    viewMode={viewMode}
-                    setViewMode={setViewMode}
-                    refreshAction={() => userCompany && fetchCostCenters(userCompany.id)}
-                    primaryAction={{
-                        label: "Agregar Centro",
-                        icon: <Plus className="h-4 w-4" />,
-                        onClick: openAddDialog,
-                        className: "bg-accent hover:bg-accent/90",
-                    }}
-                />
                 <Card>
                     <CardContent className="text-center py-12">
                         <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />

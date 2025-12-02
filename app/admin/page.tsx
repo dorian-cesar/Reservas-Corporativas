@@ -7,7 +7,7 @@ import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } f
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AdminCurrentAccounts } from "@/components/admin-cuenta-corriente"
-import { AllBookingsAdmin } from "@/components/all-bookings-admin"
+import { AdminAllBookings } from "@/components/admin-all-bookings"
 import { AdminCompanyUsers } from "@/components/admin-company-users"
 import { AdminCostCentersCRUD } from "@/components/admin-cost-center-crud"
 import { AdminEstadoPago } from "@/components/admin-estado-pago"
@@ -73,7 +73,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
-                <AllBookingsAdmin />
+                <AdminAllBookings />
               </TabsContent>
             </Tabs>
           </div>

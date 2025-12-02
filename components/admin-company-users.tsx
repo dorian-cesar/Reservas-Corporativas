@@ -91,7 +91,7 @@ export function AdminCompanyUsers() {
             nombre: c.nombre,
           }));
           setCompanies(mapped);
-          
+
           // Si el usuario tiene empresa_id, establecerla automáticamente
           if (user?.companyId) {
             const userCompany = mapped.find((c: any) => c.id === user?.companyId?.toString());
@@ -104,10 +104,10 @@ export function AdminCompanyUsers() {
         }
       } catch (err) {
         console.error("Error fetching companies:", err);
-        toast({ 
-          title: "Error", 
-          description: "No se pudieron cargar las empresas", 
-          variant: "destructive" 
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las empresas",
+          variant: "destructive"
         });
       }
     };
@@ -257,7 +257,7 @@ export function AdminCompanyUsers() {
         title: "Usuario agregado",
         description: `${formData.nombre} ha sido agregado exitosamente`,
       });
-      
+
       // Recargar usuarios de la empresa
       if (userCompany) {
         fetchUsersByCompany(userCompany.id);
@@ -442,19 +442,6 @@ export function AdminCompanyUsers() {
   if (!user?.companyId) {
     return (
       <div className="space-y-6">
-        <ToolBarAdmin
-          title="Gestión de Usuarios"
-          description="Administre los usuarios del sistema"
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          refreshAction={() => userCompany && fetchUsersByCompany(userCompany.id)}
-          primaryAction={{
-            label: "Agregar Usuario",
-            icon: <Plus className="h-4 w-4" />,
-            onClick: openAddDialog,
-            disabled: true
-          }}
-        />
         <Card>
           <CardContent className="text-center py-12">
             <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -487,7 +474,7 @@ export function AdminCompanyUsers() {
           onClick: openAddDialog,
         }}
       />
-      
+
       {/* Estado de carga */}
       {isLoading && (
         <div className="text-center py-8">

@@ -278,19 +278,6 @@ export function AdminCurrentAccounts() {
   if (!user?.companyId) {
     return (
       <div className="space-y-6">
-        <ToolBarAdmin
-          title="Centros de Costo"
-          description="Gestione los centros de costo de las empresas"
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          refreshAction={() => userCompany && fetchUserCompanyInfo()}
-          primaryAction={{
-            label: "Agregar Centro",
-            icon: <Plus className="h-4 w-4" />,
-            onClick: openAddDialog,
-            className: "bg-accent hover:bg-accent/90",
-          }}
-        />
         <Card>
           <CardContent className="text-center py-12">
             <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -406,132 +393,132 @@ export function AdminCurrentAccounts() {
         </DialogContent>
       </Dialog>
 
-        <>
-          {/* Vista de Tarjetas */}
-          {viewMode === "cards" && (
-            <div className="grid gap-4">
-              {movements.map((movement, index) => (
-                <Card
-                  key={movement.id}
-                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {getMovementIcon(movement.tipo_movimiento)}
-                        <div>
-                          <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(movement.fecha_movimiento)}
-                            {movement.referencia && ` • Ref: ${movement.referencia}`}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <p className={`text-lg font-bold ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                          {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
-                        </p>
+      <>
+        {/* Vista de Tarjetas */}
+        {viewMode === "cards" && (
+          <div className="grid gap-4">
+            {movements.map((movement, index) => (
+              <Card
+                key={movement.id}
+                className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {getMovementIcon(movement.tipo_movimiento)}
+                      <div>
+                        <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
                         <p className="text-sm text-muted-foreground">
-                          Saldo: {formatCurrency(movement.saldo)}
+                          {formatDate(movement.fecha_movimiento)}
+                          {movement.referencia && ` • Ref: ${movement.referencia}`}
                         </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                          onClick={() => handleDelete(movement.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
 
-              {movements.length === 0 && (
-                <Card>
-                  <CardContent className="text-center py-8 text-muted-foreground">
-                    <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay movimientos registrados para esta empresa</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
+                    <div className="text-right">
+                      <p className={`text-lg font-bold ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Saldo: {formatCurrency(movement.saldo)}
+                      </p>
+                    </div>
 
-          {/* Vista de Tabla */}
-          {viewMode === "table" && (
-            <Card>
-              <CardContent className="p-0">
-                <UITable>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead>Referencia</TableHead>
-                      <TableHead className="text-right">Monto</TableHead>
-                      <TableHead className="text-right">Saldo</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {movements.map((movement) => (
-                      <TableRow key={movement.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(movement.fecha_movimiento)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getMovementBadge(movement.tipo_movimiento)}
-                        </TableCell>
-                        <TableCell>
-                          {movement.descripcion || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {movement.referencia || "-"}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                          {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(movement.saldo)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(movement.id)}
-                              className="h-8 px-3 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </UITable>
-                {movements.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay movimientos registrados para esta empresa</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
+                        onClick={() => handleDelete(movement.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </>
+                </CardContent>
+              </Card>
+            ))}
+
+            {movements.length === 0 && (
+              <Card>
+                <CardContent className="text-center py-8 text-muted-foreground">
+                  <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay movimientos registrados para esta empresa</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Vista de Tabla */}
+        {viewMode === "table" && (
+          <Card>
+            <CardContent className="p-0">
+              <UITable>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead>Referencia</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {movements.map((movement) => (
+                    <TableRow key={movement.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {formatDate(movement.fecha_movimiento)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getMovementBadge(movement.tipo_movimiento)}
+                      </TableCell>
+                      <TableCell>
+                        {movement.descripcion || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {movement.referencia || "-"}
+                      </TableCell>
+                      <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                        {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(movement.saldo)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(movement.id)}
+                            className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </UITable>
+              {movements.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay movimientos registrados para esta empresa</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </>
     </div>
   );
 }

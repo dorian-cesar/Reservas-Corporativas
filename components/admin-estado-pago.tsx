@@ -111,33 +111,33 @@ export function AdminEstadoPago() {
 
     const fetchUserCompanyInfo = async () => {
         if (!user?.companyId || !token) return;
-      
+
         try {
-          const res = await fetch(`/api/companies/${user.companyId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-      
-          if (res.ok) {
-            const companyData = await res.json();
-            const company = {
-              id: companyData.id.toString(),
-              nombre: companyData.nombre
-            };
-            
-            setUserCompany(company);
-            setEmpresaId(company.id.toString());
-            setCompanies([company]);
-          }
+            const res = await fetch(`/api/companies/${user.companyId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (res.ok) {
+                const companyData = await res.json();
+                const company = {
+                    id: companyData.id.toString(),
+                    nombre: companyData.nombre
+                };
+
+                setUserCompany(company);
+                setEmpresaId(company.id.toString());
+                setCompanies([company]);
+            }
         } catch (err) {
-          console.error("Error fetching user company:", err);
-          toast({ 
-            title: "Error", 
-            description: "No se pudo cargar la empresa del usuario", 
-            variant: "destructive" 
-          });
+            console.error("Error fetching user company:", err);
+            toast({
+                title: "Error",
+                description: "No se pudo cargar la empresa del usuario",
+                variant: "destructive"
+            });
         }
-      };
-    
+    };
+
 
     const fetchEstadosCuenta = async (targetEmpresaId: number, opts?: { desde?: string; hasta?: string }) => {
         setIsLoading(true);
@@ -294,19 +294,6 @@ export function AdminEstadoPago() {
     if (!user?.companyId) {
         return (
             <div className="space-y-6">
-                <ToolBarAdmin
-                    title="Centros de Costo"
-                    description="Gestione los centros de costo de las empresas"
-                    viewMode={viewMode}
-                    setViewMode={setViewMode}
-                    refreshAction={() => userCompany && fetchUserCompanyInfo()}
-                    primaryAction={{
-                        label: "Agregar Centro",
-                        icon: <Plus className="h-4 w-4" />,
-                        onClick: () => setIsExportDialogOpen(true),
-                        className: "bg-accent hover:bg-accent/90",
-                    }}
-                />
                 <Card>
                     <CardContent className="text-center py-12">
                         <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -322,7 +309,7 @@ export function AdminEstadoPago() {
 
     return (
         <div className="space-y-6">
-            
+
             <ToolBarAdmin
                 title="Estados de Cuenta"
                 description={`Visualice los estados de cuenta de ${userCompany?.nombre || 'su empresa'}`}
