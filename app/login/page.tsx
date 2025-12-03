@@ -62,21 +62,18 @@ export default function LoginPage() {
     }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/10 via-background to-accent/10 p-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-linear-to-br from-primary/10 via-background to-accent/10 p-4">
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 text-primary">
+          <div className="flex flex-col items-center gap-2 text-primary">
             <Image
-              src="/pullman-logo-32x32.png"
+              src="/logo-pullman.png"
               alt="Logo Pullman"
-              width={32}
-              height={32}
+              width={300}
+              height={100}
               className="object-contain"
             />
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Pullman Bus
-              </h1>
               <p className="text-sm text-muted-foreground">
                 Reservas Corporativas
               </p>
@@ -138,17 +135,21 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
+            {/* <div className="mt-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
               <p className="font-medium text-foreground">Usuarios de prueba:</p>
               <div className="space-y-1 text-muted-foreground">
                 <p>👤 Usuario: user@wit.la / 123456</p>
                 <p>👔 Controlador: controlador@wit.la / 123456</p>
                 <p>⚡ SuperUser: super@wit.la / 123456</p>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
+
+      <img src="/logo-wit-dark.png" alt="Logo Wit"
+       className="absolute bottom-5 right-5 h-20 w-auto"
+       />
     </div>
   );
 }

@@ -38,18 +38,14 @@ export function Header({ onLogout }: HeaderProps) {
     <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 left-0 right-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center">
             <Image
-              src="/pullman-logo-32x32.png"
+              src="/logo-pullman.png"
               alt="Logo Pullman"
-              width={32}
-              height={32}
+              width={200}
+              height={100}
               className="object-contain"
             />
-            <div>
-              <h1 className="text-xl font-bold">Pullman Bus</h1>
-              <p className="text-sm text-muted-foreground">Reservas Corporativas</p>
-            </div>
           </div>
 
           <div className="flex items-center gap-4">

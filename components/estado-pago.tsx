@@ -42,15 +42,16 @@ type EstadoCuentaType = {
     id: number;
     empresa_id: number;
     periodo: string;
+    fecha_inicio?: string;  // CAMBIO: De fecha_vencimiento a fecha_inicio
+    fecha_fin?: string;     // CAMBIO: De fecha_facturacion a fecha_fin
     fecha_generacion: string;
-    fecha_vencimiento?: string;
-    fecha_facturacion?: string;
     total_tickets: number;
     total_tickets_anulados: number;
     monto_facturado: string;
     detalle_por_cc: string;
     pagado: boolean;
     fecha_pago?: string;
+    suma_devoluciones?: number; // NUEVO: Campo añadido
 };
 
 export function EstadoPago() {
@@ -156,21 +157,42 @@ export function EstadoPago() {
     const formatCurrency = (amount: string | number) =>
         new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(Number(amount));
 
-    const formatDate = (date?: string) => date ? new Date(date).toLocaleDateString("es-CL") : "-";
+    const formatDate = (date?: string) => {
+        if (!date) return "-";
+
+        try {
+            // Si la fecha tiene formato YYYY-MM-DD HH:MM:SS (VARCHAR en la BD)
+            if (date.includes(' ')) {
+                const [datePart] = date.split(' ');
+                return new Date(datePart).toLocaleDateString("es-CL");
+            }
+
+            // Si es una fecha ISO
+            return new Date(date).toLocaleDateString("es-CL");
+        } catch {
+            return date; // Devuelve el string original si no se puede parsear
+        }
+    };
 
     const exportToCSV = () => {
         if (estadosCuenta.length === 0) return;
-        const headers = ["Periodo", "Fecha Generación", "Fecha Vencimiento", "Total Tickets", "Total Anulados", "Monto Facturado", "Pagado", "Fecha Pago"];
+
+        // ACTUALIZADO: Headers con nuevos campos
+        const headers = ["Periodo", "Fecha Generación", "Fecha Inicio", "Fecha Fin", "Total Tickets", "Total Anulados", "Monto Facturado", "Devoluciones", "Pagado", "Fecha Pago"];
+
         const csvData = estadosCuenta.map(ec => [
             ec.periodo,
             formatDate(ec.fecha_generacion),
-            formatDate(ec.fecha_vencimiento),
+            formatDate(ec.fecha_inicio),
+            formatDate(ec.fecha_fin),
             ec.total_tickets,
             ec.total_tickets_anulados,
             formatCurrency(ec.monto_facturado),
+            formatCurrency(ec.suma_devoluciones || 0),
             ec.pagado ? "Sí" : "No",
             formatDate(ec.fecha_pago)
         ]);
+
         const csvContent = [headers.join(","), ...csvData.map(row => row.map(f => `"${f}"`).join(","))].join("\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
@@ -183,16 +205,21 @@ export function EstadoPago() {
 
     const exportToXLSX = () => {
         if (estadosCuenta.length === 0) return;
+
+        // ACTUALIZADO: Datos con nuevos campos
         const data = estadosCuenta.map(ec => ({
             "Periodo": ec.periodo,
             "Fecha Generación": formatDate(ec.fecha_generacion),
-            "Fecha Vencimiento": formatDate(ec.fecha_vencimiento),
+            "Fecha Inicio": formatDate(ec.fecha_inicio),
+            "Fecha Fin": formatDate(ec.fecha_fin),
             "Total Tickets": ec.total_tickets,
             "Total Anulados": ec.total_tickets_anulados,
             "Monto Facturado": formatCurrency(ec.monto_facturado),
+            "Devoluciones": formatCurrency(ec.suma_devoluciones || 0),
             "Pagado": ec.pagado ? "Sí" : "No",
             "Fecha Pago": formatDate(ec.fecha_pago)
         }));
+
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "EstadosCuenta");
@@ -200,7 +227,6 @@ export function EstadoPago() {
         setIsExportDialogOpen(false);
         toast({ title: "Exportación exitosa", description: `Se exportaron ${estadosCuenta.length} registros a XLSX` });
     };
-
     const exportTicketsToCSV = (ticketsData: any[], cuenta: EstadoCuentaType | null) => {
         if (ticketsData.length === 0) return;
 
@@ -364,12 +390,12 @@ export function EstadoPago() {
                         <UITable>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Periodo</TableHead>
                                     <TableHead>Fecha Generación</TableHead>
-                                    <TableHead>Fecha Vencimiento</TableHead>
+                                    <TableHead>Período Facturación</TableHead>
                                     <TableHead>Total Tickets</TableHead>
                                     <TableHead>Total Anulados</TableHead>
                                     <TableHead>Monto Facturado</TableHead>
+                                    <TableHead>Suma Devoluciones</TableHead>
                                     <TableHead>Pagado</TableHead>
                                     <TableHead>Detalles</TableHead>
                                 </TableRow>
@@ -377,12 +403,16 @@ export function EstadoPago() {
                             <TableBody>
                                 {estadosCuenta.map(ec => (
                                     <TableRow key={ec.id} className="hover:bg-muted/50">
-                                        <TableCell>{ec.periodo}</TableCell>
                                         <TableCell>{formatDate(ec.fecha_generacion)}</TableCell>
-                                        <TableCell>{formatDate(ec.fecha_vencimiento)}</TableCell>
+                                        <TableCell>
+                                            {ec.fecha_inicio || ec.fecha_fin
+                                                ? `${formatDate(ec.fecha_inicio)} - ${formatDate(ec.fecha_fin)}`
+                                                : 'No definido'}
+                                        </TableCell>
                                         <TableCell>{ec.total_tickets}</TableCell>
                                         <TableCell>{ec.total_tickets_anulados}</TableCell>
                                         <TableCell>{formatCurrency(ec.monto_facturado)}</TableCell>
+                                        <TableCell>{formatCurrency(ec.suma_devoluciones ?? 0)}</TableCell>
                                         <TableCell>{ec.pagado ? "Sí" : "No"}</TableCell>
                                         <TableCell>
                                             <div className="flex justify-end gap-2">
@@ -413,10 +443,13 @@ export function EstadoPago() {
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 <p>Generación: {formatDate(ec.fecha_generacion)}</p>
-                                <p>Vencimiento: {formatDate(ec.fecha_vencimiento)}</p>
+                                <p>Período: {ec.fecha_inicio && ec.fecha_fin
+                                    ? `${formatDate(ec.fecha_inicio)} - ${formatDate(ec.fecha_fin)}`
+                                    : 'No definido'}</p>
                                 <p>Total Tickets: {ec.total_tickets}</p>
                                 <p>Anulados: {ec.total_tickets_anulados}</p>
                                 <p>Monto: {formatCurrency(ec.monto_facturado)}</p>
+                                <p>Devoluciones: {ec.suma_devoluciones ? formatCurrency(ec.suma_devoluciones) : '$0'}</p>
                                 <p>Pagado: {ec.pagado ? "Sí" : "No"}</p>
                                 <p>Fecha Pago: {formatDate(ec.fecha_pago)}</p>
                             </CardContent>
@@ -462,11 +495,12 @@ export function EstadoPago() {
                                                 <TableHead>Origen</TableHead>
                                                 <TableHead>Destino</TableHead>
                                                 <TableHead>Fecha Viaje</TableHead>
+                                                <TableHead>Hora Salida</TableHead>
                                                 <TableHead>Monto</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {tickets.map((ticket) => (
+                                            {tickets.map((ticket) => ( // CORREGIDO: usar 'ticket' no 'ec'
                                                 <TableRow key={ticket.id}>
                                                     <TableCell>{ticket.ticketNumber}</TableCell>
                                                     <TableCell>
@@ -480,10 +514,11 @@ export function EstadoPago() {
                                                     <TableCell>{ticket.origin}</TableCell>
                                                     <TableCell>{ticket.destination}</TableCell>
                                                     <TableCell>
-                                                        {new Date(ticket.travelDate).toLocaleDateString('es-CL')}
+                                                        {formatDate(ticket.travelDate)}
                                                     </TableCell>
+                                                    <TableCell>{ticket.departureTime}</TableCell>
                                                     <TableCell>
-                                                        ${ticket.monto_boleto.toLocaleString('es-CL')}
+                                                        ${ticket.monto_boleto ? ticket.monto_boleto.toLocaleString('es-CL') : '0'}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}

@@ -46,6 +46,7 @@ import {
 import * as XLSX from "xlsx";
 import ToolBar from "../tool-bar";
 import ToolBarAdmin from "../ToolBarAdmin";
+import TicketPDFButton from "../ticket-pdf";
 
 export function AdminBookings() {
   const { token, user } = useAuth.getState();
@@ -637,7 +638,7 @@ export function AdminBookings() {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-5 justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 rounded-lg">
                       {getStatusIcon(ticket.ticketStatus)}
@@ -649,6 +650,10 @@ export function AdminBookings() {
                       </CardDescription>
                     </div>
                   </div>
+                  {ticket.ticketStatus === "Confirmed" &&
+                    <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                  }
+
                 </div>
               </CardHeader>
 
@@ -756,9 +761,9 @@ export function AdminBookings() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Hora</TableHead>
                   <TableHead>Asiento</TableHead>
-                  <TableHead className="text-right">Valor Asiento</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
                   <TableHead>Confirmado</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -826,6 +831,11 @@ export function AdminBookings() {
                     </TableCell>
                     <TableCell>
                       <p className="text-sm">{formatDate(ticket.confirmedAt)}</p>
+                    </TableCell>
+                    <TableCell>
+                      {ticket.ticketStatus === "Confirmed" &&
+                        <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                      }
                     </TableCell>
                   </TableRow>
                 ))}
