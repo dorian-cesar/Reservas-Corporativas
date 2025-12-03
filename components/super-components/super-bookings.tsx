@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/table"
 
 import * as XLSX from "xlsx";
-import ToolBar from "./tool-bar";
+import ToolBar from "../tool-bar";
 import TicketPDFButton from "@/components/ticket-pdf";
 
 export function SuperAllBookings() {

@@ -53,7 +53,49 @@ export function ServiceDetailDialog({
   const [bookingData, setBookingData] = useState<any>(null);
   const { origin, destination } = useTravel();
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [passengerName, setPassengerName] = useState<string>("");
+  const [passengerRut, setPassengerRut] = useState<string>("");
+  const [passengerEmail, setPassengerEmail] = useState<string>("");
+  const [passengerErrors, setPassengerErrors] = useState<{
+    name?: string;
+    rut?: string;
+    email?: string;
+  }>({});
   const router = useRouter();
+
+  // ==========================================================
+  // HELPERS
+  // ==========================================================
+
+
+  const validateRut = (rut: string) => {
+    // validación muy básica: solo caracteres permitidos y largo
+    if (!rut) return true; // rut opcional
+    const cleaned = rut.replace(/\./g, "").replace(/-/g, "");
+    return /^[0-9kK]{7,9}$/.test(cleaned);
+  };
+
+  const validateEmail = (email: string) => {
+    if (!email) return true; // email opcional
+    // regex sencillo para validar email
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validatePassenger = () => {
+    const errs: { name?: string; rut?: string; email?: string } = {};
+    if (!passengerName || passengerName.trim().length < 3) {
+      errs.name = "Nombre del pasajero es obligatorio (mín. 3 caracteres).";
+    }
+    if (passengerRut && !validateRut(passengerRut)) {
+      errs.rut = "RUT inválido.";
+    }
+    if (passengerEmail && !validateEmail(passengerEmail)) {
+      errs.email = "Email inválido.";
+    }
+    setPassengerErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
@@ -174,6 +216,11 @@ export function ServiceDetailDialog({
   const handleBooking = async () => {
     if (!selectedSeat || !serviceDetail) return;
 
+    if (!validatePassenger()) {
+      setBookingError("Por favor corrige los errores del formulario de pasajero.");
+      return;
+    }
+
     setLoading(true);
     setBookingError(null);
 
@@ -265,6 +312,9 @@ export function ServiceDetailDialog({
         confirmedAt: confirmData.confirmedAt,
         monto_boleto,
         id_User: user?.id,
+        nombre_pasajero: passengerName,
+        rut_pasajero: passengerRut,
+        email_pasajero: passengerEmail
       };
 
       try {
@@ -587,16 +637,68 @@ export function ServiceDetailDialog({
                 />
               </div>
 
-              {/* Información del usuario */}
-              <Alert className="bg-primary/10 border-primary/20">
-                <AlertDescription className="text-sm">
-                  <strong>Usuario:</strong> {user?.name}
-                  <br />
-                  <strong>Empresa:</strong> {user?.companyName || "N/A"}
-                  <br />
-                  <strong>Email:</strong> {user?.email}
-                </AlertDescription>
-              </Alert>
+              {/* Información del pasajero */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3 border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Datos del pasajero</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Completa los datos del pasajero que viajará. Nombre es obligatorio.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1">Nombre del pasajero *</label>
+                    <input
+                      type="text"
+                      value={passengerName}
+                      onChange={(e) => setPassengerName(e.target.value)}
+                      onBlur={() => validatePassenger()}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                      placeholder="Ej: Juan Pérez"
+                      aria-invalid={!!passengerErrors.name}
+                    />
+                    {passengerErrors.name && (
+                      <p className="text-xs text-destructive mt-1">{passengerErrors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium block mb-1">RUT pasajero</label>
+                    <input
+                      type="text"
+                      value={passengerRut}
+                      onChange={(e) => setPassengerRut(e.target.value)}
+                      onBlur={() => validatePassenger()}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                      placeholder="Ej: 12.345.678-5"
+                      aria-invalid={!!passengerErrors.rut}
+                    />
+                    {passengerErrors.rut && (
+                      <p className="text-xs text-destructive mt-1">{passengerErrors.rut}</p>
+                    )}
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium block mb-1">Email pasajero</label>
+                    <input
+                      type="email"
+                      value={passengerEmail}
+                      onChange={(e) => setPassengerEmail(e.target.value)}
+                      onBlur={() => validatePassenger()}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                      placeholder="email@dominio.cl"
+                      aria-invalid={!!passengerErrors.email}
+                    />
+                    {passengerErrors.email && (
+                      <p className="text-xs text-destructive mt-1">{passengerErrors.email}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {bookingError && (

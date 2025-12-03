@@ -7,11 +7,12 @@ import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, Al
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
-import { SuperAllBookings } from "@/components/super-bookings"
-import { SuperCompanies } from "@/components/super-companies"
+import { SuperAllBookings } from "@/components/super-components/super-bookings"
+import { SuperCompanies } from "@/components/super-components/super-companies"
 import { CompanyUsers } from "@/components/company-users"
-import { CostCentersCRUD } from "@/components/cost-center-crud"
+import { SuperCostCenters } from "@/components/super-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
+import { TravelSearch } from "@/components/travel-search"
 
 export default function SuperUserPage() {
   const { user, logout } = useAuth()
@@ -75,7 +76,7 @@ export default function SuperUserPage() {
               </TabsContent>
 
               <TabsContent value="cost-center" className="mt-6">
-                <CostCentersCRUD />
+                <SuperCostCenters />
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
@@ -94,7 +95,7 @@ export default function SuperUserPage() {
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
-                componente
+                <TravelSearch />
               </TabsContent>
             </Tabs>
           </div>

@@ -31,7 +31,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import ToolBar from "./tool-bar";
+import ToolBar from "../tool-bar";
+import { count } from "console";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -71,6 +72,7 @@ export function SuperCompanies() {
     billingDay: number;
     expirationDay: number;
     max: number;
+    count: number
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -83,7 +85,8 @@ export function SuperCompanies() {
     returnPercentage: "80",
     billingDay: "5",
     expirationDay: "15",
-    max: "100000"
+    max: "100000",
+    count: "0"
   })
 
   useEffect(() => {
@@ -113,7 +116,8 @@ export function SuperCompanies() {
             returnPercentage: percent,
             billingDay: empresa.dia_facturacion,
             expirationDay: empresa.dia_vencimiento,
-            max: empresa.monto_maximo
+            max: empresa.monto_maximo,
+            count: empresa.monto_acumulado
           };
         });
 
@@ -168,7 +172,8 @@ export function SuperCompanies() {
         returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
         billingDay: empresa.dia_facturacion,
         expirationDay: empresa.dia_vencimiento,
-        max: empresa.monto_maximo
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado
       };
 
       setFilteredCompanies([companyMapped]);
@@ -203,7 +208,8 @@ export function SuperCompanies() {
       returnPercentage: "80",
       billingDay: "5",
       expirationDay: "15",
-      max: "100000"
+      max: "100000",
+      count: "0"
     });
   };
 
@@ -231,7 +237,8 @@ export function SuperCompanies() {
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
-          monto_maximo: Number(formData.max)
+          monto_maximo: Number(formData.max),
+          monto_acumulado: Number(formData.count)
         }),
       });
 
@@ -280,7 +287,8 @@ export function SuperCompanies() {
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
-          monto_maximo: Number(formData.max)
+          monto_maximo: Number(formData.max),
+          monto_acumulado: Number(formData.count)
         }),
       });
 
@@ -363,6 +371,7 @@ export function SuperCompanies() {
       billingDay: company.billingDay?.toString() ?? "0",
       expirationDay: company.expirationDay?.toString() ?? "0",
       max: company.max?.toString() ?? "0",
+      count: company.count?.toString() ?? "0",
     });
     setIsEditDialogOpen(true);
   };
@@ -535,6 +544,22 @@ export function SuperCompanies() {
                 }}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="count">Monto Acumulado</Label>
+              <Input
+                id="count"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={formData.count}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    count: e.target.value,
+                  });
+                }}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -606,6 +631,12 @@ export function SuperCompanies() {
                     </div>
                     <p className="text-2xl font-bold">{company.max || "0"}</p>
                   </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Monto Acumulado
+                    </div>
+                    <p className="text-2xl font-bold">{company.count || "0"}</p>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -648,6 +679,8 @@ export function SuperCompanies() {
                   <TableHead>Devolución</TableHead>
                   <TableHead>Día Facturación</TableHead>
                   <TableHead>Día Vencimiento</TableHead>
+                  <TableHead>Monto Máximo</TableHead>
+                  <TableHead>Monto Acumulado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -690,6 +723,16 @@ export function SuperCompanies() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{company.expirationDay || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{company.max || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{company.count || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -836,6 +879,22 @@ export function SuperCompanies() {
                   setFormData({
                     ...formData,
                     max: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="count">Monto Acumulado</Label>
+              <Input
+                id="count"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={formData.count}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    count: e.target.value,
                   });
                 }}
               />

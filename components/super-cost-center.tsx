@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/table"
 import ToolBar from "./tool-bar";
 
-export function CostCentersCRUD() {
+export function SuperCostCenters() {
     const { token } = useAuth.getState();
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
