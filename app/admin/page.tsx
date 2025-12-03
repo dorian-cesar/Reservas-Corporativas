@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AdminCurrentAccounts } from "@/components/admin-components/admin-cuenta-corriente"
@@ -11,6 +11,7 @@ import { AdminBookings } from "@/components/admin-components/admin-bookings"
 import { AdminCompanyUsers } from "@/components/admin-components/admin-company-users"
 import { AdminCostCenters } from "@/components/admin-components/admin-cost-center"
 import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
+import { TravelSearch } from "@/components/travel-search"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -55,9 +56,13 @@ export default function AdminPage() {
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
                 </TabsTrigger>
-                <TabsTrigger value="bookings" className="gap-2">
+                <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
+                </TabsTrigger>
+                <TabsTrigger value="bookings" className="gap-2">
+                  <AlbumIcon className="h-4 w-4" />
+                  Reservas
                 </TabsTrigger>
               </TabsList>
 
@@ -77,8 +82,12 @@ export default function AdminPage() {
                 <AdminCurrentAccounts />
               </TabsContent>
 
-              <TabsContent value="bookings" className="mt-6">
+              <TabsContent value="tickets" className="mt-6">
                 <AdminBookings />
+              </TabsContent>
+
+              <TabsContent value="bookings" className="mt-6">
+                <TravelSearch />
               </TabsContent>
             </Tabs>
           </div>
