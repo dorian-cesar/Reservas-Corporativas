@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Loader2,
   Search,
+  User,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
@@ -57,6 +58,8 @@ interface Booking {
   price?: number;
   bookedAt?: string;
   companyName?: string;
+  nombre_pasajero?: string;
+  rut_pasajero?: string;
 }
 
 export function MyBookings({
@@ -169,6 +172,8 @@ export function MyBookings({
           bookedAt: booking.confirmedAt || booking.created_at,
           companyName: user?.companyName,
           departureTime: booking.departureTime,
+          nombre_pasajero: booking.nombre_pasajero,
+          rut_pasajero: booking.rut_pasajero,
         }));
 
         setUserBookings(mappedBookings);
@@ -544,10 +549,12 @@ export function MyBookings({
             return (
               <div
                 key={bookingId}
-                className="p-4 sm:p-6 border-2 rounded-lg hover:border-primary transition-all duration-300 hover:shadow-md animate-in fade-in slide-in-from-left-4 bg-card mx-2 sm:mx-0"
+                className="mx-2 sm:mx-0 p-4 sm:p-6 border-2 rounded-lg bg-card 
+                         hover:border-primary hover:shadow-md 
+                         transition-all duration-300 
+                         animate-in fade-in slide-in-from-left-4"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* HEADER */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                     <div className="flex items-center gap-2">
@@ -556,9 +563,7 @@ export function MyBookings({
                         {booking.origin}
                       </span>
                     </div>
-
                     <ArrowRight className="hidden sm:block text-muted-foreground" />
-
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-accent" />
                       <span className="font-bold text-base sm:text-lg">
@@ -566,7 +571,6 @@ export function MyBookings({
                       </span>
                     </div>
                   </div>
-
                   <Badge
                     className={
                       booking.ticketStatus?.toLowerCase() === "confirmed"
@@ -584,15 +588,12 @@ export function MyBookings({
                       : "Anulado"}
                   </Badge>
                 </div>
-
                 <div className="flex items-center gap-2 mb-4 text-xs sm:text-sm text-muted-foreground">
                   <Building className="h-4 w-4" />
                   {booking.companyName ||
                     user?.companyName ||
                     "Empresa de Transportes"}
                 </div>
-
-                {/* INFO DEL VIAJE */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 text-sm">
                   <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -605,7 +606,6 @@ export function MyBookings({
                       </div>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <div>
@@ -616,6 +616,15 @@ export function MyBookings({
                         Hora de salida
                       </div>
                     </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {booking.nombre_pasajero}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      RUT: {booking.rut_pasajero}
+                    </p>
                   </div>
 
                   <div className="flex items-start gap-2">
@@ -629,15 +638,12 @@ export function MyBookings({
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex flex-col items-start">
+                  <div className="flex flex-col justify-center">
                     <div className="font-bold text-lg text-accent">
                       {formatPrice(booking.monto_boleto || booking.fare)}
                     </div>
                   </div>
                 </div>
-
-                {/* FECHA RESERVA */}
                 <div className="text-xs text-muted-foreground mb-4">
                   Reservado el{" "}
                   {formatBookingDate(booking.confirmedAt || booking.created_at)}{" "}
@@ -645,15 +651,13 @@ export function MyBookings({
                   {formatBookingTime(booking.confirmedAt || booking.created_at)}{" "}
                   hrs
                 </div>
-
-                {/* BOTONES */}
                 {booking.ticketStatus?.toLowerCase() === "confirmed" && (
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                     <TicketPDFButton ticketNumber={booking.ticketNumber} />
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:border-red-400 hover:text-white"
+                      className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
                       onClick={() => handleCancelBooking(booking)}
                       disabled={isCanceling}
                     >
