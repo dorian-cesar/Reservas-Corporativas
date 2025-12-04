@@ -66,10 +66,10 @@ export default function SuperUserPage() {
                   <BarChart className="h-4 w-4" />
                   Tickets
                 </TabsTrigger>
-                <TabsTrigger value="bookings" className="gap-2">
+                {/* <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -95,10 +95,10 @@ export default function SuperUserPage() {
                 <SuperAllBookings />
               </TabsContent>
 
-              <TabsContent value="bookings" className="mt-6">
+              {/* <TabsContent value="bookings" className="mt-6">
                 <UserProvider />
                 <TravelSearch />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </main>
