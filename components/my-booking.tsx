@@ -23,6 +23,7 @@ import {
   Building,
   ArrowRight,
   Loader2,
+  Search,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
@@ -667,12 +668,15 @@ export function MyBookings({
           {/* Buscar */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">Buscar</label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-10 px-3 border rounded-md bg-background"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 w-full pl-10 pr-3 border rounded-md bg-background"
+              />
+            </div>
           </div>
 
           {/* Estado */}
