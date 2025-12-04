@@ -48,14 +48,14 @@ export default function AdminPage() {
                   <Users className="h-4 w-4" />
                   Usuarios
                 </TabsTrigger>
-                <TabsTrigger value="esp" className="gap-2">
+                {/* <TabsTrigger value="esp" className="gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
-                </TabsTrigger>
-                <TabsTrigger value="cuenta-corriente" className="gap-2">
+                </TabsTrigger> */}
+                {/* <TabsTrigger value="cuenta-corriente" className="gap-2">
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
-                </TabsTrigger>
+                </TabsTrigger> */}
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
@@ -74,13 +74,13 @@ export default function AdminPage() {
               <TabsContent value="users" className="mt-6">
                 <AdminCompanyUsers />
               </TabsContent>
-              <TabsContent value="esp" className="mt-6">
+              {/* <TabsContent value="esp" className="mt-6">
                 <AdminEstadoPago />
-              </TabsContent>
+              </TabsContent> */}
 
-              <TabsContent value="cuenta-corriente" className="mt-6">
+              {/* <TabsContent value="cuenta-corriente" className="mt-6">
                 <AdminCurrentAccounts />
-              </TabsContent>
+              </TabsContent> */}
 
               <TabsContent value="tickets" className="mt-6">
                 <AdminBookings />
