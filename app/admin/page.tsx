@@ -12,6 +12,9 @@ import { AdminCompanyUsers } from "@/components/admin-components/admin-company-u
 import { AdminCostCenters } from "@/components/admin-components/admin-cost-center"
 import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
 import { TravelSearch } from "@/components/travel-search"
+import { SuperTravelSearch } from "@/components/super-components/super-travel-search"
+import { UserProvider } from "@/components/providers/user-provider";
+
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
@@ -87,6 +90,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
+                <UserProvider />
                 <TravelSearch />
               </TabsContent>
             </Tabs>
