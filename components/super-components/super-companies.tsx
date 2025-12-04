@@ -68,7 +68,9 @@ export function SuperCompanies() {
 
   type Company = {
     id: string;
+    rut?: string;
     name: string;
+    current_account?: string;
     state: boolean;
     surchargePercentage?: number;
     returnPercentage?: string;
@@ -108,7 +110,9 @@ export function SuperCompanies() {
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
+    rut: "",
     name: "",
+    current_account: "",
     state: true,
     surchargePercentage: "20",
     returnPercentage: "80",
@@ -139,7 +143,9 @@ export function SuperCompanies() {
           const percent = backendToPercent(raw);
           return {
             id: empresa.id.toString(),
+            rut: empresa.rut || "-",
             name: empresa.nombre,
+            current_account: empresa.cuenta_corriente || "-",
             state: empresa.estado,
             surchargePercentage: empresa.recargo || 0,
             returnPercentage: percent,
@@ -195,7 +201,9 @@ export function SuperCompanies() {
 
       const companyMapped = {
         id: empresa.id.toString(),
+        rut: empresa.rut,
         name: empresa.nombre,
+        current_account: empresa.cuenta_corriente,
         state: empresa.estado,
         surchargePercentage: empresa.recargo || 0,
         returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
@@ -231,7 +239,9 @@ export function SuperCompanies() {
 
   const resetForm = () => {
     setFormData({
+      rut: "",
       name: "",
+      current_account: "",
       state: true,
       surchargePercentage: "20",
       returnPercentage: "80",
@@ -260,7 +270,9 @@ export function SuperCompanies() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          rut: formData.rut,
           nombre: formData.name,
+          cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
@@ -310,7 +322,9 @@ export function SuperCompanies() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          rut: formData.rut,
           nombre: formData.name,
+          cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
           porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
@@ -352,26 +366,26 @@ export function SuperCompanies() {
     const company = companies.find((c) => c.id === companyId);
     if (!company) return;
 
-        const result = await Swal.fire({
-          title: "¿Estás seguro?",
-          html: `
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      html: `
           <div class="text-left space-y-3">
             <p class="text-foreground text-center mb-2">¿Deseas reestablecer este monto acumulado?</p>
             <p class="text-foreground text-center">Esta acción no se puede deshacer.</p>
             <p class="text-sm text-muted-foreground text-center mt-2">El monto acumulado quedará en 0.</p>
           </div>
         `,
-          icon: "warning",
-          iconColor: "#f59e0b",
-          showCancelButton: true,
-          confirmButtonText: "Sí, reestablecer monto",
-          cancelButtonText: "Cancelar",
-          ...swalConfig,
-        });
-    
-        if (!result.isConfirmed) {
-          return;
-        }
+      icon: "warning",
+      iconColor: "#f59e0b",
+      showCancelButton: true,
+      confirmButtonText: "Sí, reestablecer monto",
+      cancelButtonText: "Cancelar",
+      ...swalConfig,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
 
     try {
       const res = await fetch(`/api/companies/reset/${companyId}`, {
@@ -383,8 +397,8 @@ export function SuperCompanies() {
 
       if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-        setSearchMode("all");
-        fetchCompanies();
+      setSearchMode("all");
+      fetchCompanies();
 
       toast({
         title: "Monto Reestablecido",
@@ -403,7 +417,9 @@ export function SuperCompanies() {
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
     setFormData({
+      rut: company.rut?.toString() ?? "-",
       name: company.name,
+      current_account: company.current_account?.toString() ?? "-",
       state: Boolean(company.state),
       surchargePercentage: company.surchargePercentage?.toString() ?? "0",
       returnPercentage: company.returnPercentage?.toString() ?? "0",
@@ -507,6 +523,7 @@ export function SuperCompanies() {
                 min="0"
                 max="100"
                 placeholder="0"
+                required
                 value={formData.surchargePercentage}
                 onChange={(e) => {
                   setFormData({
@@ -524,6 +541,7 @@ export function SuperCompanies() {
                 min="0"
                 max="100"
                 placeholder="0"
+                required
                 value={formData.returnPercentage}
                 onChange={(e) => {
                   setFormData({
@@ -541,6 +559,7 @@ export function SuperCompanies() {
                 min="0"
                 max="31"
                 placeholder="5"
+                required
                 value={formData.billingDay}
                 onChange={(e) => {
                   setFormData({
@@ -558,6 +577,7 @@ export function SuperCompanies() {
                 min="0"
                 max="31"
                 placeholder="15"
+                required
                 value={formData.expirationDay}
                 onChange={(e) => {
                   setFormData({
@@ -574,6 +594,7 @@ export function SuperCompanies() {
                 type="number"
                 min="0"
                 placeholder="100000"
+                required
                 value={formData.max}
                 onChange={(e) => {
                   setFormData({
@@ -590,11 +611,44 @@ export function SuperCompanies() {
                 type="number"
                 min="0"
                 placeholder="0"
+                required
                 value={formData.count}
                 onChange={(e) => {
                   setFormData({
                     ...formData,
                     count: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rut">Rut Empresa</Label>
+              <Input
+                id="rut"
+                type="text"
+                placeholder="123456789-0"
+                required
+                value={formData.rut}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    rut: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="current_account">Cuenta Corriente</Label>
+              <Input
+                id="current_account"
+                type="text"
+                placeholder="ABCD-0"
+                required
+                value={formData.current_account}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    current_account: e.target.value,
                   });
                 }}
               />
@@ -631,6 +685,7 @@ export function SuperCompanies() {
                       <CardDescription className="flex items-center gap-2 mt-1">
                         {getStatusBadge(company.state)}
                         <span className="text-xs text-muted-foreground">ID: {company.id}</span>
+                        <span className="text-xs text-muted-foreground">Rut: {company.rut || "-"}</span>
                       </CardDescription>
                     </div>
                   </div>
@@ -675,6 +730,12 @@ export function SuperCompanies() {
                       Monto Acumulado
                     </div>
                     <p className="text-2xl font-bold">{company.count || "0"}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Cuenta Corriente
+                    </div>
+                    <p className="text-2xl font-bold">{company.current_account || "-"}</p>
                   </div>
                 </div>
 
@@ -821,6 +882,7 @@ export function SuperCompanies() {
               <Input
                 id="edit-name"
                 placeholder="Ej: Empresa Ejemplo S.A."
+                required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
@@ -831,6 +893,7 @@ export function SuperCompanies() {
                 name="estado"
                 id="edit-state"
                 value={formData.state.toString()}
+                required
                 onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
                 className="w-full p-2 border rounded-md"
               >
@@ -846,6 +909,7 @@ export function SuperCompanies() {
                 min="0"
                 max="100"
                 placeholder="0"
+                required
                 value={formData.surchargePercentage}
                 onChange={(e) => {
                   setFormData({
@@ -863,6 +927,7 @@ export function SuperCompanies() {
                 min="0"
                 max="100"
                 placeholder="0"
+                required
                 value={formData.returnPercentage}
                 onChange={(e) => {
                   setFormData({
@@ -880,6 +945,7 @@ export function SuperCompanies() {
                 min="0"
                 max="31"
                 placeholder="5"
+                required
                 value={formData.billingDay}
                 onChange={(e) => {
                   setFormData({
@@ -897,6 +963,7 @@ export function SuperCompanies() {
                 min="0"
                 max="31"
                 placeholder="15"
+                required
                 value={formData.expirationDay}
                 onChange={(e) => {
                   setFormData({
@@ -913,6 +980,7 @@ export function SuperCompanies() {
                 type="number"
                 min="0"
                 placeholder="100000"
+                required
                 value={formData.max}
                 onChange={(e) => {
                   setFormData({
@@ -929,11 +997,44 @@ export function SuperCompanies() {
                 type="number"
                 min="0"
                 placeholder="0"
+                required
                 value={formData.count}
                 onChange={(e) => {
                   setFormData({
                     ...formData,
                     count: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rut">Rut Empresa</Label>
+              <Input
+                id="rut"
+                type="text"
+                placeholder="123456789-0"
+                required
+                value={formData.rut}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    rut: e.target.value,
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="current_account">Cuenta Corriente</Label>
+              <Input
+                id="current_account"
+                type="text"
+                placeholder="ABCD-0"
+                required
+                value={formData.current_account}
+                onChange={(e) => {
+                  setFormData({
+                    ...formData,
+                    current_account: e.target.value,
                   });
                 }}
               />
