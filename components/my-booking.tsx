@@ -649,7 +649,7 @@ export function MyBookings({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 gap-2 text-red-600 border-red-300"
+                      className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:border-red-400 hover:text-white"
                       onClick={() => handleCancelBooking(booking)}
                       disabled={isCanceling}
                     >
