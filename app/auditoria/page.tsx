@@ -34,7 +34,12 @@ export default function AuditoriaPage() {
             <AdminStats />
 
             <Tabs defaultValue="companies-crud" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="
+                  flex items-center gap-2
+                  overflow-x-auto whitespace-nowrap
+                  p-2 -mx-2 sm:mx-0
+                  rounded-md
+                ">
                 <TabsTrigger value="companies-crud" className="gap-2">
                   <Building2 className="h-4 w-4" />
                   Empresas

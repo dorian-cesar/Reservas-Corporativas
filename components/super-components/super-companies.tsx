@@ -32,6 +32,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import Swal from "sweetalert2";
+
 import ToolBar from "../tool-bar";
 import { count } from "console";
 
@@ -74,6 +76,32 @@ export function SuperCompanies() {
     expirationDay: number;
     max: number;
     count: number
+  };
+
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -324,7 +352,26 @@ export function SuperCompanies() {
     const company = companies.find((c) => c.id === companyId);
     if (!company) return;
 
-    if (!confirm(`¿Está seguro de reestablecer el monto acumulado de ${company.name}?`)) return;
+        const result = await Swal.fire({
+          title: "¿Estás seguro?",
+          html: `
+          <div class="text-left space-y-3">
+            <p class="text-foreground text-center mb-2">¿Deseas reestablecer este monto acumulado?</p>
+            <p class="text-foreground text-center">Esta acción no se puede deshacer.</p>
+            <p class="text-sm text-muted-foreground text-center mt-2">El monto acumulado quedará en 0.</p>
+          </div>
+        `,
+          icon: "warning",
+          iconColor: "#f59e0b",
+          showCancelButton: true,
+          confirmButtonText: "Sí, reestablecer monto",
+          cancelButtonText: "Cancelar",
+          ...swalConfig,
+        });
+    
+        if (!result.isConfirmed) {
+          return;
+        }
 
     try {
       const res = await fetch(`/api/companies/reset/${companyId}`, {
