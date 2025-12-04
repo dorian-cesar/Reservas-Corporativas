@@ -77,6 +77,10 @@ export function MyBookings({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus, dateFrom, dateTo]);
+
   const swalConfig = {
     customClass: {
       container: "swal-container",
