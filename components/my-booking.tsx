@@ -11,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { useUserStore } from "@/lib/user-store";
 import {
   Ticket,
   MapPin,
@@ -65,8 +64,7 @@ export function MyBookings({
   limit,
   showCard = true,
 }: MyBookingsProps) {
-  const { user } = useUserStore();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
