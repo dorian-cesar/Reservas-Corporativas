@@ -188,6 +188,20 @@ export function MyBookings({
   }, [user, token]);
 
   const handleCancelBooking = async (booking: Booking) => {
+    if (!canCancelBooking(booking)) {
+      Swal.fire({
+        icon: "warning",
+        title: "No es posible anular la reserva",
+        html: `
+      <p class="text-foreground mb-2">Solo puedes anular una reserva hasta 4 horas antes de la salida.</p>
+      <p class="text-sm text-muted-foreground">Si necesitas ayuda, contacta a tu empresa.</p>
+    `,
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+      return;
+    }
+
     const refundAmount = calculateRefundAmount(booking.monto_boleto);
 
     const result = await Swal.fire({
@@ -370,6 +384,22 @@ export function MyBookings({
       });
     } finally {
       setCancelingId(null);
+    }
+  };
+
+  const canCancelBooking = (booking: Booking) => {
+    try {
+      const date = booking.travelDate;
+      const time = booking.departureTime;
+      if (!date || !time) return false;
+      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
+      const now = new Date();
+      const diffHours =
+        (travelDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      return diffHours >= 4;
+    } catch (err) {
+      console.error("Error calculando horas restantes:", err);
+      return false;
     }
   };
 
