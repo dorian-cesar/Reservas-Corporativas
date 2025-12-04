@@ -20,6 +20,7 @@ import {
   Pencil,
   Trash2,
   Percent,
+  RefreshCcw
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -319,43 +320,34 @@ export function SuperCompanies() {
     }
   };
 
-  const handleDelete = async (companyId: string) => {
+  const handleReset = async (companyId: string) => {
     const company = companies.find((c) => c.id === companyId);
     if (!company) return;
 
-    if (!confirm(`¿Está seguro que desea eliminar ${company.name}?`)) return;
+    if (!confirm(`¿Está seguro de reestablecer el monto acumulado de ${company.name}?`)) return;
 
     try {
-      const res = await fetch(`/api/companies/${companyId}`, {
-        method: "DELETE",
+      const res = await fetch(`/api/companies/reset/${companyId}`, {
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!res.ok) throw new Error("Error al eliminar empresa");
+      if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      // Actualizar los estados según el modo actual
-      if (searchMode === "single" && empresaId === companyId) {
-        // Si estamos viendo una empresa individual y la eliminamos
-        setEmpresaId("");
         setSearchMode("all");
         fetchCompanies();
-      } else {
-        // Actualizar las listas locales
-        setCompanies(companies.filter((c) => c.id !== companyId));
-        setFilteredCompanies(filteredCompanies.filter((c) => c.id !== companyId));
-      }
 
       toast({
-        title: "Empresa eliminada",
-        description: `${company.name} ha sido eliminada exitosamente`,
+        title: "Monto Reestablecido",
+        description: `Se ha reestablecido el monto acumulado exitosamente`,
       });
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "No se pudo eliminar la empresa",
+        description: "Error al reestablecer el monto acumulado",
         variant: "destructive",
       });
     }
@@ -649,15 +641,15 @@ export function SuperCompanies() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  {/* <Button
+                  <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => handleDelete(company.id)}
+                    className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                    onClick={() => handleReset(company.id)}
                   >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Eliminar
-                  </Button> */}
+                    <RefreshCcw className="h-3 w-3 mr-2" />
+                    Reestablecer
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -745,14 +737,14 @@ export function SuperCompanies() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        {/* <Button
+                        <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(company.id)}
-                          className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleReset(company.id)}
+                          className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
                         >
-                          <Trash2 className="h-3 w-3" />
-                        </Button> */}
+                          <RefreshCcw className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
