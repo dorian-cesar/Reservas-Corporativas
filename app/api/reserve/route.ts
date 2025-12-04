@@ -6,7 +6,6 @@ interface BookingRequest {
   price: number;
   passengerName: string;
   passengerEmail: string;
-  passengerPhone: string;
   originId: number;
   destinationId: number;
   travelDate: string;
@@ -27,7 +26,6 @@ export async function POST(request: NextRequest) {
       price,
       passengerName,
       passengerEmail,
-      passengerPhone,
       originId,
       destinationId,
       travelDate,
@@ -68,7 +66,7 @@ export async function POST(request: NextRequest) {
               seat_number: seatNumber,
               fare: price.toString(),
               title: "Mr",
-              name: "Euro Paz",
+              name: passengerName,
               age: "40",
               sex: "M",
               is_primary: "true",
@@ -80,8 +78,8 @@ export async function POST(request: NextRequest) {
         },
         contact_detail: {
           mobile_number: "948572473",
-          emergency_name: "Euro Paz",
-          email: "epaz@wit.la",
+          emergency_name: passengerName,
+          email: passengerEmail,
         },
       },
       origin_id: originId,

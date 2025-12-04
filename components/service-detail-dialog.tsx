@@ -468,6 +468,8 @@ export function ServiceDetailDialog({
           availableSeats: serviceDetail.available_seats,
           cost: serviceDetail.cost,
           boardingAt: boardingPoint,
+          passengerName: passengerName,
+          passengerEmail: passengerEmail,
         }),
       });
 
