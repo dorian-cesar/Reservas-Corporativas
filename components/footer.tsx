@@ -21,17 +21,10 @@ export function Footer({ className }: FooterProps) {
       className={cn("border-t bg-card/50 backdrop-blur-sm mt-auto", className)}
     >
       <div className="container mx-auto px-4 py-4">
-        {/* Desktop: Logo grande a la derecha, textos centrados */}
         <div className="hidden md:flex items-center">
           <div className="flex-1 flex flex-col items-center text-center">
             <div className="text-sm text-muted-foreground">
               © {currentYear} WIT INNOVACIÓN TECNOLÓGICA
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-1">
-              <Code className="h-3 w-3" />
-              <span>Desarrollado con</span>
-              <Heart className="h-2.5 w-2.5 fill-orange-500 text-orange-500" />
             </div>
           </div>
 
@@ -65,16 +58,8 @@ export function Footer({ className }: FooterProps) {
             />
           </div>
 
-          <div className="flex flex-col items-center text-center">
-            <div className="text-sm text-muted-foreground">
-              © {currentYear} WIT INNOVACIÓN TECNOLÓGICA
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-1">
-              <Code className="h-3 w-3" />
-              <span>Desarrollado con</span>
-              <Heart className="h-2.5 w-2.5 fill-orange-500 text-orange-500" />
-            </div>
+          <div className="text-sm text-muted-foreground">
+            © {currentYear} WIT INNOVACIÓN TECNOLÓGICA
           </div>
         </div>
       </div>

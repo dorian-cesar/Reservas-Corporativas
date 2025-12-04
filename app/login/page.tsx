@@ -147,9 +147,11 @@ export default function LoginPage() {
         </Card>
       </div>
 
-      <img src="/logo-wit-dark.png" alt="Logo Wit"
-       className="absolute bottom-5 right-5 h-20 w-auto"
-       />
+      <img
+        src="/logo-wit-dark.png"
+        alt="Logo Wit"
+        className="absolute bottom-5 right-5 h-10 w-auto"
+      />
     </div>
   );
 }

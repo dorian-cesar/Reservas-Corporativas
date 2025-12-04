@@ -18,7 +18,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  Download,
   XCircle,
   AlertCircle,
   Building,
@@ -27,6 +26,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 
 interface MyBookingsProps {
   showActiveOnly?: boolean;
@@ -69,6 +69,14 @@ export function MyBookings({
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selectedDateFrom, setSelectedDateFrom] = useState<Date | null>(null);
+  const [selectedDateTo, setSelectedDateTo] = useState<Date | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const swalConfig = {
     customClass: {
@@ -94,6 +102,36 @@ export function MyBookings({
     },
     buttonsStyling: false,
     reverseButtons: true,
+  };
+
+  const handleDateFromChange = (selectedDate: Date | null) => {
+    setSelectedDateFrom(selectedDate);
+
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+
+      setDateFrom(formattedDate);
+    } else {
+      setDateFrom("");
+    }
+  };
+
+  const handleDateToChange = (selectedDate: Date | null) => {
+    setSelectedDateTo(selectedDate);
+
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+
+      setDateTo(formattedDate);
+    } else {
+      setDateTo("");
+    }
   };
 
   useEffect(() => {
@@ -150,7 +188,6 @@ export function MyBookings({
   const handleCancelBooking = async (booking: Booking) => {
     const refundAmount = calculateRefundAmount(booking.monto_boleto);
 
-    // Mostrar el monto de devolución en la confirmación
     const result = await Swal.fire({
       title: "¿Estás seguro?",
       html: `
@@ -258,8 +295,8 @@ export function MyBookings({
               <p class="text-sm text-muted-foreground">Por favor, contacte al administrador.</p>
               ${
                 refundAmount
-                  ? `<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p class="font-semibold text-green-800">Reembolso a Cuenta Corriente: ${formatPrice(
+                  ? `<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p class="font-semibold text-orange-800">Reembolso a Cuenta Corriente: ${formatPrice(
                         refundAmount
                       )}</p>
                     </div>`
@@ -279,12 +316,12 @@ export function MyBookings({
               <p class="text-foreground">La reserva ha sido anulada exitosamente.</p>
               ${
                 refundAmount
-                  ? `<div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p class="text-sm text-green-700 mb-1">Se ha procesado el reembolso:</p>
-                      <p class="text-xl font-bold text-green-800">${formatPrice(
+                  ? `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p class="text-sm text-orange-700 mb-1">Se ha procesado el reembolso:</p>
+                      <p class="text-xl font-bold text-orange-800">${formatPrice(
                         refundAmount
                       )}</p>
-                      <p class="text-xs text-green-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
+                      <p class="text-xs text-orange-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
                     </div>`
                   : ""
               }
@@ -426,24 +463,36 @@ export function MyBookings({
     );
   }
 
-  const filteredBookings = showActiveOnly
-    ? userBookings.filter((b) => b.ticketStatus?.toLowerCase() === "confirmed")
-    : userBookings;
+  const filteredBookings = userBookings.filter((b) => {
+    const matchesSearch =
+      b.origin.toLowerCase().includes(search.toLowerCase()) ||
+      b.destination.toLowerCase().includes(search.toLowerCase()) ||
+      String(b.departureTime).includes(search) ||
+      b.seatNumbers?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all"
+        ? true
+        : b.ticketStatus?.toLowerCase() === filterStatus;
+    const travelDate = new Date(b.travelDate);
+    const matchesFrom = dateFrom ? travelDate >= new Date(dateFrom) : true;
+    const matchesTo = dateTo ? travelDate <= new Date(dateTo) : true;
+    return matchesSearch && matchesStatus && matchesFrom && matchesTo;
+  });
 
-  const sortedBookings = [...filteredBookings].sort((a, b) => {
+  const sortedBookings = filteredBookings.sort((a, b) => {
     const dateA = new Date(a.confirmedAt || a.created_at).getTime();
     const dateB = new Date(b.confirmedAt || b.created_at).getTime();
     return dateB - dateA;
   });
 
-  const finalBookings =
-    limit && sortedBookings.length > limit
-      ? sortedBookings.slice(0, limit)
-      : sortedBookings;
+  const indexOfLast = currentPage * itemsPerPage;
+  const indexOfFirst = indexOfLast - itemsPerPage;
+  const paginatedBookings = sortedBookings.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(sortedBookings.length / itemsPerPage);
 
   const content = (
     <>
-      {finalBookings.length === 0 ? (
+      {paginatedBookings.length === 0 ? (
         <div className="text-center py-8">
           <AlertCircle className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -454,7 +503,7 @@ export function MyBookings({
         </div>
       ) : (
         <div className="space-y-4 sm:space-y-6">
-          {finalBookings.map((booking, index) => {
+          {paginatedBookings.map((booking, index) => {
             const bookingId = booking.id?.toString() || booking._id || "";
             const isCanceling = cancelingId === bookingId;
 
@@ -610,11 +659,102 @@ export function MyBookings({
               ? "Tus reservas activas"
               : "Historial completo de tus reservas"}
 
-            {limit && ` - Mostrando ${finalBookings.length} reservas`}
+            {limit && ` - Mostrando ${paginatedBookings.length} reservas`}
           </CardDescription>
         </CardHeader>
+        {/* FILTROS */}
+        <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {/* Buscar */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Buscar</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 px-3 border rounded-md bg-background"
+            />
+          </div>
+
+          {/* Estado */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Estado</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-10 px-3 border rounded-md bg-background"
+            >
+              <option value="all">Todos</option>
+              <option value="confirmed">Confirmados</option>
+              <option value="anulado">Anulados</option>
+            </select>
+          </div>
+
+          {/* Fecha desde */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Desde</label>
+            <div className="relative">
+              <ModernDatePicker
+                selected={selectedDateFrom}
+                onChange={handleDateFromChange}
+              />
+              {selectedDateFrom && (
+                <button
+                  type="button"
+                  onClick={() => handleDateFromChange(null)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Fecha hasta */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">Hasta</label>
+            <div className="relative">
+              <ModernDatePicker
+                selected={selectedDateTo}
+                onChange={handleDateToChange}
+              />
+              {selectedDateTo && (
+                <button
+                  type="button"
+                  onClick={() => handleDateToChange(null)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         <CardContent>{content}</CardContent>
+        {/* PAGINACIÓN */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <Button
+              variant="outline"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Anterior
+            </Button>
+
+            <span className="text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Siguiente
+            </Button>
+          </div>
+        )}
       </Card>
     );
   }
