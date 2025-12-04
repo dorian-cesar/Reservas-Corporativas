@@ -84,7 +84,7 @@ export function Header({ onLogout }: HeaderProps) {
       </div>
 
       {showNavigation && (
-        <nav className="border-t bg-background/80">
+        <nav className="border-t bg-card/50">
           <div className="container mx-auto px-4">
             <div className="flex justify-center h-10">
               <div className="flex space-x-8">

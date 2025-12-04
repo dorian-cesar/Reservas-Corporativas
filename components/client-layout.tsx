@@ -16,7 +16,7 @@ export default function ClientLayout({
     <TravelProvider>
       <div className="min-h-screen flex flex-col">
         {!hideLayout && <Header />}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 bg-blue-50">{children}</main>
       </div>
     </TravelProvider>
   );

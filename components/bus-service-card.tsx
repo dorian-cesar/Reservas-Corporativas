@@ -166,10 +166,10 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               <div
                 className={`h-full transition-all duration-500 rounded-full ${
                   availabilityPercentage > 50
-                    ? "bg-green-600"
+                    ? "bg-green-600/50"
                     : availabilityPercentage > 20
-                    ? "bg-yellow-600"
-                    : "bg-red-600"
+                    ? "bg-yellow-600/50"
+                    : "bg-red-600/50"
                 }`}
                 style={{ width: `${availabilityPercentage}%` }}
               />
