@@ -27,7 +27,7 @@ import { SeatSelector } from "@/components/seat-selector";
 import type { ServiceDetail, Seat } from "@/types/service-detail";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
-import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -61,23 +61,71 @@ export function ServiceDetailDialog({
     rut?: string;
     email?: string;
   }>({});
-  const router = useRouter();
+  const [disponibilidadVerificada, setDisponibilidadVerificada] =
+    useState<boolean>(false);
 
-  // ==========================================================
-  // HELPERS
-  // ==========================================================
-
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    backdrop: true,
+    didOpen: () => {
+      const container = document.querySelector(
+        ".swal-container"
+      ) as HTMLElement;
+      const popup = document.querySelector(".swal-popup") as HTMLElement;
+      const modal = document.querySelector('[role="dialog"]') as HTMLElement;
+      if (container) {
+        container.style.zIndex = "999999";
+        container.style.position = "fixed";
+        container.style.top = "0";
+        container.style.left = "0";
+        container.style.width = "100%";
+        container.style.height = "100%";
+      }
+      if (popup) {
+        popup.style.zIndex = "1000000";
+      }
+      if (modal) {
+        modal.style.zIndex = "1";
+      }
+    },
+    willClose: () => {
+      const modal = document.querySelector('[role="dialog"]') as HTMLElement;
+      if (modal) {
+        modal.style.zIndex = "";
+      }
+    },
+  };
 
   const validateRut = (rut: string) => {
-    // validación muy básica: solo caracteres permitidos y largo
-    if (!rut) return true; // rut opcional
     const cleaned = rut.replace(/\./g, "").replace(/-/g, "");
     return /^[0-9kK]{7,9}$/.test(cleaned);
   };
 
   const validateEmail = (email: string) => {
-    if (!email) return true; // email opcional
-    // regex sencillo para validar email
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
@@ -95,7 +143,6 @@ export function ServiceDetailDialog({
     setPassengerErrors(errs);
     return Object.keys(errs).length === 0;
   };
-
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
@@ -122,12 +169,14 @@ export function ServiceDetailDialog({
       setServiceDetail(null);
       setSelectedSeat(null);
       setError(null);
+      setDisponibilidadVerificada(false);
     }
   }, [open, serviceId]);
 
   const loadServiceDetail = async () => {
     setLoadingDetail(true);
     setError(null);
+    setDisponibilidadVerificada(false);
 
     try {
       const res = await fetch(`/api/service-detail/${serviceId}`);
@@ -143,6 +192,8 @@ export function ServiceDetailDialog({
       }
 
       setServiceDetail(data.service);
+
+      await verificarDisponibilidadEmpresa(data.service);
     } catch (err) {
       console.error("Error loading service detail:", err);
       setError(
@@ -152,6 +203,69 @@ export function ServiceDetailDialog({
       );
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const verificarDisponibilidadEmpresa = async (service: ServiceDetail) => {
+    try {
+      const extractPriceForVerification = (costString: string): number => {
+        if (!costString) return 0;
+        const priceMatch = costString.match(/(\d+\.?\d*)/);
+        if (!priceMatch) return 0;
+        const base = parseFloat(priceMatch[1]);
+        const recargo = (base * (user?.companyRecargo || 0)) / 100;
+        const finalPrice = base + recargo;
+        return finalPrice;
+      };
+
+      const precioConRecargo = extractPriceForVerification(service.cost);
+
+      const res = await fetch("/api/disponibilidad", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id_User: user?.id ?? 1,
+          monto_boleto: precioConRecargo,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.disponible) {
+        await showSweetAlert({
+          icon: "error",
+          title: "Sin disponibilidad",
+          html: `
+          <b>La empresa ha excedido su límite de gasto.</b><br><br>
+          Monto máximo: $${data.detalles.monto_maximo.toLocaleString(
+            "es-CL"
+          )}<br>
+          Acumulado: $${data.detalles.monto_acumulado.toLocaleString(
+            "es-CL"
+          )}<br>
+          Nuevo ticket: $${data.detalles.monto_ticket.toLocaleString("es-CL")}
+        `,
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#d33",
+          showCancelButton: false,
+          focusConfirm: true,
+          willClose: () => {
+            onOpenChange(false);
+          },
+        });
+
+        return false;
+      }
+
+      setDisponibilidadVerificada(true);
+      return true;
+    } catch (err) {
+      console.error("Error verificando disponibilidad:", err);
+      setDisponibilidadVerificada(true);
+      return true;
     }
   };
 
@@ -213,11 +327,121 @@ export function ServiceDetailDialog({
     });
   };
 
+  const showSweetAlert = async (config: any) => {
+    const modalBackdrops = document.querySelectorAll(
+      '[data-state="open"][data-aria-hidden="true"]'
+    );
+    const dialogBackdrops = document.querySelectorAll(
+      '[data-aria-hidden="true"]'
+    );
+    const allBackdrops = [...modalBackdrops, ...dialogBackdrops];
+    const originalStyles: any[] = [];
+    allBackdrops.forEach((backdrop) => {
+      originalStyles.push({
+        element: backdrop,
+        style: (backdrop as HTMLElement).style.cssText,
+      });
+      (backdrop as HTMLElement).style.display = "none";
+    });
+    const overlays = document.querySelectorAll(".fixed, .absolute");
+    const problematicOverlays: any[] = [];
+    overlays.forEach((overlay) => {
+      const el = overlay as HTMLElement;
+      const zIndex = parseInt(el.style.zIndex || getComputedStyle(el).zIndex);
+      if (zIndex > 1000 && el.style.display !== "none") {
+        problematicOverlays.push({
+          element: el,
+          style: el.style.cssText,
+        });
+        el.style.visibility = "hidden";
+      }
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const result = await Swal.fire({
+        ...config,
+        customClass: swalConfig.customClass,
+        buttonsStyling: false,
+        reverseButtons: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        backdrop: true,
+        didOpen: () => {
+          const container = document.querySelector(".swal2-container");
+          if (container) {
+            (container as HTMLElement).style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          `;
+          }
+
+          const popup = document.querySelector(".swal2-popup");
+          if (popup) {
+            (popup as HTMLElement).style.zIndex = "1000000 !important";
+          }
+        },
+      });
+      return result;
+    } finally {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      allBackdrops.forEach((_, index) => {
+        if (originalStyles[index]) {
+          const { element, style } = originalStyles[index];
+          (element as HTMLElement).style.cssText = style;
+        }
+      });
+      problematicOverlays.forEach((item) => {
+        if (item.element) {
+          item.element.style.cssText = item.style;
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const swalContainer = document.querySelector(".swal2-container");
+      if (swalContainer && swalContainer.hasAttribute("aria-modal")) {
+        if (e.key === "Enter") {
+          const confirmBtn = document.querySelector(".swal2-confirm");
+          if (confirmBtn) {
+            (confirmBtn as HTMLElement).click();
+          }
+        } else if (e.key === "Escape") {
+          const cancelBtn =
+            document.querySelector(".swal2-cancel") ||
+            document.querySelector(".swal2-close");
+          if (cancelBtn) {
+            (cancelBtn as HTMLElement).click();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleSeatSelection = (seat: string) => {
+    if (!disponibilidadVerificada) {
+      return;
+    }
+    setSelectedSeat(seat);
+  };
+
   const handleBooking = async () => {
     if (!selectedSeat || !serviceDetail) return;
 
     if (!validatePassenger()) {
-      setBookingError("Por favor corrige los errores del formulario de pasajero.");
+      setBookingError(
+        "Por favor corrige los errores del formulario de pasajero."
+      );
       return;
     }
 
@@ -314,7 +538,7 @@ export function ServiceDetailDialog({
         id_User: user?.id,
         nombre_pasajero: passengerName,
         rut_pasajero: passengerRut,
-        email_pasajero: passengerEmail
+        email_pasajero: passengerEmail,
       };
 
       try {
@@ -391,6 +615,13 @@ export function ServiceDetailDialog({
     }
   };
 
+  const canConfirm =
+    disponibilidadVerificada &&
+    selectedSeat !== null &&
+    passengerName.trim().length >= 3 &&
+    validateRut(passengerRut) &&
+    validateEmail(passengerEmail);
+
   return (
     <Dialog
       open={open}
@@ -408,7 +639,7 @@ export function ServiceDetailDialog({
       }}
     >
       <DialogContent
-        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto z-51"
         onEscapeKeyDown={(e) => {
           if (loading || loadingDetail) e.preventDefault();
         }}
@@ -440,13 +671,13 @@ export function ServiceDetailDialog({
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
+                <div className="absolute inset-0 bg-orange-100 rounded-full animate-ping opacity-75"></div>
+                <CheckCircle2 className="h-20 w-20 text-orange-500 relative z-10" />
               </div>
 
               {/* Título y mensaje */}
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-green-600">
+                <h3 className="text-2xl font-bold text-blue-600">
                   Reserva Confirmada
                 </h3>
                 <p className="text-muted-foreground text-lg">
@@ -455,31 +686,31 @@ export function ServiceDetailDialog({
               </div>
 
               {bookingData && (
-                <div className="w-full max-w-md bg-linear-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
+                <div className="w-full max-w-md bg-linear-to-br from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-6 shadow-lg">
                   {/* Header de la tarjeta */}
                   <div className="text-center mb-4">
                     <Badge
                       variant="outline"
-                      className="bg-green-500 text-white border-green-600 mb-2"
+                      className="bg-blue-500 text-white border-blue-600 mb-2"
                     >
                       Confirmado
                     </Badge>
-                    <p className="text-sm text-green-600">
+                    <p className="text-sm text-blue-600">
                       Reserva realizada exitosamente
                     </p>
                   </div>
 
                   {/* Información principal */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                    <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
                       <p className="text-xs text-muted-foreground">N° de PNR</p>
-                      <p className="font-bold text-green-800 text-sm">
+                      <p className="font-bold text-blue-800 text-sm">
                         {bookingData.operatorPnr}
                       </p>
                     </div>
-                    <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                    <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
                       <p className="text-xs text-muted-foreground">Asiento</p>
-                      <p className="font-bold text-green-800 text-lg">
+                      <p className="font-bold text-blue-800 text-lg">
                         {selectedSeat}
                       </p>
                     </div>
@@ -489,7 +720,7 @@ export function ServiceDetailDialog({
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Operador:</span>
-                      <span className="font-medium text-green-800">
+                      <span className="font-medium text-blue-800">
                         {bookingData.travelName}
                       </span>
                     </div>
@@ -497,15 +728,16 @@ export function ServiceDetailDialog({
                       <span className="text-muted-foreground">
                         Origen - Destino:
                       </span>
-                      <span className="font-medium text-green-800">
+                      <span className="font-medium text-blue-800">
                         {origin} - {destination}
                       </span>
                     </div>
+
                     {serviceDetail && (
                       <>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Fecha:</span>
-                          <span className="font-medium text-green-800">
+                          <span className="font-medium text-blue-800">
                             {formatTravelDate(serviceDetail.travel_date)}
                           </span>
                         </div>
@@ -513,7 +745,7 @@ export function ServiceDetailDialog({
                           <span className="text-muted-foreground">
                             Hora salida:
                           </span>
-                          <span className="font-medium text-green-800">
+                          <span className="font-medium text-blue-800">
                             {serviceDetail.dep_time}
                           </span>
                         </div>
@@ -521,27 +753,28 @@ export function ServiceDetailDialog({
                     )}
                   </div>
 
-                  {/* Precio total destacado */}
-                  <div className="border-t border-green-200 pt-4">
+                  {/* Precio total */}
+                  <div className="border-t border-blue-200 pt-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
                         Precio total:
                       </span>
-                      <span className="text-xl font-bold text-green-700">
+                      <span className="text-xl font-bold text-blue-700">
                         ${bookingData.monto_boleto.toLocaleString("es-CL")}
                       </span>
                     </div>
                   </div>
 
                   {/* Información adicional */}
-                  <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
-                    <p className="text-xs text-green-700 text-center">
+                  <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 text-center">
                       Recibirás un email de confirmación con los detalles de tu
                       reserva
                     </p>
                   </div>
                 </div>
               )}
+
               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-600">
                   Esta ventana se cerrará automáticamente en{" "}
@@ -629,11 +862,14 @@ export function ServiceDetailDialog({
                 <SeatSelector
                   totalSeats={serviceDetail.bus_layout.total_seats}
                   occupiedSeats={occupiedSeats}
-                  onSeatSelect={setSelectedSeat}
+                  onSeatSelect={(seat) => {
+                    handleSeatSelection(seat);
+                  }}
                   selectedSeat={selectedSeat}
                   seats={availableSeats}
                   coachDetails={serviceDetail.bus_layout.coach_details}
                   floor={serviceDetail.bus_layout.floor}
+                  disabled={!disponibilidadVerificada}
                 />
               </div>
 
@@ -643,14 +879,17 @@ export function ServiceDetailDialog({
                   <div>
                     <h4 className="font-semibold">Datos del pasajero</h4>
                     <p className="text-xs text-muted-foreground">
-                      Completa los datos del pasajero que viajará. Nombre es obligatorio.
+                      Completa los datos del pasajero que viajará. Nombre es
+                      obligatorio.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium block mb-1">Nombre del pasajero *</label>
+                    <label className="text-xs font-medium block mb-1">
+                      Nombre del pasajero *
+                    </label>
                     <input
                       type="text"
                       value={passengerName}
@@ -661,12 +900,16 @@ export function ServiceDetailDialog({
                       aria-invalid={!!passengerErrors.name}
                     />
                     {passengerErrors.name && (
-                      <p className="text-xs text-destructive mt-1">{passengerErrors.name}</p>
+                      <p className="text-xs text-destructive mt-1">
+                        {passengerErrors.name}
+                      </p>
                     )}
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium block mb-1">RUT pasajero</label>
+                    <label className="text-xs font-medium block mb-1">
+                      RUT pasajero
+                    </label>
                     <input
                       type="text"
                       value={passengerRut}
@@ -677,12 +920,16 @@ export function ServiceDetailDialog({
                       aria-invalid={!!passengerErrors.rut}
                     />
                     {passengerErrors.rut && (
-                      <p className="text-xs text-destructive mt-1">{passengerErrors.rut}</p>
+                      <p className="text-xs text-destructive mt-1">
+                        {passengerErrors.rut}
+                      </p>
                     )}
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-medium block mb-1">Email pasajero</label>
+                    <label className="text-xs font-medium block mb-1">
+                      Email pasajero
+                    </label>
                     <input
                       type="email"
                       value={passengerEmail}
@@ -693,12 +940,13 @@ export function ServiceDetailDialog({
                       aria-invalid={!!passengerErrors.email}
                     />
                     {passengerErrors.email && (
-                      <p className="text-xs text-destructive mt-1">{passengerErrors.email}</p>
+                      <p className="text-xs text-destructive mt-1">
+                        {passengerErrors.email}
+                      </p>
                     )}
                   </div>
                 </div>
               </div>
-
             </div>
 
             {bookingError && (
@@ -719,13 +967,17 @@ export function ServiceDetailDialog({
               </Button>
               <Button
                 onClick={handleBooking}
-                disabled={!selectedSeat || loading}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                disabled={!canConfirm || loading}
+                className={
+                  !canConfirm
+                    ? "opacity-50 cursor-not-allowed bg-accent hover:bg-accent/90 text-accent-foreground"
+                    : "bg-accent hover:bg-accent/90 text-accent-foreground"
+                }
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Confirmando su asiento...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
                   </>
                 ) : (
                   "Confirmar Reserva"

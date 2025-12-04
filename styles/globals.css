@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,8 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -122,4 +122,40 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Reset completo para SweetAlert */
+.swal2-container {
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.swal2-container.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.swal2-popup {
+  z-index: 1000000 !important;
+  position: relative !important;
+}
+
+.swal2-shown {
+  overflow: hidden !important;
+}
+
+.swal2-actions {
+  pointer-events: auto !important;
+}
+
+.swal2-confirm,
+.swal2-cancel,
+.swal2-close {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
