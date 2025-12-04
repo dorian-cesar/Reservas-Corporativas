@@ -13,6 +13,7 @@ import { CompanyUsers } from "@/components/company-users"
 import { SuperCostCenters } from "@/components/super-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
+import { UserProvider } from "@/components/providers/user-provider"
 
 export default function SuperUserPage() {
   const { user, logout } = useAuth()
@@ -95,6 +96,7 @@ export default function SuperUserPage() {
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
+                <UserProvider />
                 <TravelSearch />
               </TabsContent>
             </Tabs>
