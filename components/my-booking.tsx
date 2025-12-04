@@ -177,6 +177,7 @@ export function MyBookings({
           title: "Error",
           text: "Error al cargar las reservas",
           confirmButtonText: "Entendido",
+          ...swalConfig,
         });
       } finally {
         setLoading(false);
