@@ -617,14 +617,16 @@ export function MyBookings({
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      {booking.nombre_pasajero}
+                  <div className="flex items-start gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">
+                        {booking.nombre_pasajero}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        RUT: {booking.rut_pasajero}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      RUT: {booking.rut_pasajero}
-                    </p>
                   </div>
 
                   <div className="flex items-start gap-2">
