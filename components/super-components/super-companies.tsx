@@ -20,6 +20,7 @@ import {
   Pencil,
   Trash2,
   Percent,
+  RefreshCcw
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -30,6 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+
+import Swal from "sweetalert2";
 
 import ToolBar from "../tool-bar";
 import { count } from "console";
@@ -73,6 +76,32 @@ export function SuperCompanies() {
     expirationDay: number;
     max: number;
     count: number
+  };
+
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -319,43 +348,53 @@ export function SuperCompanies() {
     }
   };
 
-  const handleDelete = async (companyId: string) => {
+  const handleReset = async (companyId: string) => {
     const company = companies.find((c) => c.id === companyId);
     if (!company) return;
 
-    if (!confirm(`¿Está seguro que desea eliminar ${company.name}?`)) return;
+        const result = await Swal.fire({
+          title: "¿Estás seguro?",
+          html: `
+          <div class="text-left space-y-3">
+            <p class="text-foreground text-center mb-2">¿Deseas reestablecer este monto acumulado?</p>
+            <p class="text-foreground text-center">Esta acción no se puede deshacer.</p>
+            <p class="text-sm text-muted-foreground text-center mt-2">El monto acumulado quedará en 0.</p>
+          </div>
+        `,
+          icon: "warning",
+          iconColor: "#f59e0b",
+          showCancelButton: true,
+          confirmButtonText: "Sí, reestablecer monto",
+          cancelButtonText: "Cancelar",
+          ...swalConfig,
+        });
+    
+        if (!result.isConfirmed) {
+          return;
+        }
 
     try {
-      const res = await fetch(`/api/companies/${companyId}`, {
-        method: "DELETE",
+      const res = await fetch(`/api/companies/reset/${companyId}`, {
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!res.ok) throw new Error("Error al eliminar empresa");
+      if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      // Actualizar los estados según el modo actual
-      if (searchMode === "single" && empresaId === companyId) {
-        // Si estamos viendo una empresa individual y la eliminamos
-        setEmpresaId("");
         setSearchMode("all");
         fetchCompanies();
-      } else {
-        // Actualizar las listas locales
-        setCompanies(companies.filter((c) => c.id !== companyId));
-        setFilteredCompanies(filteredCompanies.filter((c) => c.id !== companyId));
-      }
 
       toast({
-        title: "Empresa eliminada",
-        description: `${company.name} ha sido eliminada exitosamente`,
+        title: "Monto Reestablecido",
+        description: `Se ha reestablecido el monto acumulado exitosamente`,
       });
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "No se pudo eliminar la empresa",
+        description: "Error al reestablecer el monto acumulado",
         variant: "destructive",
       });
     }
@@ -649,15 +688,15 @@ export function SuperCompanies() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  {/* <Button
+                  <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => handleDelete(company.id)}
+                    className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                    onClick={() => handleReset(company.id)}
                   >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Eliminar
-                  </Button> */}
+                    <RefreshCcw className="h-3 w-3 mr-2" />
+                    Reestablecer
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -745,14 +784,14 @@ export function SuperCompanies() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        {/* <Button
+                        <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(company.id)}
-                          className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleReset(company.id)}
+                          className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
                         >
-                          <Trash2 className="h-3 w-3" />
-                        </Button> */}
+                          <RefreshCcw className="h-3 w-3" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
