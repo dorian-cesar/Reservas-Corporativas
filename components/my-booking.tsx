@@ -24,6 +24,8 @@ import {
   Loader2,
   Search,
   User,
+  X,
+  RefreshCw,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
@@ -667,11 +669,11 @@ export function MyBookings({
                   {formatBookingTime(booking.confirmedAt || booking.created_at)}{" "}
                   hrs
                 </div>
-                {booking.ticketStatus?.toLowerCase() === "confirmed" &&
-                  !isPastTrip(booking) && (
-                    <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                      <TicketPDFButton ticketNumber={booking.ticketNumber} />
+                {booking.ticketStatus?.toLowerCase() === "confirmed" && (
+                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                    <TicketPDFButton ticketNumber={booking.ticketNumber} />
 
+                    {!isPastTrip(booking) && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -691,8 +693,9 @@ export function MyBookings({
                           </>
                         )}
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -704,20 +707,31 @@ export function MyBookings({
   if (showCard) {
     return (
       <Card className="border-2 shadow-lg mx-2 sm:mx-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-            <Ticket className="h-6 w-6 text-primary" />
-            Mis Reservas
-          </CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
+              <Ticket className="h-6 w-6 text-primary" />
+              Mis Reservas
+            </CardTitle>
+            <CardDescription>
+              {showActiveOnly
+                ? "Tus reservas activas"
+                : "Historial completo de tus reservas"}
+              {limit && ` - Mostrando ${paginatedBookings.length} reservas`}
+            </CardDescription>
+          </div>
 
-          <CardDescription>
-            {showActiveOnly
-              ? "Tus reservas activas"
-              : "Historial completo de tus reservas"}
-
-            {limit && ` - Mostrando ${paginatedBookings.length} reservas`}
-          </CardDescription>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Actualizar Reservas
+          </Button>
         </CardHeader>
+
         {/* FILTROS */}
         <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-4 gap-4">
           {/* Buscar */}
@@ -760,9 +774,10 @@ export function MyBookings({
                 <button
                   type="button"
                   onClick={() => handleDateFromChange(null)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
+                  aria-label="Limpiar fecha"
                 >
-                  ×
+                  <X className="w-4 h-4 text-gray-600" />
                 </button>
               )}
             </div>
@@ -780,9 +795,10 @@ export function MyBookings({
                 <button
                   type="button"
                   onClick={() => handleDateToChange(null)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
+                  aria-label="Limpiar fecha"
                 >
-                  ×
+                  <X className="w-4 h-4 text-gray-600" />
                 </button>
               )}
             </div>
@@ -790,6 +806,7 @@ export function MyBookings({
         </div>
 
         <CardContent>{content}</CardContent>
+
         {/* PAGINACIÓN */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 mt-6">
