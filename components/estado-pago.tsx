@@ -157,22 +157,42 @@ export function EstadoPago() {
     const formatCurrency = (amount: string | number) =>
         new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(Number(amount));
 
+    const parseYMDLocal = (ymd: string): Date => {
+        const parts = ymd.split('-').map(p => Number(p));
+        if (parts.length !== 3 || parts.some(isNaN)) {
+            // fallback: let the Date constructor try
+            return new Date(ymd);
+        }
+        const [year, month, day] = parts;
+        // new Date(year, monthIndex, day) crea la fecha en la zona local
+        return new Date(year, month - 1, day);
+    };
+
     const formatDate = (date?: string) => {
         if (!date) return "-";
 
         try {
-            // Si la fecha tiene formato YYYY-MM-DD HH:MM:SS (VARCHAR en la BD)
+            // Caso: 'YYYY-MM-DD HH:MM:SS' (VARCHAR de la BD)
             if (date.includes(' ')) {
-                const [datePart] = date.split(' ');
-                return new Date(datePart).toLocaleDateString("es-CL");
+                const [datePart /*, timePart*/] = date.split(' ');
+                // parseamos el datePart como local para evitar el shift UTC -> local
+                const d = parseYMDLocal(datePart);
+                return d.toLocaleDateString("es-CL");
             }
 
-            // Si es una fecha ISO
+            // Caso: date sólo con formato 'YYYY-MM-DD' (sin hora)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return parseYMDLocal(date).toLocaleDateString("es-CL");
+            }
+
+            // Caso: ISO completo '2025-12-05T17:24:58.000Z' u otros formatos
+            // dejamos que el constructor Date maneje conversiones con zona UTC si vienen con Z
             return new Date(date).toLocaleDateString("es-CL");
         } catch {
-            return date; // Devuelve el string original si no se puede parsear
+            return date; // si algo falla, devolver el string original
         }
     };
+
 
     const exportToCSV = () => {
         if (estadosCuenta.length === 0) return;
