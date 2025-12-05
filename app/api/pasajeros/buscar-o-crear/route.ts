@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
     const { rut, nombre, correo, id_empresa, id_centro_costo } = body;
     const token = request.headers.get("authorization");
 
-    if (!rut) {
+    if (!rut || !nombre || !id_empresa) {
       return NextResponse.json(
-        { error: "El RUT es requerido" },
+        { error: "RUT, nombre y empresa son requeridos" },
         { status: 400 }
       );
     }
@@ -25,90 +25,53 @@ export async function POST(request: NextRequest) {
       headers["Authorization"] = token;
     }
 
-    const buscarResponse = await fetch(
-      `${BACKEND_URL}/api/pasajeros?rut=${rutClean}`,
-      {
-        method: "GET",
-        headers,
-      }
-    );
+    const crearPayload = {
+      nombre: nombre.trim(),
+      rut: rutClean,
+      correo: correo ? correo.trim() : null,
+      id_empresa: Number(id_empresa),
+      id_centro_costo: id_centro_costo || null,
+    };
 
-    let pasajero = null;
-    let creado = false;
+    console.log("Crear pasajero payload:", crearPayload);
 
-    if (buscarResponse.ok) {
-      const data = await buscarResponse.json();
-      if (Array.isArray(data) && data.length > 0) {
-        pasajero = data[0];
-      }
-    }
+    const crearResponse = await fetch(`${BACKEND_URL}/api/pasajeros`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(crearPayload),
+    });
 
-    if (!pasajero && nombre && id_empresa) {
-      const crearPayload = {
-        nombre,
-        rut: rutClean,
-        correo: correo || null,
-        id_empresa,
-        id_centro_costo: id_centro_costo || null,
-      };
+    console.log("Crear pasajero response:", crearResponse);
 
-      const crearResponse = await fetch(`${BACKEND_URL}/api/pasajeros`, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(crearPayload),
-      });
+    // Obtener el body del backend SIEMPRE (aunque sea error)
+    const backendBody = await crearResponse
+      .json()
+      .catch(() => ({ error: "Respuesta no válida del backend" }));
 
-      if (crearResponse.ok) {
-        pasajero = await crearResponse.json();
-        creado = true;
-      } else {
-        const errorData = await crearResponse.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error ||
-          errorData.message ||
-          `Error al crear pasajero: ${crearResponse.status}`;
-
-        if (crearResponse.status === 401) {
-          throw new Error(
-            "No autorizado para crear pasajero. Verifique sus credenciales."
-          );
-        }
-
-        throw new Error(errorMessage);
-      }
-    }
-
-    if (pasajero) {
+    if (!crearResponse.ok) {
+      // Devolver TODOS los detalles del backend
       return NextResponse.json(
         {
-          pasajero,
-          creado,
-          mensaje: creado
-            ? "Pasajero creado exitosamente"
-            : "Pasajero encontrado",
+          error: backendBody.error || backendBody.message || "Error en backend",
+          detalles: backendBody, // se entrega TODO el body
         },
-        { status: 200 }
-      );
-    } else {
-      return NextResponse.json(
-        {
-          encontrado: false,
-          creado: false,
-          mensaje:
-            "Pasajero no encontrado. Proporcione datos para crear uno nuevo.",
-        },
-        { status: 200 }
+        { status: crearResponse.status }
       );
     }
-  } catch (error) {
-    console.error("Error en buscar-o-crear pasajero:", error);
 
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+    return NextResponse.json({
+      pasajero: backendBody,
+      creado: true,
+      mensaje: "Pasajero creado exitosamente",
+    });
+  } catch (error: any) {
+    console.error("Error en crear pasajero:", error);
 
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      {
+        error: "Error interno del servidor",
+        detalles: error?.message || error,
+      },
       { status: 500 }
     );
   }

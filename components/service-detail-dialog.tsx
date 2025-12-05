@@ -340,6 +340,7 @@ export function ServiceDetailDialog({
 
       if (result.pasajero) {
         setPasajeroEncontrado(result.pasajero);
+        setPasajeroSeleccionado(true);
         setPassengerName(result.pasajero.nombre);
         setPassengerEmail(result.pasajero.correo || "");
         setPassengerRut(result.pasajero.rut);
