@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_URL_BACKEND;
 
-// POST /api/pasajeros/buscar-o-crear
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -16,20 +15,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limpiar el RUT
     const rutClean = rut.replace(/\./g, "").toUpperCase();
 
-    // Preparar headers común para todas las solicitudes
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    // Agregar Authorization si existe el token
     if (token) {
       headers["Authorization"] = token;
     }
 
-    // 1. Primero buscar el pasajero
     const buscarResponse = await fetch(
       `${BACKEND_URL}/api/pasajeros?rut=${rutClean}`,
       {
@@ -48,7 +43,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Si no existe y tenemos datos para crear, crear nuevo
     if (!pasajero && nombre && id_empresa) {
       const crearPayload = {
         nombre,
@@ -74,7 +68,6 @@ export async function POST(request: NextRequest) {
           errorData.message ||
           `Error al crear pasajero: ${crearResponse.status}`;
 
-        // Si es error 401, dar un mensaje más específico
         if (crearResponse.status === 401) {
           throw new Error(
             "No autorizado para crear pasajero. Verifique sus credenciales."
@@ -85,7 +78,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Preparar respuesta
     if (pasajero) {
       return NextResponse.json(
         {

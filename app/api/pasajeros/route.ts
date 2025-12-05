@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_URL_BACKEND;
 
-// GET /api/pasajeros - Buscar pasajero por RUT
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -15,10 +14,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Limpiar el RUT: quitar puntos, mantener guión, convertir a mayúsculas
     const rutClean = rut.replace(/\./g, "").toUpperCase();
 
-    // Llamar al backend
     const backendResponse = await fetch(
       `${BACKEND_URL}/api/pasajeros?rut=${rutClean}`,
       {
@@ -39,7 +36,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error en proxy de pasajeros (GET):", error);
 
-    // Manejar diferentes tipos de errores
     if (error instanceof Error) {
       if (error.message.includes("Error del backend")) {
         return NextResponse.json(
@@ -56,12 +52,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/pasajeros - Crear nuevo pasajero
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validar campos requeridos
     const { nombre, rut, correo, id_empresa, id_centro_costo } = body;
 
     if (!nombre || !rut || !id_empresa) {
@@ -71,10 +65,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limpiar el RUT
     const rutClean = rut.replace(/\./g, "").toUpperCase();
 
-    // Preparar payload para el backend
     const payload = {
       nombre,
       rut: rutClean,
@@ -83,7 +75,6 @@ export async function POST(request: NextRequest) {
       id_centro_costo: id_centro_costo || null,
     };
 
-    // Llamar al backend
     const backendResponse = await fetch(`${BACKEND_URL}/api/pasajeros`, {
       method: "POST",
       headers: {
@@ -106,7 +97,6 @@ export async function POST(request: NextRequest) {
     console.error("Error en proxy de pasajeros (POST):", error);
 
     if (error instanceof Error) {
-      // Si es un error de validación del backend
       if (
         error.message.includes("Formato de RUT inválido") ||
         error.message.includes("ya existe")

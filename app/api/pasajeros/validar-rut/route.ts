@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limpiar RUT
     const rutClean = rut.replace(/\./g, "").replace(/-/g, "").toUpperCase();
 
     if (rutClean.length < 2) {
@@ -25,7 +24,6 @@ export async function POST(request: NextRequest) {
     const cuerpo = rutClean.slice(0, -1);
     const dv = rutClean.slice(-1);
 
-    // Validar que el cuerpo sean solo números
     if (!/^\d+$/.test(cuerpo)) {
       return NextResponse.json(
         { valido: false, error: "Cuerpo del RUT debe contener solo números" },
@@ -33,7 +31,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar longitud del cuerpo
     if (cuerpo.length < 7 || cuerpo.length > 8) {
       return NextResponse.json(
         { valido: false, error: "Cuerpo del RUT debe tener 7 u 8 dígitos" },
@@ -41,30 +38,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calcular dígito verificador
-    let suma = 0;
-    let multiplicador = 2;
-
-    for (let i = cuerpo.length - 1; i >= 0; i--) {
-      suma += parseInt(cuerpo.charAt(i)) * multiplicador;
-      multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
+    if (!/^[0-9kK]$/.test(dv)) {
+      return NextResponse.json(
+        {
+          valido: false,
+          error: "Dígito verificador debe ser un número (0-9) o K",
+        },
+        { status: 200 }
+      );
     }
 
-    const resto = suma % 11;
-    const dvEsperado = 11 - resto;
-
-    const dvCalculado =
-      dvEsperado === 11 ? "0" : dvEsperado === 10 ? "K" : dvEsperado.toString();
-
-    const valido = dvCalculado === dv;
+    const valido = true;
 
     return NextResponse.json(
       {
         valido,
-        rutFormateado: cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv,
-        mensaje: valido
-          ? "RUT válido"
-          : `Dígito verificador inválido. Esperado: ${dvCalculado}`,
+        rutFormateado:
+          cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv.toUpperCase(),
+        mensaje: "Formato de RUT válido",
+        cuerpo,
+        dv: dv.toUpperCase(),
       },
       { status: 200 }
     );

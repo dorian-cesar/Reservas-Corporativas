@@ -26,7 +26,6 @@ export const usePasajero = () => {
   const [error, setError] = useState<string | null>(null);
   const [pasajero, setPasajero] = useState<Pasajero | null>(null);
 
-  // Formatear RUT para mostrar
   const formatearRut = (rut: string): string => {
     if (!rut) return "";
     const rutLimpio = rut.replace(/\./g, "");
@@ -38,7 +37,6 @@ export const usePasajero = () => {
     return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
   };
 
-  // Validar RUT usando la API de Next.js
   const validarRut = async (rut: string): Promise<boolean> => {
     try {
       const response = await fetch("/api/pasajeros/validar-rut", {
@@ -58,7 +56,6 @@ export const usePasajero = () => {
     }
   };
 
-  // Buscar pasajero por RUT
   const buscarPasajero = async (rut: string) => {
     if (!rut) {
       setError("Ingrese un RUT para buscar");
@@ -70,7 +67,6 @@ export const usePasajero = () => {
     setPasajero(null);
 
     try {
-      // Llamar a la API de Next.js
       const response = await fetch(
         `/api/pasajeros?rut=${encodeURIComponent(rut)}`
       );
@@ -100,7 +96,6 @@ export const usePasajero = () => {
     }
   };
 
-  // Crear nuevo pasajero
   const crearPasajero = async (datos: {
     nombre: string;
     rut: string;
@@ -138,7 +133,6 @@ export const usePasajero = () => {
     }
   };
 
-  // Buscar o crear pasajero
   const buscarOCrearPasajero = async (datos: {
     nombre: string;
     rut: string;

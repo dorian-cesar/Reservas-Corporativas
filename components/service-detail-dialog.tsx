@@ -23,8 +23,6 @@ import {
   Users,
   Search,
   UserPlus,
-  Building,
-  Building2,
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -68,8 +66,6 @@ export function ServiceDetailDialog({
   }>({});
   const [disponibilidadVerificada, setDisponibilidadVerificada] =
     useState<boolean>(false);
-
-  // Nuevos estados para la búsqueda de pasajeros
   const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
     "buscar"
   );
@@ -81,6 +77,10 @@ export function ServiceDetailDialog({
     id: number;
     nombre: string;
   } | null>(null);
+  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
+  const [cargandoCentros, setCargandoCentros] = useState(false);
+  const [pasajeroSeleccionado, setPasajeroSeleccionado] =
+    useState<boolean>(false);
 
   const swalConfig = {
     customClass: {
@@ -174,6 +174,7 @@ export function ServiceDetailDialog({
     setBuscandoPasajero(true);
     setErrorPasajero(null);
     setPasajeroEncontrado(null);
+    setPasajeroSeleccionado(false);
 
     try {
       const rutLimpio = cleanRut(rut);
@@ -187,38 +188,31 @@ export function ServiceDetailDialog({
       const data = await response.json();
 
       if (!response.ok) {
-        // Manejar errores específicos de la API
         let errorMessage = data.error || `Error ${response.status}`;
 
         if (response.status === 401) {
           errorMessage =
             "No autorizado para buscar pasajeros. Verifique sus credenciales.";
         } else if (response.status === 404) {
-          // Esto es normal - pasajero no encontrado
           setModoPasajero("crear");
-          setErrorPasajero("Pasajero no encontrado. Puede crear uno nuevo.");
-          setPassengerRut(rut);
-
-          // Limpiar otros campos para nuevo pasajero
+          setPassengerRut(rut); // Solo poner el RUT para crear
           setPassengerName("");
           setPassengerEmail("");
           setCentroCostoSeleccionado(null);
+          setPasajeroEncontrado(null);
 
           return null;
         } else if (response.status >= 500) {
           errorMessage = "Error del servidor. Intente nuevamente más tarde.";
         }
-
-        // Si no es un 404, mostrar el error
         setErrorPasajero(errorMessage);
-
-        // Si es error 401, mostrar alerta
         if (response.status === 401) {
           Swal.fire({
             icon: "error",
             title: "Error de autorización",
             text: errorMessage,
             confirmButtonColor: "#3085d6",
+            ...swalConfig,
           });
         }
 
@@ -228,7 +222,6 @@ export function ServiceDetailDialog({
       if (Array.isArray(data) && data.length > 0) {
         const pasajero = data[0];
 
-        // Verificar que el pasajero pertenezca a la misma empresa
         if (pasajero.id_empresa.toString() !== user?.companyId) {
           setErrorPasajero(
             "Este pasajero no pertenece a su empresa. Solo puede buscar pasajeros de su propia empresa."
@@ -237,40 +230,21 @@ export function ServiceDetailDialog({
         }
 
         setPasajeroEncontrado(pasajero);
-
-        // Cargar datos en el formulario
-        setPassengerName(pasajero.nombre);
-        setPassengerEmail(pasajero.correo || "");
-        setPassengerRut(pasajero.rut);
-
-        // Establecer centro de costo del pasajero encontrado
-        if (pasajero.id_centro_costo && pasajero.centroCosto) {
-          setCentroCostoSeleccionado({
-            id: pasajero.id_centro_costo,
-            nombre: pasajero.centroCosto.nombre,
-          });
-        } else {
-          setCentroCostoSeleccionado(null);
-        }
-
-        // Limpiar errores
+        setPasajeroSeleccionado(true);
         setPassengerErrors({});
         setErrorPasajero(null);
 
-        // No cambiar automáticamente al modo crear
+        // Si quieres dejar el RUT visible (opcional)
+        setPassengerRut(pasajero.rut);
+
         return pasajero;
       } else {
-        // Si NO encuentra el pasajero, cambiar a modo crear
         setModoPasajero("crear");
-        setErrorPasajero("Pasajero no encontrado. Puede crear uno nuevo.");
-
-        // Prellenar el RUT en el formulario de creación
         setPassengerRut(rut);
-
-        // Limpiar otros campos para nuevo pasajero
         setPassengerName("");
         setPassengerEmail("");
         setCentroCostoSeleccionado(null);
+        setPasajeroEncontrado(null);
 
         return null;
       }
@@ -278,10 +252,7 @@ export function ServiceDetailDialog({
       const errorMsg =
         err instanceof Error ? err.message : "Error al buscar pasajero";
 
-      // Mostrar error en la UI
       setErrorPasajero(errorMsg);
-
-      // Si hay error de red o similar, cambiar a modo crear para permitir crear manualmente
       setModoPasajero("crear");
       setPassengerRut(rut);
 
@@ -290,6 +261,7 @@ export function ServiceDetailDialog({
         title: "Error de conexión",
         text: "No se pudo conectar con el servidor. Puede crear el pasajero manualmente.",
         confirmButtonColor: "#3085d6",
+        ...swalConfig,
       });
 
       return null;
@@ -298,26 +270,20 @@ export function ServiceDetailDialog({
     }
   };
 
-  // Función para manejar cuando el usuario cambia manualmente a modo crear
   const handleCambiarAModoCrear = () => {
-    // Limpiar errores anteriores
     setErrorPasajero(null);
     setPassengerErrors({});
-
-    // Cambiar a modo crear
     setModoPasajero("crear");
-
-    // Si ya hay un RUT en la búsqueda, usarlo
     if (rutBusqueda && validarRut(rutBusqueda)) {
       setPassengerRut(rutBusqueda);
+    } else if (passengerRut) {
+      setPassengerRut(passengerRut);
+    } else {
+      setPassengerRut("");
     }
-
-    // Si hay un pasajero encontrado, mantener sus datos
-    if (!pasajeroEncontrado) {
-      setPassengerName("");
-      setPassengerEmail("");
-      setCentroCostoSeleccionado(null);
-    }
+    setPassengerName("");
+    setPassengerEmail("");
+    setCentroCostoSeleccionado(null);
   };
 
   const buscarOCrearPasajero = async () => {
@@ -361,39 +327,28 @@ export function ServiceDetailDialog({
       const result = await response.json();
 
       if (!response.ok) {
-        // Extraer mensaje de error detallado de la API
         let errorMessage = "Error al procesar pasajero";
-
         if (result.error) {
-          // Si la API devuelve un mensaje de error específico
           errorMessage = result.error;
-
-          // Si es error 401, dar un mensaje más específico
           if (response.status === 401) {
             errorMessage =
               "No autorizado para crear pasajero. Verifique sus credenciales.";
           }
-
-          // También puedes mostrar detalles adicionales si existen
           if (result.details) {
             errorMessage += ` - ${JSON.stringify(result.details)}`;
           }
         } else {
           errorMessage = `Error ${response.status}: ${response.statusText}`;
         }
-
         throw new Error(errorMessage);
       }
 
       if (result.pasajero) {
         setPasajeroEncontrado(result.pasajero);
-
-        // Actualizar datos en el formulario
         setPassengerName(result.pasajero.nombre);
         setPassengerEmail(result.pasajero.correo || "");
         setPassengerRut(result.pasajero.rut);
 
-        // Actualizar centro de costo si viene en la respuesta
         if (result.pasajero.id_centro_costo) {
           setCentroCostoSeleccionado({
             id: result.pasajero.id_centro_costo,
@@ -401,34 +356,69 @@ export function ServiceDetailDialog({
           });
         }
 
-        // Limpiar errores
         setPassengerErrors({});
 
-        // Mostrar mensaje de éxito
         if (result.creado) {
           Swal.fire({
             icon: "success",
             title: "Pasajero creado",
-            text:
-              result.mensaje ||
-              "Nuevo pasajero registrado exitosamente en su empresa",
-            timer: 2000,
-            showConfirmButton: false,
+            html: `
+                  <div style="text-align: center; padding: 10px;">
+                    <div style="font-size: 1.2rem; font-weight: 600; color: #059669; margin-bottom: 10px;">
+                      ${result.pasajero.nombre}
+                    </div>
+                    <div style="color: #6b7280; font-size: 0.9rem; margin-bottom: 8px;">
+                      RUT: ${result.pasajero.rut}
+                    </div>
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; 
+                          border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 15px;">
+                      <p style="color: #166534; margin: 0; font-size: 0.9rem;">
+                        ${
+                          result.mensaje ||
+                          "Registrado exitosamente en su empresa"
+                        }
+                      </p>
+                    </div>
+                    <div style="background-color: #dbeafe; border: 1px solid #93c5fd; 
+                          border-radius: 8px; padding: 10px; margin-top: 10px;">
+                      <p style="color: #1e40af; margin: 0; font-size: 0.9rem; font-weight: 500;">
+                        ✓ El pasajero ha sido asignado para la reserva
+                      </p>
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
+                      <p style="color: #4b5563; font-size: 0.8rem; margin: 0;">
+                        Esta ventana se cerrará en <span id="swal-timer" style="font-weight: bold; color: #059669;">5</span> segundos
+                      </p>
+                    </div>
+                  </div>
+                `,
+            showConfirmButton: false, // Eliminar botón de confirmación
+            timer: 5000, // 5 segundos
+            timerProgressBar: true, // Mostrar barra de progreso
+            background: "#f9fafb",
+            willClose: () => {
+              // Acciones que se ejecutan al cerrar
+              console.log("Alert cerrada automáticamente");
+            },
+            didOpen: () => {
+              // Iniciar cuenta regresiva visual
+              const timerElement = document.getElementById("swal-timer");
+              let secondsLeft = 5;
+
+              const timerInterval = setInterval(() => {
+                secondsLeft--;
+                if (timerElement) {
+                  timerElement.textContent = secondsLeft.toString();
+                }
+                if (secondsLeft <= 0) {
+                  clearInterval(timerInterval);
+                }
+              }, 1000);
+            },
           });
         }
-        // else {
-        //   Swal.fire({
-        //     icon: "info",
-        //     title: "Pasajero encontrado",
-        //     text: result.mensaje || "Datos del pasajero cargados correctamente",
-        //     timer: 2000,
-        //     showConfirmButton: false,
-        //   });
-        // }
-
         return result.pasajero;
       } else if (result.encontrado === false) {
-        // Si no se encontró pero tampoco se pudo crear
         setErrorPasajero(
           result.mensaje ||
             "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'"
@@ -451,6 +441,7 @@ export function ServiceDetailDialog({
           title: "Error de autorización",
           text: "No tiene permisos para crear pasajeros. Contacte al administrador.",
           confirmButtonColor: "#3085d6",
+          ...swalConfig,
         });
       }
 
@@ -524,11 +515,9 @@ export function ServiceDetailDialog({
       setPasajeroEncontrado(null);
       setErrorPasajero(null);
       setCentroCostoSeleccionado(null);
+      setPasajeroSeleccionado(false);
     }
   }, [open, serviceId]);
-
-  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
-  const [cargandoCentros, setCargandoCentros] = useState(false);
 
   const cargarCentrosCosto = async () => {
     if (!user?.companyId) return;
@@ -820,25 +809,37 @@ export function ServiceDetailDialog({
   const handleBooking = async () => {
     if (!selectedSeat || !serviceDetail) return;
 
-    // Validar datos del pasajero primero
-    if (!validatePassenger()) {
-      setBookingError(
-        "Por favor corrige los errores del formulario de pasajero."
-      );
-      return;
-    }
+    let pasajeroParaReserva = null;
+    let nombreParaReserva = "";
+    let emailParaReserva = "";
+    let rutParaReserva = "";
 
-    // Validar que se haya seleccionado un centro de costo
-    if (!centroCostoSeleccionado) {
-      setBookingError("Debe seleccionar un centro de costo para el pasajero.");
-      return;
-    }
+    // Si hay un pasajero encontrado y seleccionado automáticamente
+    if (pasajeroEncontrado && pasajeroSeleccionado) {
+      pasajeroParaReserva = pasajeroEncontrado;
+      nombreParaReserva = pasajeroEncontrado.nombre;
+      emailParaReserva = pasajeroEncontrado.correo || "";
+      rutParaReserva = pasajeroEncontrado.rut;
+    } else {
+      // Si no hay pasajero encontrado, validar datos del formulario manual
+      if (!validatePassenger()) {
+        setBookingError(
+          "Por favor corrige los errores del formulario de pasajero."
+        );
+        return;
+      }
 
-    // Primero buscar o crear el pasajero
-    const pasajero = await buscarOCrearPasajero();
-    if (!pasajero) {
-      setBookingError("Error al procesar datos del pasajero");
-      return;
+      // Buscar o crear el pasajero con los datos del formulario
+      const nuevoPasajero = await buscarOCrearPasajero();
+      if (!nuevoPasajero) {
+        setBookingError("Error al procesar datos del pasajero");
+        return;
+      }
+
+      pasajeroParaReserva = nuevoPasajero;
+      nombreParaReserva = passengerName;
+      emailParaReserva = passengerEmail;
+      rutParaReserva = passengerRut;
     }
 
     setLoading(true);
@@ -864,9 +865,9 @@ export function ServiceDetailDialog({
           availableSeats: serviceDetail.available_seats,
           cost: serviceDetail.cost,
           boardingAt: boardingPoint,
-          passengerName: passengerName,
-          passengerEmail: passengerEmail,
-          passengerRut: passengerRut,
+          passengerName: nombreParaReserva, // Usar el nombre correspondiente
+          passengerEmail: emailParaReserva, // Usar el email correspondiente
+          passengerRut: rutParaReserva, // Usar el RUT correspondiente
         }),
       });
 
@@ -936,11 +937,14 @@ export function ServiceDetailDialog({
         confirmedAt: confirmData.confirmedAt,
         monto_boleto,
         id_User: user?.id,
-        nombre_pasajero: passengerName,
-        rut_pasajero: passengerRut,
-        email_pasajero: passengerEmail,
-        id_pasajero: pasajero.id,
-        id_centro_costo: centroCostoSeleccionado.id, // Incluir centro de costo
+        nombre_pasajero: nombreParaReserva, // Usar el nombre correcto
+        rut_pasajero: rutParaReserva, // Usar el RUT correcto
+        email_pasajero: emailParaReserva, // Usar el email correcto
+        id_pasajero: pasajeroParaReserva.id, // Usar el ID del pasajero
+        id_centro_costo:
+          pasajeroParaReserva.id_centro_costo ||
+          centroCostoSeleccionado?.id ||
+          null,
       };
 
       try {
@@ -1029,9 +1033,10 @@ export function ServiceDetailDialog({
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeat !== null &&
-    passengerName.trim().length >= 3 &&
-    validarRut(passengerRut) &&
-    validateEmail(passengerEmail);
+    ((pasajeroEncontrado && pasajeroSeleccionado) ||
+      (passengerName.trim().length >= 3 &&
+        validarRut(passengerRut) &&
+        validateEmail(passengerEmail)));
   // validateEmail(passengerEmail) &&
   // centroCostoSeleccionado !== null;
 
@@ -1287,7 +1292,7 @@ export function ServiceDetailDialog({
               </div>
 
               {/* Información del pasajero */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3 border">
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold">Datos del pasajero</h4>
@@ -1295,7 +1300,6 @@ export function ServiceDetailDialog({
                       Busque por RUT o complete manualmente
                     </p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Building2 className="h-3 w-3" />
                       <span className="text-xs text-muted-foreground">
                         Empresa: {user?.companyName || "No especificada"}
                       </span>
@@ -1315,8 +1319,7 @@ export function ServiceDetailDialog({
                       }}
                       className="h-8"
                     >
-                      <Search className="h-3 w-3 mr-1" />
-                      Buscar pasajero
+                      <Search className="h-3 w-3" />
                     </Button>
                     <Button
                       type="button"
@@ -1325,8 +1328,7 @@ export function ServiceDetailDialog({
                       onClick={handleCambiarAModoCrear}
                       className="h-8"
                     >
-                      <UserPlus className="h-3 w-3 mr-1" />
-                      Crear
+                      <UserPlus className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -1334,52 +1336,56 @@ export function ServiceDetailDialog({
                 {/* Modo Búsqueda por RUT */}
                 {modoPasajero === "buscar" && (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="text-xs font-medium block mb-1">
-                          Buscar pasajero por RUT
-                        </label>
-                        <input
-                          type="text"
-                          value={rutBusqueda}
-                          onChange={(e) => {
-                            const formatted = formatRutInput(e.target.value);
-                            setRutBusqueda(formatted);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              buscarPasajeroPorRut(rutBusqueda);
-                            }
-                          }}
-                          className="w-full px-3 py-2 border rounded-md bg-background"
-                          placeholder="12345678-9 (sin puntos)"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Solo se mostrarán pasajeros de su empresa
-                        </p>
-                      </div>
-                      <div className="flex items-end">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => buscarPasajeroPorRut(rutBusqueda)}
-                          disabled={buscandoPasajero || !rutBusqueda}
-                          className="h-10"
-                        >
-                          {buscandoPasajero ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Search className="h-4 w-4 mr-2" />
-                              Buscar
-                            </>
-                          )}
-                        </Button>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-medium">
+                        Buscar pasajero por RUT
+                      </label>
+
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1 space-y-1">
+                          <input
+                            type="text"
+                            value={rutBusqueda}
+                            onChange={(e) => {
+                              const formatted = formatRutInput(e.target.value);
+                              setRutBusqueda(formatted);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                buscarPasajeroPorRut(rutBusqueda);
+                              }
+                            }}
+                            className="w-full px-3 py-2 border rounded-md bg-background"
+                            placeholder="12.345.678-9"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Solo se mostrarán pasajeros de su empresa
+                          </p>
+                        </div>
+
+                        <div className="shrink-0">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => buscarPasajeroPorRut(rutBusqueda)}
+                            disabled={buscandoPasajero || !rutBusqueda}
+                            className="h-10"
+                          >
+                            {buscandoPasajero ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Search className="h-4 w-4" />
+                                Buscar
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Mostrar errores en modo búsqueda */}
-                    {errorPasajero && (
+                    {errorPasajero && modoPasajero === "buscar" && (
                       <div
                         className={`p-3 rounded-md ${
                           errorPasajero.includes("no encontrado") ||
@@ -1406,19 +1412,13 @@ export function ServiceDetailDialog({
                                 obtener permisos.
                               </p>
                             )}
-                            {errorPasajero.includes("no encontrado") && (
-                              <p className="text-xs mt-1">
-                                Complete los datos a continuación para crear un
-                                nuevo pasajero.
-                              </p>
-                            )}
                           </div>
                         </div>
                       </div>
                     )}
 
                     {pasajeroEncontrado && modoPasajero === "buscar" && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-md space-y-2">
+                      <div className="p-3 bg-orange-50/50 border border-orange-200 rounded-md space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -1454,7 +1454,7 @@ export function ServiceDetailDialog({
                               </p>
                             </div>
                           )}
-                          {pasajeroEncontrado.centroCosto && (
+                          {/* {pasajeroEncontrado.centroCosto && (
                             <div>
                               <span className="text-gray-600">
                                 Centro costo:
@@ -1463,14 +1463,14 @@ export function ServiceDetailDialog({
                                 {pasajeroEncontrado.centroCosto.nombre}
                               </p>
                             </div>
-                          )}
+                          )} */}
                         </div>
 
-                        {/* Botón "Usar este pasajero" - al hacer clic se asigna y deshabilita */}
-                        <Button
+                        {/* <Button
                           type="button"
                           variant="outline"
                           size="sm"
+                          disabled={pasajeroSeleccionado}
                           onClick={() => {
                             // Cargar datos en el formulario
                             setPassengerName(pasajeroEncontrado.nombre);
@@ -1483,19 +1483,38 @@ export function ServiceDetailDialog({
                                 "Sin asignar",
                             });
 
-                            // Cambiar a modo crear para mostrar datos y permitir edición si es necesario
-                            setModoPasajero("crear");
+                            setPasajeroSeleccionado(true);
                           }}
-                          className="w-full mt-2 bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
+                          className={`w-full mt-2 ${
+                            pasajeroSeleccionado
+                              ? "bg-orange-500 text-white border-orange-500 cursor-default"
+                              : "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 hover:text-orange-800"
+                          }`}
                         >
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Usar este pasajero para reservar
-                        </Button>
+                          {pasajeroSeleccionado ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Confirmado
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Usar este pasajero para reservar
+                            </>
+                          )}
+                        </Button> */}
 
-                        <p className="text-xs text-green-700 text-center mt-2">
-                          Haz clic en el botón para asignar este pasajero a la
-                          reserva
-                        </p>
+                        <div className="mt-2 flex justify-center">
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
+                          >
+                            {/* {pasajeroSeleccionado
+                            ? "¡El pasajero ha sido asignado para la reserva!"
+                            : "Haz clic en el botón para asignar este pasajero a la reserva"} */}
+                            El pasajero ha sido asignado para la reserva
+                          </Badge>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1504,37 +1523,55 @@ export function ServiceDetailDialog({
                 {/* Modo Crear/Editar Pasajero */}
                 {modoPasajero === "crear" && (
                   <div className="space-y-3">
-                    {errorPasajero && (
-                      <div
-                        className={`p-3 rounded-md ${
-                          errorPasajero.includes("creado") ||
-                          errorPasajero.includes("actualizado")
-                            ? "bg-green-50 border border-green-200 text-green-800"
-                            : errorPasajero.includes("no encontrado") ||
-                              errorPasajero.includes("Puede crear")
-                            ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
-                            : "bg-red-50 border border-red-200 text-red-600"
-                        }`}
-                      >
+                    {errorPasajero &&
+                      !errorPasajero.includes("no encontrado") &&
+                      !errorPasajero.includes("Puede crear") && (
+                        <div
+                          className={`p-3 rounded-md ${
+                            errorPasajero.includes("creado") ||
+                            errorPasajero.includes("actualizado")
+                              ? "bg-green-50 border border-green-200 text-green-800"
+                              : "bg-red-50 border border-red-200 text-red-600"
+                          }`}
+                        >
+                          <div className="flex items-start">
+                            {errorPasajero.includes("creado") ||
+                            errorPasajero.includes("actualizado") ? (
+                              <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                            )}
+                            <div>
+                              <p className="text-sm font-medium">
+                                {errorPasajero}
+                              </p>
+                              {(errorPasajero.includes("401") ||
+                                errorPasajero.includes("autorizado")) && (
+                                <p className="text-xs mt-1">
+                                  Contacte al administrador del sistema para
+                                  obtener permisos.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                    {!pasajeroEncontrado && modoPasajero === "crear" && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex items-start">
-                          {errorPasajero.includes("creado") ||
-                          errorPasajero.includes("actualizado") ? (
-                            <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                          ) : errorPasajero.includes("no encontrado") ||
-                            errorPasajero.includes("Puede crear") ? (
-                            <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                          )}
+                          <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-blue-600" />
                           <div>
-                            <p className="text-sm font-medium">
-                              {errorPasajero}
+                            <p className="text-sm font-medium text-blue-800">
+                              Crear nuevo pasajero
                             </p>
-                            {(errorPasajero.includes("401") ||
-                              errorPasajero.includes("autorizado")) && (
-                              <p className="text-xs mt-1">
-                                Contacte al administrador del sistema para
-                                obtener permisos.
+                            <p className="text-xs text-blue-700 mt-1">
+                              Complete los datos para registrar un nuevo
+                              pasajero en su empresa.
+                            </p>
+                            {passengerRut && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                RUT: <strong>{passengerRut}</strong>
                               </p>
                             )}
                           </div>
@@ -1576,7 +1613,7 @@ export function ServiceDetailDialog({
                           }}
                           onBlur={() => validatePassenger()}
                           className="w-full px-3 py-2 border rounded-md bg-background"
-                          placeholder="12345678-9 (sin puntos)"
+                          placeholder="12.345.678-9"
                           aria-invalid={!!passengerErrors.rut}
                         />
                         {passengerErrors.rut && (
@@ -1682,11 +1719,15 @@ export function ServiceDetailDialog({
                             Procesando...
                           </>
                         ) : (
+                          // <>
+                          //   <UserPlus className="h-4 w-4" />
+                          //   {pasajeroEncontrado
+                          //     ? "Actualizar pasajero"
+                          //     : "Crear pasajero"}
+                          // </>
                           <>
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            {pasajeroEncontrado
-                              ? "Actualizar pasajero"
-                              : "Crear pasajero"}
+                            <UserPlus className="h-4 w-4" />
+                            Crear pasajero
                           </>
                         )}
                       </Button>
@@ -1715,8 +1756,7 @@ export function ServiceDetailDialog({
                         </div>
                       )}
 
-                    {/* Mensaje cuando ya hay un pasajero asignado */}
-                    {pasajeroEncontrado && (
+                    {/* {pasajeroEncontrado && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -1726,14 +1766,13 @@ export function ServiceDetailDialog({
                           </p>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     <div className="text-xs text-muted-foreground">
                       <p>
-                        <strong>Nota:</strong>{" "}
-                        {pasajeroEncontrado
-                          ? "Este pasajero ya está asignado para la reserva. Puede editar sus datos si es necesario."
-                          : "Complete los datos para crear un nuevo pasajero. Será asociado automáticamente a su empresa."}
+                        <strong>Nota:</strong> Complete los datos para crear un
+                        nuevo pasajero. Será asociado automáticamente a su
+                        empresa.
                       </p>
                     </div>
                   </div>
