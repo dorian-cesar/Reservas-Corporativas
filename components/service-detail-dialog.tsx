@@ -195,7 +195,7 @@ export function ServiceDetailDialog({
             "No autorizado para buscar pasajeros. Verifique sus credenciales.";
         } else if (response.status === 404) {
           setModoPasajero("crear");
-          setPassengerRut(rut); // Solo poner el RUT para crear
+          setPassengerRut(rut);
           setPassengerName("");
           setPassengerEmail("");
           setCentroCostoSeleccionado(null);
@@ -234,9 +234,6 @@ export function ServiceDetailDialog({
         setPassengerErrors({});
         setErrorPasajero(null);
 
-        // Si quieres dejar el RUT visible (opcional)
-        setPassengerRut(pasajero.rut);
-
         return pasajero;
       } else {
         setModoPasajero("crear");
@@ -253,8 +250,6 @@ export function ServiceDetailDialog({
         err instanceof Error ? err.message : "Error al buscar pasajero";
 
       setErrorPasajero(errorMsg);
-      setModoPasajero("crear");
-      setPassengerRut(rut);
 
       Swal.fire({
         icon: "warning",
@@ -392,19 +387,16 @@ export function ServiceDetailDialog({
                     </div>
                   </div>
                 `,
-            showConfirmButton: false, // Eliminar botón de confirmación
-            timer: 5000, // 5 segundos
-            timerProgressBar: true, // Mostrar barra de progreso
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
             background: "#f9fafb",
             willClose: () => {
-              // Acciones que se ejecutan al cerrar
               console.log("Alert cerrada automáticamente");
             },
             didOpen: () => {
-              // Iniciar cuenta regresiva visual
               const timerElement = document.getElementById("swal-timer");
               let secondsLeft = 5;
-
               const timerInterval = setInterval(() => {
                 secondsLeft--;
                 if (timerElement) {

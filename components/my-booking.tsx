@@ -40,6 +40,7 @@ interface MyBookingsProps {
 interface Booking {
   id: number;
   ticketNumber: string;
+  pnrNumber: string;
   ticketStatus: string;
   origin: string;
   destination: string;
@@ -51,6 +52,7 @@ interface Booking {
   monto_devolucion: number;
   confirmedAt: string;
   id_User: number;
+  id_pasajero: number;
   created_at: string;
   updated_at: string;
   _id?: string;
@@ -62,6 +64,27 @@ interface Booking {
   companyName?: string;
   nombre_pasajero?: string;
   rut_pasajero?: string;
+  pasajero: {
+    id: number;
+    nombre: string;
+    rut: string;
+    correo: string;
+    id_empresa?: number;
+    id_centro_costo?: number;
+    empresa?: {
+      id?: number;
+      nombre?: string;
+    };
+    centroCosto?: {
+      id?: number;
+      nombre?: string;
+    };
+  };
+  user?: {
+    id: number;
+    nombre: string;
+    email: string;
+  };
 }
 
 export function MyBookings({
@@ -116,13 +139,11 @@ export function MyBookings({
 
   const handleDateFromChange = (selectedDate: Date | null) => {
     setSelectedDateFrom(selectedDate);
-
     if (selectedDate) {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const formattedDate = `${year}-${month}-${day}`;
-
       setDateFrom(formattedDate);
     } else {
       setDateFrom("");
@@ -131,13 +152,11 @@ export function MyBookings({
 
   const handleDateToChange = (selectedDate: Date | null) => {
     setSelectedDateTo(selectedDate);
-
     if (selectedDate) {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const formattedDate = `${year}-${month}-${day}`;
-
       setDateTo(formattedDate);
     } else {
       setDateTo("");
@@ -503,6 +522,16 @@ export function MyBookings({
     }
   };
 
+  const formatRut = (rut: string): string => {
+    if (!rut) return "";
+    const cleanRut = rut.replace(/[^\dkK]/gi, "").toUpperCase();
+    if (cleanRut.length < 2) return rut;
+    const cuerpo = cleanRut.slice(0, -1);
+    const dv = cleanRut.slice(-1);
+    const cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return `${cuerpoFormateado}-${dv}`;
+  };
+
   const calculateRefundAmount = (monto_boleto: number): number => {
     const refundPercentage = Number(user?.companyPorcentajeDevolucion) || 0;
     const amount = monto_boleto * refundPercentage;
@@ -550,6 +579,7 @@ export function MyBookings({
       }));
       setUserBookings(mappedBookings);
       setRefreshKey((prev) => prev + 1);
+      console.log("mapped bookings:", mappedBookings);
     } catch (error) {
       console.error("Error actualizando reservas", error);
       Swal.fire({
@@ -685,10 +715,10 @@ export function MyBookings({
                     <User className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <div className="font-medium">
-                        {booking.nombre_pasajero}
+                        {booking.pasajero.nombre}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        RUT: {booking.rut_pasajero}
+                        RUT: {formatRut(booking.pasajero.rut)}
                       </div>
                     </div>
                   </div>
