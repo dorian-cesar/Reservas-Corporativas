@@ -21,6 +21,11 @@ import {
   CheckCircle2,
   Bus,
   Users,
+  Search,
+  UserPlus,
+  Building,
+  Building2,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -63,6 +68,19 @@ export function ServiceDetailDialog({
   }>({});
   const [disponibilidadVerificada, setDisponibilidadVerificada] =
     useState<boolean>(false);
+
+  // Nuevos estados para la búsqueda de pasajeros
+  const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
+    "buscar"
+  );
+  const [rutBusqueda, setRutBusqueda] = useState("");
+  const [buscandoPasajero, setBuscandoPasajero] = useState(false);
+  const [pasajeroEncontrado, setPasajeroEncontrado] = useState<any>(null);
+  const [errorPasajero, setErrorPasajero] = useState<string | null>(null);
+  const [centroCostoSeleccionado, setCentroCostoSeleccionado] = useState<{
+    id: number;
+    nombre: string;
+  } | null>(null);
 
   const swalConfig = {
     customClass: {
@@ -120,6 +138,328 @@ export function ServiceDetailDialog({
     },
   };
 
+  const formatRutInput = (value: string): string => {
+    const clean = value.replace(/[^0-9kK]/g, "");
+    if (clean.length === 0) return "";
+    const cuerpo = clean.slice(0, -1);
+    const dv = clean.slice(-1).toUpperCase();
+    let cuerpoFormateado = cuerpo;
+    if (cuerpo.length > 3) {
+      cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    return `${cuerpoFormateado}-${dv}`;
+  };
+
+  const validarRut = (rut: string): boolean => {
+    if (!rut) return false;
+    const rutLimpio = rut.replace(/\./g, "").toUpperCase();
+    return /^[0-9]{7,8}-[0-9kK]{1}$/.test(rutLimpio);
+  };
+
+  const cleanRut = (rut: string): string => {
+    return rut.replace(/\./g, "").toUpperCase();
+  };
+
+  const buscarPasajeroPorRut = async (rut: string) => {
+    if (!rut) {
+      setErrorPasajero("Ingrese un RUT para buscar");
+      return null;
+    }
+
+    if (!validarRut(rut)) {
+      setErrorPasajero("RUT inválido");
+      return null;
+    }
+
+    setBuscandoPasajero(true);
+    setErrorPasajero(null);
+    setPasajeroEncontrado(null);
+
+    try {
+      const rutLimpio = cleanRut(rut);
+      const response = await fetch(`/api/pasajeros?rut=${rutLimpio}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Manejar errores específicos de la API
+        let errorMessage = data.error || `Error ${response.status}`;
+
+        if (response.status === 401) {
+          errorMessage =
+            "No autorizado para buscar pasajeros. Verifique sus credenciales.";
+        } else if (response.status === 404) {
+          // Esto es normal - pasajero no encontrado
+          setModoPasajero("crear");
+          setErrorPasajero("Pasajero no encontrado. Puede crear uno nuevo.");
+          setPassengerRut(rut);
+
+          // Limpiar otros campos para nuevo pasajero
+          setPassengerName("");
+          setPassengerEmail("");
+          setCentroCostoSeleccionado(null);
+
+          return null;
+        } else if (response.status >= 500) {
+          errorMessage = "Error del servidor. Intente nuevamente más tarde.";
+        }
+
+        // Si no es un 404, mostrar el error
+        setErrorPasajero(errorMessage);
+
+        // Si es error 401, mostrar alerta
+        if (response.status === 401) {
+          Swal.fire({
+            icon: "error",
+            title: "Error de autorización",
+            text: errorMessage,
+            confirmButtonColor: "#3085d6",
+          });
+        }
+
+        return null;
+      }
+
+      if (Array.isArray(data) && data.length > 0) {
+        const pasajero = data[0];
+
+        // Verificar que el pasajero pertenezca a la misma empresa
+        if (pasajero.id_empresa.toString() !== user?.companyId) {
+          setErrorPasajero(
+            "Este pasajero no pertenece a su empresa. Solo puede buscar pasajeros de su propia empresa."
+          );
+          return null;
+        }
+
+        setPasajeroEncontrado(pasajero);
+
+        // Cargar datos en el formulario
+        setPassengerName(pasajero.nombre);
+        setPassengerEmail(pasajero.correo || "");
+        setPassengerRut(pasajero.rut);
+
+        // Establecer centro de costo del pasajero encontrado
+        if (pasajero.id_centro_costo && pasajero.centroCosto) {
+          setCentroCostoSeleccionado({
+            id: pasajero.id_centro_costo,
+            nombre: pasajero.centroCosto.nombre,
+          });
+        } else {
+          setCentroCostoSeleccionado(null);
+        }
+
+        // Limpiar errores
+        setPassengerErrors({});
+        setErrorPasajero(null);
+
+        // No cambiar automáticamente al modo crear
+        return pasajero;
+      } else {
+        // Si NO encuentra el pasajero, cambiar a modo crear
+        setModoPasajero("crear");
+        setErrorPasajero("Pasajero no encontrado. Puede crear uno nuevo.");
+
+        // Prellenar el RUT en el formulario de creación
+        setPassengerRut(rut);
+
+        // Limpiar otros campos para nuevo pasajero
+        setPassengerName("");
+        setPassengerEmail("");
+        setCentroCostoSeleccionado(null);
+
+        return null;
+      }
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Error al buscar pasajero";
+
+      // Mostrar error en la UI
+      setErrorPasajero(errorMsg);
+
+      // Si hay error de red o similar, cambiar a modo crear para permitir crear manualmente
+      setModoPasajero("crear");
+      setPassengerRut(rut);
+
+      Swal.fire({
+        icon: "warning",
+        title: "Error de conexión",
+        text: "No se pudo conectar con el servidor. Puede crear el pasajero manualmente.",
+        confirmButtonColor: "#3085d6",
+      });
+
+      return null;
+    } finally {
+      setBuscandoPasajero(false);
+    }
+  };
+
+  // Función para manejar cuando el usuario cambia manualmente a modo crear
+  const handleCambiarAModoCrear = () => {
+    // Limpiar errores anteriores
+    setErrorPasajero(null);
+    setPassengerErrors({});
+
+    // Cambiar a modo crear
+    setModoPasajero("crear");
+
+    // Si ya hay un RUT en la búsqueda, usarlo
+    if (rutBusqueda && validarRut(rutBusqueda)) {
+      setPassengerRut(rutBusqueda);
+    }
+
+    // Si hay un pasajero encontrado, mantener sus datos
+    if (!pasajeroEncontrado) {
+      setPassengerName("");
+      setPassengerEmail("");
+      setCentroCostoSeleccionado(null);
+    }
+  };
+
+  const buscarOCrearPasajero = async () => {
+    if (!validarRut(passengerRut)) {
+      setPassengerErrors((prev) => ({ ...prev, rut: "RUT inválido" }));
+      return null;
+    }
+
+    if (!passengerName || passengerName.trim().length < 3) {
+      setPassengerErrors((prev) => ({
+        ...prev,
+        name: "Nombre es obligatorio (mín. 3 caracteres)",
+      }));
+      return null;
+    }
+
+    setBuscandoPasajero(true);
+    setErrorPasajero(null);
+
+    try {
+      const id_empresa = user?.companyId;
+      if (!id_empresa) {
+        throw new Error("No se pudo determinar la empresa del usuario");
+      }
+
+      const response = await fetch("/api/pasajeros/buscar-o-crear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rut: passengerRut,
+          nombre: passengerName,
+          correo: passengerEmail,
+          id_empresa: id_empresa,
+          id_centro_costo: centroCostoSeleccionado?.id || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Extraer mensaje de error detallado de la API
+        let errorMessage = "Error al procesar pasajero";
+
+        if (result.error) {
+          // Si la API devuelve un mensaje de error específico
+          errorMessage = result.error;
+
+          // Si es error 401, dar un mensaje más específico
+          if (response.status === 401) {
+            errorMessage =
+              "No autorizado para crear pasajero. Verifique sus credenciales.";
+          }
+
+          // También puedes mostrar detalles adicionales si existen
+          if (result.details) {
+            errorMessage += ` - ${JSON.stringify(result.details)}`;
+          }
+        } else {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      if (result.pasajero) {
+        setPasajeroEncontrado(result.pasajero);
+
+        // Actualizar datos en el formulario
+        setPassengerName(result.pasajero.nombre);
+        setPassengerEmail(result.pasajero.correo || "");
+        setPassengerRut(result.pasajero.rut);
+
+        // Actualizar centro de costo si viene en la respuesta
+        if (result.pasajero.id_centro_costo) {
+          setCentroCostoSeleccionado({
+            id: result.pasajero.id_centro_costo,
+            nombre: result.pasajero.centroCosto?.nombre || "Centro de costo",
+          });
+        }
+
+        // Limpiar errores
+        setPassengerErrors({});
+
+        // Mostrar mensaje de éxito
+        if (result.creado) {
+          Swal.fire({
+            icon: "success",
+            title: "Pasajero creado",
+            text:
+              result.mensaje ||
+              "Nuevo pasajero registrado exitosamente en su empresa",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
+        // else {
+        //   Swal.fire({
+        //     icon: "info",
+        //     title: "Pasajero encontrado",
+        //     text: result.mensaje || "Datos del pasajero cargados correctamente",
+        //     timer: 2000,
+        //     showConfirmButton: false,
+        //   });
+        // }
+
+        return result.pasajero;
+      } else if (result.encontrado === false) {
+        // Si no se encontró pero tampoco se pudo crear
+        setErrorPasajero(
+          result.mensaje ||
+            "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'"
+        );
+        return null;
+      }
+
+      return null;
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Error al procesar pasajero";
+
+      // Mostrar el error en la UI
+      setErrorPasajero(errorMsg);
+
+      // También puedes mostrar una alerta si el error es crítico
+      if (errorMsg.includes("401") || errorMsg.includes("No autorizado")) {
+        Swal.fire({
+          icon: "error",
+          title: "Error de autorización",
+          text: "No tiene permisos para crear pasajeros. Contacte al administrador.",
+          confirmButtonColor: "#3085d6",
+        });
+      }
+
+      return null;
+    } finally {
+      setBuscandoPasajero(false);
+    }
+  };
+
   const validateRut = (rut: string) => {
     const cleaned = rut.replace(/\./g, "").replace(/-/g, "");
     return /^[0-9kK]{7,9}$/.test(cleaned);
@@ -134,10 +474,14 @@ export function ServiceDetailDialog({
     if (!passengerName || passengerName.trim().length < 3) {
       errs.name = "Nombre del pasajero es obligatorio (mín. 3 caracteres).";
     }
-    if (passengerRut && !validateRut(passengerRut)) {
+    if (!passengerRut) {
+      errs.rut = "RUT es obligatorio.";
+    } else if (!validateRut(passengerRut)) {
       errs.rut = "RUT inválido.";
     }
-    if (passengerEmail && !validateEmail(passengerEmail)) {
+    if (!passengerEmail) {
+      errs.email = "Email es obligatorio.";
+    } else if (!validateEmail(passengerEmail)) {
       errs.email = "Email inválido.";
     }
     setPassengerErrors(errs);
@@ -165,13 +509,51 @@ export function ServiceDetailDialog({
   useEffect(() => {
     if (open && serviceId) {
       loadServiceDetail();
+      // cargarCentrosCosto();
     } else {
       setServiceDetail(null);
       setSelectedSeat(null);
       setError(null);
       setDisponibilidadVerificada(false);
+      setPassengerName("");
+      setPassengerRut("");
+      setPassengerEmail("");
+      setPassengerErrors({});
+      setModoPasajero("buscar");
+      setRutBusqueda("");
+      setPasajeroEncontrado(null);
+      setErrorPasajero(null);
+      setCentroCostoSeleccionado(null);
     }
   }, [open, serviceId]);
+
+  const [centrosCosto, setCentrosCosto] = useState<any[]>([]);
+  const [cargandoCentros, setCargandoCentros] = useState(false);
+
+  const cargarCentrosCosto = async () => {
+    if (!user?.companyId) return;
+
+    setCargandoCentros(true);
+    try {
+      const response = await fetch(
+        `/api/centros-costo?empresaId=${user.companyId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCentrosCosto(data);
+      }
+    } catch (error) {
+      console.error("Error cargando centros de costo:", error);
+    } finally {
+      setCargandoCentros(false);
+    }
+  };
 
   const loadServiceDetail = async () => {
     setLoadingDetail(true);
@@ -438,10 +820,24 @@ export function ServiceDetailDialog({
   const handleBooking = async () => {
     if (!selectedSeat || !serviceDetail) return;
 
+    // Validar datos del pasajero primero
     if (!validatePassenger()) {
       setBookingError(
         "Por favor corrige los errores del formulario de pasajero."
       );
+      return;
+    }
+
+    // Validar que se haya seleccionado un centro de costo
+    if (!centroCostoSeleccionado) {
+      setBookingError("Debe seleccionar un centro de costo para el pasajero.");
+      return;
+    }
+
+    // Primero buscar o crear el pasajero
+    const pasajero = await buscarOCrearPasajero();
+    if (!pasajero) {
+      setBookingError("Error al procesar datos del pasajero");
       return;
     }
 
@@ -470,6 +866,7 @@ export function ServiceDetailDialog({
           boardingAt: boardingPoint,
           passengerName: passengerName,
           passengerEmail: passengerEmail,
+          passengerRut: passengerRut,
         }),
       });
 
@@ -542,6 +939,8 @@ export function ServiceDetailDialog({
         nombre_pasajero: passengerName,
         rut_pasajero: passengerRut,
         email_pasajero: passengerEmail,
+        id_pasajero: pasajero.id,
+        id_centro_costo: centroCostoSeleccionado.id, // Incluir centro de costo
       };
 
       try {
@@ -618,12 +1017,23 @@ export function ServiceDetailDialog({
     }
   };
 
+  const formatearRutParaMostrar = (rut: string): string => {
+    if (!rut) return "";
+    const sinGuion = rut.replace(/-/g, "");
+    if (sinGuion.length < 2) return rut;
+    const cuerpo = sinGuion.slice(0, -1);
+    const dv = sinGuion.slice(-1);
+    return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
+  };
+
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeat !== null &&
     passengerName.trim().length >= 3 &&
-    validateRut(passengerRut) &&
+    validarRut(passengerRut) &&
     validateEmail(passengerEmail);
+  // validateEmail(passengerEmail) &&
+  // centroCostoSeleccionado !== null;
 
   return (
     <Dialog
@@ -882,73 +1292,452 @@ export function ServiceDetailDialog({
                   <div>
                     <h4 className="font-semibold">Datos del pasajero</h4>
                     <p className="text-xs text-muted-foreground">
-                      Completa los datos del pasajero que viajará. Nombre es
-                      obligatorio.
+                      Busque por RUT o complete manualmente
                     </p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Building2 className="h-3 w-3" />
+                      <span className="text-xs text-muted-foreground">
+                        Empresa: {user?.companyName || "No especificada"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={
+                        modoPasajero === "buscar" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        setModoPasajero("buscar");
+                        setErrorPasajero(null);
+                      }}
+                      className="h-8"
+                    >
+                      <Search className="h-3 w-3 mr-1" />
+                      Buscar pasajero
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={modoPasajero === "crear" ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleCambiarAModoCrear}
+                      className="h-8"
+                    >
+                      <UserPlus className="h-3 w-3 mr-1" />
+                      Crear
+                    </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium block mb-1">
-                      Nombre del pasajero *
-                    </label>
-                    <input
-                      type="text"
-                      value={passengerName}
-                      onChange={(e) => setPassengerName(e.target.value)}
-                      onBlur={() => validatePassenger()}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                      placeholder="Ej: Juan Pérez"
-                      aria-invalid={!!passengerErrors.name}
-                    />
-                    {passengerErrors.name && (
-                      <p className="text-xs text-destructive mt-1">
-                        {passengerErrors.name}
-                      </p>
-                    )}
-                  </div>
+                {/* Modo Búsqueda por RUT */}
+                {modoPasajero === "buscar" && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs font-medium block mb-1">
+                          Buscar pasajero por RUT
+                        </label>
+                        <input
+                          type="text"
+                          value={rutBusqueda}
+                          onChange={(e) => {
+                            const formatted = formatRutInput(e.target.value);
+                            setRutBusqueda(formatted);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              buscarPasajeroPorRut(rutBusqueda);
+                            }
+                          }}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder="12345678-9 (sin puntos)"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Solo se mostrarán pasajeros de su empresa
+                        </p>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => buscarPasajeroPorRut(rutBusqueda)}
+                          disabled={buscandoPasajero || !rutBusqueda}
+                          className="h-10"
+                        >
+                          {buscandoPasajero ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Search className="h-4 w-4 mr-2" />
+                              Buscar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="text-xs font-medium block mb-1">
-                      RUT pasajero
-                    </label>
-                    <input
-                      type="text"
-                      value={passengerRut}
-                      onChange={(e) => setPassengerRut(e.target.value)}
-                      onBlur={() => validatePassenger()}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                      placeholder="Ej: 12.345.678-5"
-                      aria-invalid={!!passengerErrors.rut}
-                    />
-                    {passengerErrors.rut && (
-                      <p className="text-xs text-destructive mt-1">
-                        {passengerErrors.rut}
-                      </p>
+                    {/* Mostrar errores en modo búsqueda */}
+                    {errorPasajero && (
+                      <div
+                        className={`p-3 rounded-md ${
+                          errorPasajero.includes("no encontrado") ||
+                          errorPasajero.includes("Puede crear")
+                            ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                            : "bg-red-50 border border-red-200 text-red-600"
+                        }`}
+                      >
+                        <div className="flex items-start">
+                          {errorPasajero.includes("no encontrado") ||
+                          errorPasajero.includes("Puede crear") ? (
+                            <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">
+                              {errorPasajero}
+                            </p>
+                            {(errorPasajero.includes("401") ||
+                              errorPasajero.includes("autorizado")) && (
+                              <p className="text-xs mt-1">
+                                Contacte al administrador del sistema para
+                                obtener permisos.
+                              </p>
+                            )}
+                            {errorPasajero.includes("no encontrado") && (
+                              <p className="text-xs mt-1">
+                                Complete los datos a continuación para crear un
+                                nuevo pasajero.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-medium block mb-1">
-                      Email pasajero
-                    </label>
-                    <input
-                      type="email"
-                      value={passengerEmail}
-                      onChange={(e) => setPassengerEmail(e.target.value)}
-                      onBlur={() => validatePassenger()}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                      placeholder="email@dominio.cl"
-                      aria-invalid={!!passengerErrors.email}
-                    />
-                    {passengerErrors.email && (
-                      <p className="text-xs text-destructive mt-1">
-                        {passengerErrors.email}
-                      </p>
+                    {pasajeroEncontrado && modoPasajero === "buscar" && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <span className="font-medium text-green-800">
+                              Pasajero encontrado ✓
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            RUT:{" "}
+                            {formatearRutParaMostrar(pasajeroEncontrado.rut)}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-600">Nombre:</span>
+                            <p className="font-medium">
+                              {pasajeroEncontrado.nombre}
+                            </p>
+                          </div>
+                          {pasajeroEncontrado.correo && (
+                            <div>
+                              <span className="text-gray-600">Email:</span>
+                              <p className="font-medium">
+                                {pasajeroEncontrado.correo}
+                              </p>
+                            </div>
+                          )}
+                          {pasajeroEncontrado.empresa && (
+                            <div>
+                              <span className="text-gray-600">Empresa:</span>
+                              <p className="font-medium">
+                                {pasajeroEncontrado.empresa.nombre}
+                              </p>
+                            </div>
+                          )}
+                          {pasajeroEncontrado.centroCosto && (
+                            <div>
+                              <span className="text-gray-600">
+                                Centro costo:
+                              </span>
+                              <p className="font-medium">
+                                {pasajeroEncontrado.centroCosto.nombre}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botón "Usar este pasajero" - al hacer clic se asigna y deshabilita */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Cargar datos en el formulario
+                            setPassengerName(pasajeroEncontrado.nombre);
+                            setPassengerEmail(pasajeroEncontrado.correo || "");
+                            setPassengerRut(pasajeroEncontrado.rut);
+                            setCentroCostoSeleccionado({
+                              id: pasajeroEncontrado.id_centro_costo,
+                              nombre:
+                                pasajeroEncontrado.centroCosto?.nombre ||
+                                "Sin asignar",
+                            });
+
+                            // Cambiar a modo crear para mostrar datos y permitir edición si es necesario
+                            setModoPasajero("crear");
+                          }}
+                          className="w-full mt-2 bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Usar este pasajero para reservar
+                        </Button>
+
+                        <p className="text-xs text-green-700 text-center mt-2">
+                          Haz clic en el botón para asignar este pasajero a la
+                          reserva
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
+
+                {/* Modo Crear/Editar Pasajero */}
+                {modoPasajero === "crear" && (
+                  <div className="space-y-3">
+                    {errorPasajero && (
+                      <div
+                        className={`p-3 rounded-md ${
+                          errorPasajero.includes("creado") ||
+                          errorPasajero.includes("actualizado")
+                            ? "bg-green-50 border border-green-200 text-green-800"
+                            : errorPasajero.includes("no encontrado") ||
+                              errorPasajero.includes("Puede crear")
+                            ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                            : "bg-red-50 border border-red-200 text-red-600"
+                        }`}
+                      >
+                        <div className="flex items-start">
+                          {errorPasajero.includes("creado") ||
+                          errorPasajero.includes("actualizado") ? (
+                            <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                          ) : errorPasajero.includes("no encontrado") ||
+                            errorPasajero.includes("Puede crear") ? (
+                            <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">
+                              {errorPasajero}
+                            </p>
+                            {(errorPasajero.includes("401") ||
+                              errorPasajero.includes("autorizado")) && (
+                              <p className="text-xs mt-1">
+                                Contacte al administrador del sistema para
+                                obtener permisos.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium block mb-1">
+                          Nombre completo *
+                        </label>
+                        <input
+                          type="text"
+                          value={passengerName}
+                          onChange={(e) => setPassengerName(e.target.value)}
+                          onBlur={() => validatePassenger()}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder="Ej: Juan Pérez González"
+                          aria-invalid={!!passengerErrors.name}
+                        />
+                        {passengerErrors.name && (
+                          <p className="text-xs text-destructive mt-1">
+                            {passengerErrors.name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium block mb-1">
+                          RUT *
+                        </label>
+                        <input
+                          type="text"
+                          value={passengerRut}
+                          onChange={(e) => {
+                            const formatted = formatRutInput(e.target.value);
+                            setPassengerRut(formatted);
+                          }}
+                          onBlur={() => validatePassenger()}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder="12345678-9 (sin puntos)"
+                          aria-invalid={!!passengerErrors.rut}
+                        />
+                        {passengerErrors.rut && (
+                          <p className="text-xs text-destructive mt-1">
+                            {passengerErrors.rut}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-medium block mb-1">
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          value={passengerEmail}
+                          onChange={(e) => setPassengerEmail(e.target.value)}
+                          onBlur={() => validatePassenger()}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder="email@dominio.cl"
+                          aria-invalid={!!passengerErrors.email}
+                        />
+                        {passengerErrors.email && (
+                          <p className="text-xs text-destructive mt-1">
+                            {passengerErrors.email}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Selector de Centro de Costo */}
+                      {/* <div className="sm:col-span-2">
+                        <label className="text-xs font-medium block mb-1">
+                          Centro de Costo *
+                        </label>
+                        <div className="flex gap-2">
+                          <select
+                            value={centroCostoSeleccionado?.id || ""}
+                            onChange={(e) => {
+                              const id = parseInt(e.target.value);
+                              const centro = centrosCosto.find(
+                                (c) => c.id === id
+                              );
+                              setCentroCostoSeleccionado(
+                                centro
+                                  ? { id: centro.id, nombre: centro.nombre }
+                                  : null
+                              );
+                            }}
+                            className="flex-1 px-3 py-2 border rounded-md bg-background"
+                            required
+                          >
+                            <option value="">
+                              Seleccionar centro de costo
+                            </option>
+                            {centrosCosto.map((centro) => (
+                              <option key={centro.id} value={centro.id}>
+                                {centro.nombre}
+                              </option>
+                            ))}
+                          </select>
+                          {cargandoCentros && (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          )}
+                        </div>
+                        {centroCostoSeleccionado && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                            <div className="flex items-center gap-1">
+                              <Building className="h-3 w-3" />
+                              <span>
+                                Centro seleccionado:{" "}
+                                <strong>
+                                  {centroCostoSeleccionado.nombre}
+                                </strong>
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Seleccione el centro de costo al que pertenece el
+                          pasajero
+                        </p>
+                      </div> */}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={buscarOCrearPasajero}
+                        disabled={
+                          buscandoPasajero ||
+                          !passengerName ||
+                          !passengerRut ||
+                          !passengerEmail
+                          // !passengerEmail ||
+                          // !centroCostoSeleccionado
+                        }
+                        className="flex-1"
+                      >
+                        {buscandoPasajero ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Procesando...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            {pasajeroEncontrado
+                              ? "Actualizar pasajero"
+                              : "Crear pasajero"}
+                          </>
+                        )}
+                      </Button>
+
+                      {/* <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setModoPasajero("buscar");
+                          setErrorPasajero(null);
+                        }}
+                      >
+                        Volver a buscar
+                      </Button> */}
+                    </div>
+
+                    {/* Mensaje cuando se viene de búsqueda fallida */}
+                    {!pasajeroEncontrado &&
+                      errorPasajero &&
+                      errorPasajero.includes("no encontrado") && (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Pasajero no encontrado:</strong> Complete
+                            los datos para crear un nuevo pasajero.
+                          </p>
+                        </div>
+                      )}
+
+                    {/* Mensaje cuando ya hay un pasajero asignado */}
+                    {pasajeroEncontrado && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <p className="text-sm text-green-800">
+                            <strong>Pasajero asignado:</strong> Puede editar los
+                            datos si es necesario.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-muted-foreground">
+                      <p>
+                        <strong>Nota:</strong>{" "}
+                        {pasajeroEncontrado
+                          ? "Este pasajero ya está asignado para la reserva. Puede editar sus datos si es necesario."
+                          : "Complete los datos para crear un nuevo pasajero. Será asociado automáticamente a su empresa."}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -983,7 +1772,10 @@ export function ServiceDetailDialog({
                     Procesando...
                   </>
                 ) : (
-                  "Confirmar Reserva"
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Confirmar Reserva
+                  </>
                 )}
               </Button>
             </DialogFooter>
