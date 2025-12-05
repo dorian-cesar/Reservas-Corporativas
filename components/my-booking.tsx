@@ -81,6 +81,8 @@ export function MyBookings({
   const [selectedDateTo, setSelectedDateTo] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -518,6 +520,50 @@ export function MyBookings({
     );
   }
 
+  const refreshBookings = async () => {
+    if (!user || !token || refreshing) return;
+    setRefreshing(true);
+    try {
+      const userId = user?.id;
+      const res = await fetch(`/api/tickets/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status}`);
+      }
+      const data = await res.json();
+      const mappedBookings = data.map((booking: Booking) => ({
+        ...booking,
+        status:
+          booking.ticketStatus?.toLowerCase() === "confirmed"
+            ? "confirmed"
+            : "anulado",
+        date: booking.travelDate,
+        seatNumber: booking.seatNumbers,
+        price: booking.monto_boleto || booking.fare,
+        bookedAt: booking.confirmedAt || booking.created_at,
+        companyName: user?.companyName,
+        departureTime: booking.departureTime,
+        nombre_pasajero: booking.nombre_pasajero,
+        rut_pasajero: booking.rut_pasajero,
+      }));
+      setUserBookings(mappedBookings);
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error actualizando reservas", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudieron actualizar las reservas",
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const filteredBookings = userBookings.filter((b) => {
     const matchesSearch =
       b.origin.toLowerCase().includes(search.toLowerCase()) ||
@@ -561,15 +607,17 @@ export function MyBookings({
           {paginatedBookings.map((booking, index) => {
             const bookingId = booking.id?.toString() || booking._id || "";
             const isCanceling = cancelingId === bookingId;
-
             return (
               <div
-                key={bookingId}
+                key={`${bookingId}-${refreshKey}`}
                 className="mx-2 sm:mx-0 p-4 sm:p-6 border-2 rounded-lg bg-card 
-                         hover:border-primary hover:shadow-md 
-                         transition-all duration-300 
-                         animate-in fade-in slide-in-from-left-4"
-                style={{ animationDelay: `${index * 100}ms` }}
+                       hover:border-primary hover:shadow-md 
+                       transition-all duration-300 
+                       animate-in fade-in slide-in-from-left-4"
+                style={{
+                  animationDelay: `${index * 100}ms`,
+                  animationDuration: refreshing ? "0.3s" : "0.5s",
+                }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
@@ -720,14 +768,18 @@ export function MyBookings({
               {limit && ` - Mostrando ${paginatedBookings.length} reservas`}
             </CardDescription>
           </div>
-
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.location.reload()}
+            onClick={refreshBookings}
+            disabled={refreshing || loading}
             className="gap-2"
           >
-            <RefreshCw className="h-4 w-4" />
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
             Actualizar Reservas
           </Button>
         </CardHeader>
