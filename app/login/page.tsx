@@ -166,7 +166,7 @@ export default function LoginPage() {
       <img
         src="/logo-wit-dark.png"
         alt="Logo Wit"
-        className="absolute bottom-5 right-5 h-10 w-auto"
+        className="absolute bottom-5 right-5 h-12 w-auto"
       />
     </div>
   );

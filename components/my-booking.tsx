@@ -410,6 +410,20 @@ export function MyBookings({
     }
   };
 
+  const isPastTrip = (booking: Booking) => {
+    try {
+      const date = booking.travelDate;
+      const time = booking.departureTime;
+      if (!date || !time) return true;
+      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
+      const now = new Date();
+      return travelDateTime < now;
+    } catch (err) {
+      console.error("Error verificando viaje pasado:", err);
+      return true;
+    }
+  };
+
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("es-CL", {
       style: "currency",
@@ -653,30 +667,32 @@ export function MyBookings({
                   {formatBookingTime(booking.confirmedAt || booking.created_at)}{" "}
                   hrs
                 </div>
-                {booking.ticketStatus?.toLowerCase() === "confirmed" && (
-                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                    <TicketPDFButton ticketNumber={booking.ticketNumber} />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
-                      onClick={() => handleCancelBooking(booking)}
-                      disabled={isCanceling}
-                    >
-                      {isCanceling ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Anulando...
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-4 w-4" />
-                          Anular Reserva
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                {booking.ticketStatus?.toLowerCase() === "confirmed" &&
+                  !isPastTrip(booking) && (
+                    <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                      <TicketPDFButton ticketNumber={booking.ticketNumber} />
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
+                        onClick={() => handleCancelBooking(booking)}
+                        disabled={isCanceling}
+                      >
+                        {isCanceling ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Anulando...
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4" />
+                            Anular Reserva
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
               </div>
             );
           })}
