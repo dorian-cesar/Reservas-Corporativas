@@ -11,10 +11,9 @@ export async function GET(
     if (!token)
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
 
-    // Desempaquetar los params
     const { id } = await params;
 
-    const res = await fetch(`${API_BASE}/api/centros-costo/${id}`, {
+    const res = await fetch(`${API_BASE}/api/centros-costo/empresa/${id}`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: token,

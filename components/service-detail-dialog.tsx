@@ -24,6 +24,7 @@ import {
   Search,
   UserPlus,
   AlertTriangle,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -195,7 +196,7 @@ export function ServiceDetailDialog({
             "No autorizado para buscar pasajeros. Verifique sus credenciales.";
         } else if (response.status === 404) {
           setModoPasajero("crear");
-          setPassengerRut(rut);
+          setPassengerRut("");
           setPassengerName("");
           setPassengerEmail("");
           setCentroCostoSeleccionado(null);
@@ -234,10 +235,17 @@ export function ServiceDetailDialog({
         setPassengerErrors({});
         setErrorPasajero(null);
 
+        if (pasajero.id_centro_costo) {
+          setCentroCostoSeleccionado({
+            id: pasajero.id_centro_costo,
+            nombre: pasajero.centroCosto?.nombre || "Centro de costo",
+          });
+        }
+
         return pasajero;
       } else {
         setModoPasajero("crear");
-        setPassengerRut(rut);
+        setPassengerRut("");
         setPassengerName("");
         setPassengerEmail("");
         setCentroCostoSeleccionado(null);
@@ -295,6 +303,7 @@ export function ServiceDetailDialog({
       return null;
     }
 
+    setPassengerErrors({});
     setBuscandoPasajero(true);
     setErrorPasajero(null);
 
@@ -424,10 +433,8 @@ export function ServiceDetailDialog({
       const errorMsg =
         err instanceof Error ? err.message : "Error al procesar pasajero";
 
-      // Mostrar el error en la UI
       setErrorPasajero(errorMsg);
 
-      // También puedes mostrar una alerta si el error es crítico
       if (errorMsg.includes("401") || errorMsg.includes("No autorizado")) {
         Swal.fire({
           icon: "error",
@@ -493,7 +500,9 @@ export function ServiceDetailDialog({
   useEffect(() => {
     if (open && serviceId) {
       loadServiceDetail();
-      // cargarCentrosCosto();
+      if (user?.companyId) {
+        cargarCentrosCosto();
+      }
     } else {
       setServiceDetail(null);
       setSelectedSeat(null);
@@ -509,6 +518,7 @@ export function ServiceDetailDialog({
       setErrorPasajero(null);
       setCentroCostoSeleccionado(null);
       setPasajeroSeleccionado(false);
+      setCentrosCosto([]);
     }
   }, [open, serviceId]);
 
@@ -517,18 +527,18 @@ export function ServiceDetailDialog({
 
     setCargandoCentros(true);
     try {
-      const response = await fetch(
-        `/api/centros-costo?empresaId=${user.companyId}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`/api/centros-costo/${user.companyId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setCentrosCosto(data);
+      } else {
+        console.error("Error cargando centros de costo:", response.status);
       }
     } catch (error) {
       console.error("Error cargando centros de costo:", error);
@@ -807,14 +817,12 @@ export function ServiceDetailDialog({
     let emailParaReserva = "";
     let rutParaReserva = "";
 
-    // Si hay un pasajero encontrado y seleccionado automáticamente
     if (pasajeroEncontrado && pasajeroSeleccionado) {
       pasajeroParaReserva = pasajeroEncontrado;
       nombreParaReserva = pasajeroEncontrado.nombre;
       emailParaReserva = pasajeroEncontrado.correo || "";
       rutParaReserva = pasajeroEncontrado.rut;
     } else {
-      // Si no hay pasajero encontrado, validar datos del formulario manual
       if (!validatePassenger()) {
         setBookingError(
           "Por favor corrige los errores del formulario de pasajero."
@@ -822,7 +830,6 @@ export function ServiceDetailDialog({
         return;
       }
 
-      // Buscar o crear el pasajero con los datos del formulario
       const nuevoPasajero = await buscarOCrearPasajero();
       if (!nuevoPasajero) {
         setBookingError("Error al procesar datos del pasajero");
@@ -835,6 +842,7 @@ export function ServiceDetailDialog({
       rutParaReserva = passengerRut;
     }
 
+    setPassengerErrors({});
     setLoading(true);
     setBookingError(null);
 
@@ -858,9 +866,9 @@ export function ServiceDetailDialog({
           availableSeats: serviceDetail.available_seats,
           cost: serviceDetail.cost,
           boardingAt: boardingPoint,
-          passengerName: nombreParaReserva, // Usar el nombre correspondiente
-          passengerEmail: emailParaReserva, // Usar el email correspondiente
-          passengerRut: rutParaReserva, // Usar el RUT correspondiente
+          passengerName: nombreParaReserva,
+          passengerEmail: emailParaReserva,
+          passengerRut: rutParaReserva,
         }),
       });
 
@@ -930,10 +938,10 @@ export function ServiceDetailDialog({
         confirmedAt: confirmData.confirmedAt,
         monto_boleto,
         id_User: user?.id,
-        nombre_pasajero: nombreParaReserva, // Usar el nombre correcto
-        rut_pasajero: rutParaReserva, // Usar el RUT correcto
-        email_pasajero: emailParaReserva, // Usar el email correcto
-        id_pasajero: pasajeroParaReserva.id, // Usar el ID del pasajero
+        nombre_pasajero: nombreParaReserva,
+        rut_pasajero: rutParaReserva,
+        email_pasajero: emailParaReserva,
+        id_pasajero: pasajeroParaReserva.id,
         id_centro_costo:
           pasajeroParaReserva.id_centro_costo ||
           centroCostoSeleccionado?.id ||
@@ -1029,9 +1037,8 @@ export function ServiceDetailDialog({
     ((pasajeroEncontrado && pasajeroSeleccionado) ||
       (passengerName.trim().length >= 3 &&
         validarRut(passengerRut) &&
-        validateEmail(passengerEmail)));
-  // validateEmail(passengerEmail) &&
-  // centroCostoSeleccionado !== null;
+        validateEmail(passengerEmail) &&
+        centroCostoSeleccionado !== null));
 
   return (
     <Dialog
@@ -1447,7 +1454,7 @@ export function ServiceDetailDialog({
                               </p>
                             </div>
                           )}
-                          {/* {pasajeroEncontrado.centroCosto && (
+                          {pasajeroEncontrado.centroCosto && (
                             <div>
                               <span className="text-gray-600">
                                 Centro costo:
@@ -1456,55 +1463,14 @@ export function ServiceDetailDialog({
                                 {pasajeroEncontrado.centroCosto.nombre}
                               </p>
                             </div>
-                          )} */}
-                        </div>
-
-                        {/* <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={pasajeroSeleccionado}
-                          onClick={() => {
-                            // Cargar datos en el formulario
-                            setPassengerName(pasajeroEncontrado.nombre);
-                            setPassengerEmail(pasajeroEncontrado.correo || "");
-                            setPassengerRut(pasajeroEncontrado.rut);
-                            setCentroCostoSeleccionado({
-                              id: pasajeroEncontrado.id_centro_costo,
-                              nombre:
-                                pasajeroEncontrado.centroCosto?.nombre ||
-                                "Sin asignar",
-                            });
-
-                            setPasajeroSeleccionado(true);
-                          }}
-                          className={`w-full mt-2 ${
-                            pasajeroSeleccionado
-                              ? "bg-orange-500 text-white border-orange-500 cursor-default"
-                              : "bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 hover:text-orange-800"
-                          }`}
-                        >
-                          {pasajeroSeleccionado ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4" />
-                              Confirmado
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-4 w-4" />
-                              Usar este pasajero para reservar
-                            </>
                           )}
-                        </Button> */}
+                        </div>
 
                         <div className="mt-2 flex justify-center">
                           <Badge
                             variant="outline"
                             className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
                           >
-                            {/* {pasajeroSeleccionado
-                            ? "¡El pasajero ha sido asignado para la reserva!"
-                            : "Haz clic en el botón para asignar este pasajero a la reserva"} */}
                             El pasajero ha sido asignado para la reserva
                           </Badge>
                         </div>
@@ -1637,7 +1603,7 @@ export function ServiceDetailDialog({
                       </div>
 
                       {/* Selector de Centro de Costo */}
-                      {/* <div className="sm:col-span-2">
+                      <div className="sm:col-span-2">
                         <label className="text-xs font-medium block mb-1">
                           Centro de Costo *
                         </label>
@@ -1688,7 +1654,7 @@ export function ServiceDetailDialog({
                           Seleccione el centro de costo al que pertenece el
                           pasajero
                         </p>
-                      </div> */}
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
@@ -1700,9 +1666,8 @@ export function ServiceDetailDialog({
                           buscandoPasajero ||
                           !passengerName ||
                           !passengerRut ||
-                          !passengerEmail
-                          // !passengerEmail ||
-                          // !centroCostoSeleccionado
+                          !passengerEmail ||
+                          !centroCostoSeleccionado
                         }
                         className="flex-1"
                       >
@@ -1712,29 +1677,12 @@ export function ServiceDetailDialog({
                             Procesando...
                           </>
                         ) : (
-                          // <>
-                          //   <UserPlus className="h-4 w-4" />
-                          //   {pasajeroEncontrado
-                          //     ? "Actualizar pasajero"
-                          //     : "Crear pasajero"}
-                          // </>
                           <>
                             <UserPlus className="h-4 w-4" />
                             Crear pasajero
                           </>
                         )}
                       </Button>
-
-                      {/* <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setModoPasajero("buscar");
-                          setErrorPasajero(null);
-                        }}
-                      >
-                        Volver a buscar
-                      </Button> */}
                     </div>
 
                     {/* Mensaje cuando se viene de búsqueda fallida */}
@@ -1748,18 +1696,6 @@ export function ServiceDetailDialog({
                           </p>
                         </div>
                       )}
-
-                    {/* {pasajeroEncontrado && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <p className="text-sm text-green-800">
-                            <strong>Pasajero asignado:</strong> Puede editar los
-                            datos si es necesario.
-                          </p>
-                        </div>
-                      </div>
-                    )} */}
 
                     <div className="text-xs text-muted-foreground">
                       <p>
