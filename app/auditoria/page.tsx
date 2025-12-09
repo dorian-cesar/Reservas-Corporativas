@@ -31,7 +31,7 @@ export default function AuditoriaPage() {
               <h1 className="text-xl font-bold">Panel de Administración</h1>
               <p className="text-sm text-muted-foreground">Super Usuario</p>
             </div>
-            <AdminStats />
+            {/* <AdminStats /> */}
 
             <Tabs defaultValue="companies-crud" className="w-full">
             <TabsList className="
@@ -52,10 +52,10 @@ export default function AuditoriaPage() {
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
                 </TabsTrigger>
-                <TabsTrigger value="cuenta-corriente" className="gap-2">
+                {/* <TabsTrigger value="cuenta-corriente" className="gap-2">
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
-                </TabsTrigger>
+                </TabsTrigger> */}
                 <TabsTrigger value="bookings" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
@@ -74,9 +74,9 @@ export default function AuditoriaPage() {
                 <EstadoPago />
               </TabsContent>
 
-              <TabsContent value="cuenta-corriente" className="mt-6">
+              {/* <TabsContent value="cuenta-corriente" className="mt-6">
                 <AuditoriaCurrentAccounts />
-              </TabsContent>
+              </TabsContent> */}
 
               <TabsContent value="bookings" className="mt-6">
                 <AuditoriaBookings />

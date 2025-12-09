@@ -59,10 +59,10 @@ export default function SuperUserPage() {
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
                 </TabsTrigger>
-                <TabsTrigger value="cuenta-corriente" className="gap-2">
+                {/* <TabsTrigger value="cuenta-corriente" className="gap-2">
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
-                </TabsTrigger>
+                </TabsTrigger> */}
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
@@ -92,10 +92,10 @@ export default function SuperUserPage() {
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
               </TabsContent>
-
+{/* 
               <TabsContent value="cuenta-corriente" className="mt-6">
                 <CurrentAccounts />
-              </TabsContent>
+              </TabsContent> */}
 
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
