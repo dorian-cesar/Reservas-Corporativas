@@ -53,6 +53,10 @@ interface BusService {
   cost: number;
   boarding_stages: string;
   dropoff_stages: string;
+  boardingFirst: string | null;
+  dropoffLast: string | null;
+  terminalOrigen: string | null;
+  terminalDestino: string | null;
 }
 
 export function TravelSearch() {

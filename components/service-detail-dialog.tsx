@@ -36,12 +36,16 @@ interface ServiceDetailDialogProps {
   serviceId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  terminalOrigen: string | null;
+  terminalDestino: string | null;
 }
 
 export function ServiceDetailDialog({
   serviceId,
   open,
   onOpenChange,
+  terminalOrigen,
+  terminalDestino,
 }: ServiceDetailDialogProps) {
   const { user } = useUserStore();
   const { token } = useAuth();
@@ -953,6 +957,8 @@ export function ServiceDetailDialog({
           pasajeroParaReserva.id_centro_costo ||
           centroCostoSeleccionado?.id ||
           null,
+        terminal_origen: terminalOrigen,
+        terminal_destino: terminalDestino,
       };
 
       try {
@@ -1237,17 +1243,31 @@ export function ServiceDetailDialog({
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-start gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>{formatTravelDate(serviceDetail.travel_date)}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>Salida: {serviceDetail.dep_time}</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>Salida: {serviceDetail.dep_time}</span>
+                    </div>
+                    {terminalOrigen && (
+                      <p className="text-xs text-muted-foreground ml-6">
+                        {terminalOrigen}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>Llegada: {serviceDetail.arr_time}</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>Llegada: {serviceDetail.arr_time}</span>
+                    </div>
+                    {terminalDestino && (
+                      <p className="text-xs text-muted-foreground ml-6">
+                        {terminalDestino}
+                      </p>
+                    )}
                   </div>
                 </div>
 

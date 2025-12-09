@@ -35,7 +35,10 @@ export interface ServiceDetail {
   amenities: string;
   bus_layout: BusLayout;
   boarding_stages: string;
-  dropoff_stages: string;
+  boardingFirst: string | null;
+  dropoffLast: string | null;
+  terminalOrigen: string | null;
+  terminalDestino: string | null;
 }
 
 export interface Seat {

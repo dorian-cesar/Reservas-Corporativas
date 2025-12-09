@@ -42,8 +42,10 @@ interface BusService {
   travel_name: string;
   is_direct_trip: boolean;
   cost: number;
-  boardingFirst?: string | null;
-  dropoffLast?: string | null;
+  boardingFirst: string | null;
+  dropoffLast: string | null;
+  terminalOrigen: string | null;
+  terminalDestino: string | null;
 }
 
 interface BusServiceCardProps {
@@ -226,6 +228,8 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
         serviceId={service.id}
         open={showServiceDetail}
         onOpenChange={setShowServiceDetail}
+        terminalOrigen={service.boardingFirst}
+        terminalDestino={service.dropoffLast}
       />
     </>
   );
