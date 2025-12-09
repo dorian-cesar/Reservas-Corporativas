@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -70,6 +70,13 @@ export function TravelSearch() {
     useTravel();
   const user = useUserStore((s) => s.user);
   const loadingUser = useUserStore((s) => s.loading);
+
+  const getTodayLocalStart = (): Date => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  };
+  const todayForMinDate = useMemo(() => getTodayLocalStart(), []);
 
   useEffect(() => {
     const loadCities = async () => {
@@ -280,6 +287,7 @@ export function TravelSearch() {
                 <ModernDatePicker
                   selected={selectedDateObject}
                   onChange={handleDateChange}
+                  minDate={todayForMinDate}
                   placeholderText="Seleccionar fecha"
                   disabled={isLoading}
                   className="w-full"

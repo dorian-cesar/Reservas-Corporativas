@@ -53,7 +53,8 @@ export function ModernDatePicker({
       <DatePicker
         selected={displaySelected}
         onChange={handleInternalChange}
-        minDate={minDate || todayForMinDate}
+        // minDate={minDate || todayForMinDate}
+        minDate={minDate}
         locale="es"
         dateFormat={dateFormat}
         placeholderText={placeholderText}
@@ -69,8 +70,9 @@ export function ModernDatePicker({
         wrapperClassName="w-full"
         calendarClassName="!bg-white !border !border-gray-300 !shadow-lg !rounded-md"
         dayClassName={(date) => {
-          const isDisabled =
-            (minDate || todayForMinDate) && date < (minDate || todayForMinDate);
+          const hasMin = !!minDate;
+          const isDisabled = hasMin && minDate && date < minDate;
+
           const isSelected =
             selected &&
             date.getDate() === selected.getDate() &&
