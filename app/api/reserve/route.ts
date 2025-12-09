@@ -6,6 +6,7 @@ interface BookingRequest {
   price: number;
   passengerName: string;
   passengerEmail: string;
+  passengerRut: string;
   originId: number;
   destinationId: number;
   travelDate: string;
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       price,
       passengerName,
       passengerEmail,
+      passengerRut,
       originId,
       destinationId,
       travelDate,
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
               sex: "M",
               is_primary: "true",
               id_card_type: "1",
-              id_card_number: "1234567890",
+              id_card_number: passengerRut,
               id_card_issued_by: "oneone",
             },
           ],
