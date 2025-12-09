@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, Users, CheckCircle2, Bus } from "lucide-react";
+import {
+  Clock,
+  MapPin,
+  Users,
+  CheckCircle2,
+  Bus,
+  ArrowRight,
+} from "lucide-react";
 import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
@@ -35,6 +42,8 @@ interface BusService {
   travel_name: string;
   is_direct_trip: boolean;
   cost: number;
+  boardingFirst?: string | null;
+  dropoffLast?: string | null;
 }
 
 interface BusServiceCardProps {
@@ -53,11 +62,6 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
     if (availabilityPercentage < 30) return "secondary";
     return "default";
   };
-
-  useEffect(() => {
-    console.log("Service:", service);
-  }, [service.id]);
-
   const getMainBusType = (busType: string | null | undefined): string => {
     if (!busType) return "";
     const parts = busType.split(",").map((p) => p.trim());
@@ -100,7 +104,25 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                {origin} - {destination}
+                {origin} — {destination}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">Origen:</span>
+                  <span className="text-foreground">
+                    {service.boardingFirst || "—"}
+                  </span>
+                </div>
+
+                <ArrowRight className="h-3 w-3 hidden sm:block opacity-50" />
+
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">Llegada:</span>
+                  <span className="text-foreground">
+                    {service.dropoffLast || "—"}
+                  </span>
+                </div>
               </div>
             </div>
             <Badge variant={getAvailabilityVariant()}>

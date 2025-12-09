@@ -51,6 +51,8 @@ interface BusService {
   travel_name: string;
   is_direct_trip: boolean;
   cost: number;
+  boarding_stages: string;
+  dropoff_stages: string;
 }
 
 export function TravelSearch() {
@@ -111,6 +113,28 @@ export function TravelSearch() {
     }
   };
 
+  function getFirstTerminal(stageString: string) {
+    if (!stageString) return null;
+    const parts = stageString
+      .split("||")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return cleanTerminalName(parts[1] || parts[0]);
+  }
+
+  function getLastTerminal(stageString: string) {
+    if (!stageString) return null;
+    const parts = stageString
+      .split("||")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return cleanTerminalName(parts[parts.length - 1]);
+  }
+
+  function cleanTerminalName(str: string) {
+    return str.split(",")[0].trim();
+  }
+
   const handleSearch = async () => {
     if (!origin || !destination || !searchDateString) {
       setServices([]);
@@ -142,10 +166,13 @@ export function TravelSearch() {
       if (data.error) throw new Error(data.error);
 
       const mapped =
-        data.services?.map((s: any) => ({
-          ...s,
-          user: user ?? null,
-        })) ?? [];
+        data.services?.map((s: any) => {
+          return {
+            ...s,
+            boardingFirst: getFirstTerminal(s.boarding_stages),
+            dropoffLast: getLastTerminal(s.dropoff_stages),
+          };
+        }) ?? [];
 
       setServices(mapped);
     } catch (error) {
