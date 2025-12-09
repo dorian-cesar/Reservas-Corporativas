@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       telefono: telefono ? telefono.trim() : null,
     };
 
-    console.log("Crear pasajero payload:", crearPayload);
+    // console.log("Crear pasajero payload:", crearPayload);
 
     const crearResponse = await fetch(`${BACKEND_URL}/api/pasajeros`, {
       method: "POST",
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(crearPayload),
     });
 
-    console.log("Crear pasajero response:", crearResponse);
+    // console.log("Crear pasajero response:", crearResponse);
 
     const backendBody = await crearResponse
       .json()

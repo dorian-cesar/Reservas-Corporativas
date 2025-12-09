@@ -579,7 +579,7 @@ export function MyBookings({
       }));
       setUserBookings(mappedBookings);
       setRefreshKey((prev) => prev + 1);
-      console.log("mapped bookings:", mappedBookings);
+      // console.log("mapped bookings:", mappedBookings);
     } catch (error) {
       console.error("Error actualizando reservas", error);
       Swal.fire({
