@@ -229,7 +229,7 @@ export function ServiceDetailDialog({
           );
           return null;
         }
-
+        setModoPasajero("buscar");
         setPasajeroEncontrado(pasajero);
         setPasajeroSeleccionado(true);
         setPassengerErrors({});
@@ -250,7 +250,7 @@ export function ServiceDetailDialog({
       } else {
         setErrorPasajero("No se encontró pasajero con ese RUT.");
         setModoPasajero("crear");
-        setPassengerRut("");
+        setPassengerRut(rutBusqueda);
         setPassengerName("");
         setPassengerEmail("");
         setCentroCostoSeleccionado(null);
@@ -282,10 +282,8 @@ export function ServiceDetailDialog({
     setErrorPasajero(null);
     setPassengerErrors({});
     setModoPasajero("crear");
-    if (rutBusqueda && validarRut(rutBusqueda)) {
+    if (!pasajeroEncontrado && rutBusqueda && validarRut(rutBusqueda)) {
       setPassengerRut(rutBusqueda);
-    } else if (passengerRut) {
-      setPassengerRut(passengerRut);
     } else {
       setPassengerRut("");
     }

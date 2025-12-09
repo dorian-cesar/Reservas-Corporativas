@@ -62,8 +62,6 @@ interface Booking {
   price?: number;
   bookedAt?: string;
   companyName?: string;
-  nombre_pasajero?: string;
-  rut_pasajero?: string;
   pasajero: {
     id: number;
     nombre: string;
@@ -195,8 +193,8 @@ export function MyBookings({
           bookedAt: booking.confirmedAt || booking.created_at,
           companyName: user?.companyName,
           departureTime: booking.departureTime,
-          nombre_pasajero: booking.nombre_pasajero,
-          rut_pasajero: booking.rut_pasajero,
+          nombre_pasajero: booking.pasajero.nombre,
+          rut_pasajero: booking.pasajero.rut,
         }));
 
         setUserBookings(mappedBookings);
@@ -574,8 +572,8 @@ export function MyBookings({
         bookedAt: booking.confirmedAt || booking.created_at,
         companyName: user?.companyName,
         departureTime: booking.departureTime,
-        nombre_pasajero: booking.nombre_pasajero,
-        rut_pasajero: booking.rut_pasajero,
+        nombre_pasajero: booking.pasajero.nombre,
+        rut_pasajero: booking.pasajero.rut,
       }));
       setUserBookings(mappedBookings);
       setRefreshKey((prev) => prev + 1);

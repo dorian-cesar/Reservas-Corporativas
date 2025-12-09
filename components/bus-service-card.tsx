@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -53,6 +53,10 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
     if (availabilityPercentage < 30) return "secondary";
     return "default";
   };
+
+  useEffect(() => {
+    console.log("Service:", service);
+  }, [service.id]);
 
   const getMainBusType = (busType: string | null | undefined): string => {
     if (!busType) return "";
