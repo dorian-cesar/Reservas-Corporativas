@@ -1598,7 +1598,7 @@ export function ServiceDetailDialog({
                         )}
                       </div>
 
-                      <div className="sm:col-span-2">
+                      <div>
                         <label className="text-xs font-medium block mb-1">
                           Email *
                         </label>
@@ -1629,12 +1629,8 @@ export function ServiceDetailDialog({
                           className="w-full px-3 py-2 border rounded-md bg-background"
                           placeholder="Ej: +56 9 1234 5678"
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Número de contacto del pasajero
-                        </p>
                       </div>
 
-                      {/* Selector de Centro de Costo */}
                       <div className="sm:col-span-2">
                         <label className="text-xs font-medium block mb-1">
                           Centro de Costo *
@@ -1653,7 +1649,7 @@ export function ServiceDetailDialog({
                                   : null
                               );
                             }}
-                            className="flex-1 px-3 py-2 border rounded-md bg-background"
+                            className="w-full px-3 py-2 border rounded-md bg-background"
                             required
                           >
                             <option value="">
@@ -1671,7 +1667,7 @@ export function ServiceDetailDialog({
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           Seleccione el centro de costo al que pertenece el
-                          pasajero
+                          pasajero.
                         </p>
                       </div>
                     </div>
