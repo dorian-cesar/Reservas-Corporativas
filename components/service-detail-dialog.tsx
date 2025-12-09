@@ -24,7 +24,6 @@ import {
   Search,
   UserPlus,
   AlertTriangle,
-  Building,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -82,6 +81,7 @@ export function ServiceDetailDialog({
   const [cargandoCentros, setCargandoCentros] = useState(false);
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<boolean>(false);
+  const [passengerPhone, setPassengerPhone] = useState<string>("");
 
   const swalConfig = {
     customClass: {
@@ -242,6 +242,10 @@ export function ServiceDetailDialog({
           });
         }
 
+        if (pasajero.telefono) {
+          setPassengerPhone(pasajero.telefono);
+        }
+
         return pasajero;
       } else {
         setModoPasajero("crear");
@@ -286,6 +290,7 @@ export function ServiceDetailDialog({
     }
     setPassengerName("");
     setPassengerEmail("");
+    setPassengerPhone("");
     setCentroCostoSeleccionado(null);
   };
 
@@ -323,6 +328,7 @@ export function ServiceDetailDialog({
           rut: passengerRut,
           nombre: passengerName,
           correo: passengerEmail,
+          telefono: passengerPhone,
           id_empresa: id_empresa,
           id_centro_costo: centroCostoSeleccionado?.id || null,
         }),
@@ -353,6 +359,7 @@ export function ServiceDetailDialog({
         setPassengerName(result.pasajero.nombre);
         setPassengerEmail(result.pasajero.correo || "");
         setPassengerRut(result.pasajero.rut);
+        setPassengerPhone(result.pasajero.telefono);
 
         if (result.pasajero.id_centro_costo) {
           setCentroCostoSeleccionado({
@@ -510,6 +517,7 @@ export function ServiceDetailDialog({
       setDisponibilidadVerificada(false);
       setPassengerName("");
       setPassengerRut("");
+      setPassengerPhone("");
       setPassengerEmail("");
       setPassengerErrors({});
       setModoPasajero("buscar");
@@ -1446,6 +1454,14 @@ export function ServiceDetailDialog({
                               </p>
                             </div>
                           )}
+                          {pasajeroEncontrado.telefono && (
+                            <div>
+                              <span className="text-gray-600">Teléfono:</span>
+                              <p className="font-medium">
+                                {pasajeroEncontrado.telefono}
+                              </p>
+                            </div>
+                          )}
                           {pasajeroEncontrado.empresa && (
                             <div>
                               <span className="text-gray-600">Empresa:</span>
@@ -1602,6 +1618,22 @@ export function ServiceDetailDialog({
                         )}
                       </div>
 
+                      <div>
+                        <label className="text-xs font-medium block mb-1">
+                          Teléfono (opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={passengerPhone}
+                          onChange={(e) => setPassengerPhone(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder="Ej: +56 9 1234 5678"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Número de contacto del pasajero
+                        </p>
+                      </div>
+
                       {/* Selector de Centro de Costo */}
                       <div className="sm:col-span-2">
                         <label className="text-xs font-medium block mb-1">
@@ -1637,19 +1669,6 @@ export function ServiceDetailDialog({
                             <Loader2 className="h-4 w-4 animate-spin" />
                           )}
                         </div>
-                        {centroCostoSeleccionado && (
-                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                            <div className="flex items-center gap-1">
-                              <Building className="h-3 w-3" />
-                              <span>
-                                Centro seleccionado:{" "}
-                                <strong>
-                                  {centroCostoSeleccionado.nombre}
-                                </strong>
-                              </span>
-                            </div>
-                          </div>
-                        )}
                         <p className="text-xs text-muted-foreground mt-1">
                           Seleccione el centro de costo al que pertenece el
                           pasajero

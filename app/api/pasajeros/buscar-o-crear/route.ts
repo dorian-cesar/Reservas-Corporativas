@@ -5,7 +5,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_URL_BACKEND;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { rut, nombre, correo, id_empresa, id_centro_costo } = body;
+    const { rut, nombre, correo, id_empresa, id_centro_costo, telefono } = body;
     const token = request.headers.get("authorization");
 
     if (!rut || !nombre || !id_empresa) {
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       correo: correo ? correo.trim() : null,
       id_empresa: Number(id_empresa),
       id_centro_costo: id_centro_costo || null,
+      telefono: telefono ? telefono.trim() : null,
     };
 
     console.log("Crear pasajero payload:", crearPayload);
@@ -43,17 +44,15 @@ export async function POST(request: NextRequest) {
 
     console.log("Crear pasajero response:", crearResponse);
 
-    // Obtener el body del backend SIEMPRE (aunque sea error)
     const backendBody = await crearResponse
       .json()
       .catch(() => ({ error: "Respuesta no válida del backend" }));
 
     if (!crearResponse.ok) {
-      // Devolver TODOS los detalles del backend
       return NextResponse.json(
         {
           error: backendBody.error || backendBody.message || "Error en backend",
-          detalles: backendBody, // se entrega TODO el body
+          detalles: backendBody,
         },
         { status: crearResponse.status }
       );
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Error en crear pasajero:", error);
-
     return NextResponse.json(
       {
         error: "Error interno del servidor",
