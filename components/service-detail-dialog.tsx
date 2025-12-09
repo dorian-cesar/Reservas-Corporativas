@@ -248,6 +248,7 @@ export function ServiceDetailDialog({
 
         return pasajero;
       } else {
+        setErrorPasajero("No se encontró pasajero con ese RUT.");
         setModoPasajero("crear");
         setPassengerRut("");
         setPassengerName("");
