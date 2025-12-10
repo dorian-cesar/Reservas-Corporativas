@@ -666,7 +666,7 @@ export function MyBookings({
                         </span>
                       )}
                     </div>
-                    <ArrowRight className="hidden sm:block text-muted-foreground" />
+                    <ArrowRight className="hidden sm:block text-muted-foreground h-5 w-5" />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-accent" />

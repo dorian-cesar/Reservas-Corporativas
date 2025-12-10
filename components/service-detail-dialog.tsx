@@ -24,6 +24,7 @@ import {
   Search,
   UserPlus,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -1235,10 +1236,12 @@ export function ServiceDetailDialog({
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                   <MapPin className="h-4 w-4 text-primary" />
-                  <span className="font-medium">
-                    {origin} - {destination}
+                  <span className="font-medium flex items-center gap-1">
+                    {origin}
+                    <ArrowRight className="h-3 w-3 opacity-60" />
+                    {destination}
                   </span>
                 </div>
 
@@ -1424,9 +1427,9 @@ export function ServiceDetailDialog({
                         <div className="flex items-start">
                           {errorPasajero.includes("no encontrado") ||
                           errorPasajero.includes("Puede crear") ? (
-                            <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                            <Search className="h-4 w-4 mt-0.5 shrink-0" />
                           ) : (
-                            <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                           )}
                           <div>
                             <p className="text-sm font-medium">
@@ -1531,9 +1534,9 @@ export function ServiceDetailDialog({
                           <div className="flex items-start">
                             {errorPasajero.includes("creado") ||
                             errorPasajero.includes("actualizado") ? (
-                              <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
                             ) : (
-                              <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                             )}
                             <div>
                               <p className="text-sm font-medium">
@@ -1554,7 +1557,7 @@ export function ServiceDetailDialog({
                     {!pasajeroEncontrado && modoPasajero === "crear" && (
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex items-start">
-                          <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-blue-600" />
+                          <Search className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
                           <div>
                             <p className="text-sm font-medium text-blue-800">
                               Crear nuevo pasajero
@@ -1707,7 +1710,7 @@ export function ServiceDetailDialog({
                       >
                         {buscandoPasajero ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                             Procesando...
                           </>
                         ) : (
@@ -1770,7 +1773,7 @@ export function ServiceDetailDialog({
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Procesando...
                   </>
                 ) : (

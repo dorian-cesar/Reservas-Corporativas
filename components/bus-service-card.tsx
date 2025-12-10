@@ -104,15 +104,18 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
                 <Bus className="h-5 w-5 text-primary" />
                 <span className="font-bold text-lg">{service.travel_name}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                {origin} — {destination}
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <MapPin className="h-4 w-4 text-primary" />
+                {
+                  origin
+                } <ArrowRight className="h-3 w-3 block opacity-50" />{" "}
+                {destination}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <span className="font-semibold">Origen:</span>
-                  <span className="text-foreground">
+                  <span className="text-muted-foreground">
                     {service.boardingFirst || "—"}
                   </span>
                 </div>
@@ -121,7 +124,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
 
                 <div className="flex items-center gap-1">
                   <span className="font-semibold">Llegada:</span>
-                  <span className="text-foreground">
+                  <span className="text-muted-foreground">
                     {service.dropoffLast || "—"}
                   </span>
                 </div>
@@ -216,7 +219,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               "Agotado"
             ) : (
               <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
+                <CheckCircle2 className="h-4 w-4" />
                 Seleccionar Asiento
               </>
             )}
