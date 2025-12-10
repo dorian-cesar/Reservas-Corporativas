@@ -36,6 +36,21 @@ export function ComboBox({
   const selectedLabel =
     items.find((i) => i.value === value)?.label || placeholder;
 
+  const commandRef = React.useRef<HTMLDivElement>(null);
+
+  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const firstItem = commandRef.current?.querySelector(
+        "[cmdk-item]"
+      ) as HTMLElement | null;
+
+      if (firstItem) {
+        firstItem.click();
+      }
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -54,8 +69,11 @@ export function ComboBox({
       </PopoverTrigger>
 
       <PopoverContent className="w-full p-0">
-        <Command>
-          <CommandInput placeholder="Buscar ciudad..." />
+        <Command ref={commandRef}>
+          <CommandInput
+            placeholder="Buscar ciudad..."
+            onKeyDown={handleEnter}
+          />
           <CommandEmpty>No encontrada.</CommandEmpty>
 
           <div className="max-h-64 overflow-y-auto">

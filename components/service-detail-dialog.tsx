@@ -1722,7 +1722,6 @@ export function ServiceDetailDialog({
                       </Button>
                     </div>
 
-                    {/* Mensaje cuando se viene de búsqueda fallida */}
                     {!pasajeroEncontrado &&
                       errorPasajero &&
                       errorPasajero.includes("no encontrado") && (
