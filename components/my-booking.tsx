@@ -62,6 +62,8 @@ interface Booking {
   price?: number;
   bookedAt?: string;
   companyName?: string;
+  terminal_origen: string | null;
+  terminal_destino: string | null;
   pasajero: {
     id: number;
     nombre: string;
@@ -195,6 +197,8 @@ export function MyBookings({
           departureTime: booking.departureTime,
           nombre_pasajero: booking.pasajero.nombre,
           rut_pasajero: booking.pasajero.rut,
+          terminal_origen: booking.terminal_origen,
+          terminal_destino: booking.terminal_destino,
         }));
 
         setUserBookings(mappedBookings);
@@ -649,18 +653,32 @@ export function MyBookings({
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="font-bold text-base sm:text-lg">
-                        {booking.origin}
-                      </span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span className="font-bold text-base sm:text-lg">
+                          {booking.origin}
+                        </span>
+                      </div>
+                      {booking.terminal_origen && (
+                        <span className="text-xs text-muted-foreground ml-6">
+                          {booking.terminal_origen}
+                        </span>
+                      )}
                     </div>
                     <ArrowRight className="hidden sm:block text-muted-foreground" />
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-accent" />
-                      <span className="font-bold text-base sm:text-lg">
-                        {booking.destination}
-                      </span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-accent" />
+                        <span className="font-bold text-base sm:text-lg">
+                          {booking.destination}
+                        </span>
+                      </div>
+                      {booking.terminal_destino && (
+                        <span className="text-xs text-muted-foreground ml-6">
+                          {booking.terminal_destino}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Badge
