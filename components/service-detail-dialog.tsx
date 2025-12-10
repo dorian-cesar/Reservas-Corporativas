@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -87,6 +87,7 @@ export function ServiceDetailDialog({
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<boolean>(false);
   const [passengerPhone, setPassengerPhone] = useState<string>("");
+  const bookingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const swalConfig = {
     customClass: {
@@ -991,7 +992,7 @@ export function ServiceDetailDialog({
 
       setSuccess(true);
 
-      setTimeout(() => {
+      bookingTimeoutRef.current = setTimeout(() => {
         setSuccess(false);
         setSelectedSeat(null);
         setBookingData(null);
@@ -1004,6 +1005,14 @@ export function ServiceDetailDialog({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (bookingTimeoutRef.current) {
+        clearTimeout(bookingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const availableSeats = parseSeats();
   const occupiedSeats = getOccupiedSeats();
@@ -1045,6 +1054,23 @@ export function ServiceDetailDialog({
     return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
   };
 
+  const handleModalClose = (state: boolean) => {
+    if (!state && success) {
+      if (bookingTimeoutRef.current) {
+        clearTimeout(bookingTimeoutRef.current);
+        setSuccess(false);
+        setSelectedSeat(null);
+        setBookingData(null);
+        bookingTimeoutRef.current = null;
+      }
+      onOpenChange(false);
+      return;
+    }
+    if (!loading && !loadingDetail) {
+      onOpenChange(state);
+    }
+  };
+
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeat !== null &&
@@ -1055,21 +1081,7 @@ export function ServiceDetailDialog({
         centroCostoSeleccionado !== null));
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(state) => {
-        if (!state && success) {
-          setSuccess(false);
-          setSelectedSeat(null);
-          setBookingData(null);
-          onOpenChange(false);
-          return;
-        }
-        if (!loading && !loadingDetail) {
-          onOpenChange(state);
-        }
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent
         className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto z-51"
         onEscapeKeyDown={(e) => {
