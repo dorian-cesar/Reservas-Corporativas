@@ -20,39 +20,50 @@ export async function GET(
     }
 
     const { empresaId } = await params;
-    
     if (!empresaId) {
       console.error("No empresaId provided");
-      return NextResponse.json(
-        { message: "ID de empresa requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "ID de empresa requerido" }, { status: 400 });
     }
 
-    // Obtener parámetros de query string
+    // Clonar search params de la request
     const url = new URL(req.url);
-    const travelDateDesde = url.searchParams.get("travelDate_desde");
-    const travelDateHasta = url.searchParams.get("travelDate_hasta");
+    const incoming = new URLSearchParams(url.search);
 
-    // Construir URL para el backend
-    let backendUrl = `${API_BASE}/api/tickets/empresa/${empresaId}`;
-    
-    // Añadir parámetros de fecha si existen
-    if (travelDateDesde && travelDateHasta) {
-      backendUrl += `?travelDate_desde=${encodeURIComponent(travelDateDesde)}&travelDate_hasta=${encodeURIComponent(travelDateHasta)}`;
-    } else if (travelDateDesde) {
-      backendUrl += `?travelDate_desde=${encodeURIComponent(travelDateDesde)}`;
-    } else if (travelDateHasta) {
-      backendUrl += `?travelDate_hasta=${encodeURIComponent(travelDateHasta)}`;
+    // Normalizar page/limit
+    const rawPage = incoming.get("page");
+    const rawLimit = incoming.get("limit");
+    const page = Math.max(1, parseInt(rawPage ?? "1", 10) || 1);
+    const limit = Math.max(1, parseInt(rawLimit ?? "10", 10) || 10);
+
+    // Construir params para backend (solo incluir si vienen y no vacíos)
+    const backendParams = new URLSearchParams();
+    backendParams.set("page", String(page));
+    backendParams.set("limit", String(limit));
+
+    const travelDateDesde = incoming.get("travelDate_desde");
+    const travelDateHasta = incoming.get("travelDate_hasta");
+    const ticketNumber = incoming.get("ticketNumber"); // nombre esperado por backend
+
+    if (travelDateDesde && travelDateDesde.trim() !== "") {
+      backendParams.set("travelDate_desde", travelDateDesde.trim());
+    }
+    if (travelDateHasta && travelDateHasta.trim() !== "") {
+      backendParams.set("travelDate_hasta", travelDateHasta.trim());
+    }
+    if (ticketNumber && ticketNumber.trim() !== "") {
+      backendParams.set("ticketNumber", ticketNumber.trim());
     }
 
-    console.log("Llamando a backend:", backendUrl); // Para debug
+    const backendUrl = `${API_BASE}/api/tickets/empresa/${encodeURIComponent(empresaId)}${backendParams.toString() ? `?${backendParams.toString()}` : ""}`;
+
+    console.log("Llamando a backend:", backendUrl);
 
     const res = await fetch(backendUrl, {
       headers: {
         "Content-Type": "application/json",
         Authorization: token,
       },
+      cache: "no-store",
     });
 
     if (res.status === 404) {
@@ -69,13 +80,12 @@ export async function GET(
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`Backend error: ${res.status} - ${errorText}`);
-      throw new Error(
-        `Backend responded with status: ${res.status} - ${errorText}`
-      );
+      throw new Error(`Backend responded with status: ${res.status} - ${errorText}`);
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    // esperamos { tickets, pagination }
+    return NextResponse.json(data, { status: 200 });
 
   } catch (err) {
     console.error("Error en API interna:", err);

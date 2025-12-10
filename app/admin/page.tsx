@@ -9,6 +9,7 @@ import { AdminStats } from "@/components/admin-stats"
 import { AdminCurrentAccounts } from "@/components/admin-components/admin-cuenta-corriente"
 import { AdminBookings } from "@/components/admin-components/admin-bookings"
 import { AdminCompanyUsers } from "@/components/admin-components/admin-company-users"
+import { CompanyUsers } from "@/components/company-users"
 import { AdminCostCenters } from "@/components/admin-components/admin-cost-center"
 import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
 import { TravelSearch } from "@/components/travel-search"
@@ -74,7 +75,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
-                <AdminCompanyUsers />
+                <CompanyUsers />
               </TabsContent>
               {/* <TabsContent value="esp" className="mt-6">
                 <AdminEstadoPago />

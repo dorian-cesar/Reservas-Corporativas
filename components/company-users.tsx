@@ -50,6 +50,17 @@ export function CompanyUsers() {
   const [costCenters, setCostCenters] = useState<{ id: string; nombre: string; empresa_id: string }[]>([]);
   const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
 
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const [emailSearch, setEmailSearch] = useState("");
+
   type User = {
     id: number;
     nombre: string;
@@ -141,37 +152,77 @@ export function CompanyUsers() {
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (opts?: { page?: number; limit?: number; email?: string }) => {
     try {
-      const res = await fetch("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
+      const page = opts?.page ?? pagination.page;
+      const limit = opts?.limit ?? pagination.limit;
+      const email = opts?.email ?? undefined;
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
       });
 
-      if (!res.ok) throw new Error("Error fetching users");
+      // Si viene email (no vacío), lo agregamos como filtro exacto
+      if (email && email.trim() !== "") {
+        params.set("email", email.trim());
+      }
 
-      const usersData = await res.json();
+      const res = await fetch(`/api/users?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
 
-      const usersMapped = usersData.map((user: any) => ({
-        id: user.id.toString(),
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        console.error("Error fetching users:", res.status, errBody);
+        throw new Error(errBody?.message || "Error fetching users");
+      }
+
+      const body = await res.json();
+
+      // asumimos exclusivamente el formato { users, pagination }
+      const usersArray = Array.isArray(body.users) ? body.users : [];
+      const pag = body.pagination || {
+        page,
+        limit,
+        total: usersArray.length,
+        totalPages: Math.ceil((usersArray.length || 0) / limit),
+        hasNextPage: false,
+        hasPrevPage: page > 1,
+      };
+
+      const usersMapped = usersArray.map((user: any) => ({
+        id: user.id?.toString?.() ?? String(user.id),
         nombre: user.nombre,
         rut: user.rut,
         email: user.email,
         rol: user.rol,
-        empresa_id: user.empresa_id?.toString() || "",
-        centro_costo_id: user.centro_costo_id?.toString() || "",
+        empresa_id: user.empresa_id?.toString?.() || "",
+        centro_costo_id: user.centro_costo_id?.toString?.() || "",
         estado: user.estado,
       }));
 
       setUsers(usersMapped);
-    } catch (err) {
+      setPagination({
+        page: pag.page ?? page,
+        limit: pag.limit ?? limit,
+        total: pag.total ?? usersMapped.length,
+        totalPages: pag.totalPages ?? Math.ceil((pag.total ?? usersMapped.length) / (pag.limit ?? limit)),
+        hasNextPage: Boolean(pag.hasNextPage),
+        hasPrevPage: Boolean(pag.hasPrevPage),
+      });
+
+    } catch (err: any) {
       console.error("Error fetching users:", err);
       toast({
         title: "Error",
-        description: "No se pudieron cargar los usuarios",
+        description: err.message || "No se pudieron cargar los usuarios",
         variant: "destructive",
       });
     }
-  }
+  };
+
 
   const resetForm = () => {
     setFormData({
@@ -359,6 +410,18 @@ export function CompanyUsers() {
     setIsAddDialogOpen(true)
   }
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage === pagination.page || (pagination.totalPages && newPage > pagination.totalPages)) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchUsers({ page: newPage, limit: pagination.limit, email: emailSearch || undefined });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    if (newLimit === pagination.limit) return;
+    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    fetchUsers({ page: 1, limit: newLimit, email: emailSearch || undefined });
+  };
+
   const getRoleBadgeColor = (rol: string) => {
     switch (rol) {
       case "superuser":
@@ -540,6 +603,167 @@ export function CompanyUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="search">Buscar por email (búsqueda exacta)</Label>
+              <Input
+                id="search"
+                placeholder="Ej: usuario@empresa.com"
+                value={emailSearch}
+                onChange={(e) => setEmailSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                    fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setPagination(prev => ({ ...prev, page: 1 }));
+                  fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                }}
+                className="bg-accent hover:bg-accent/90"
+              >
+                Buscar
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEmailSearch("");
+                  // traer primera página sin filtro email
+                  setPagination(prev => ({ ...prev, page: 1 }));
+                  fetchUsers({ page: 1, limit: pagination.limit });
+                }}
+              >
+                Limpiar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          {pagination.total > 0 ? (
+            <>
+              Mostrando{" "}
+              <strong>
+                {(pagination.page - 1) * pagination.limit + 1}
+                {" - "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}
+              </strong>{" "}
+              de <strong>{pagination.total}</strong> usuarios
+            </>
+          ) : (
+            <>No hay usuarios para mostrar</>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Limit selector */}
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-muted-foreground">Resultados:</label>
+            <select
+              value={pagination.limit}
+              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+              className="p-2 border rounded-md bg-background"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          {/* Page controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={!pagination.hasPrevPage}
+              className="h-8 w-8 p-0"
+            >
+              {/* icon o texto */}
+              «
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage}
+              className="h-8 w-8 p-0"
+            >
+              ‹
+            </Button>
+
+            {/* páginas numeradas (máx 5 visibles) */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                let pageNum;
+                const totalPages = pagination.totalPages || 1;
+
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+
+                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pagination.page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage}
+              className="h-8 w-8 p-0"
+            >
+              ›
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={!pagination.hasNextPage}
+              className="h-8 w-8 p-0"
+            >
+              »
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* pequeño separador */}
+      <div className="my-4 border-t" />
 
       {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
