@@ -12,6 +12,7 @@ import { AuditoriaCompanies } from "@/components/auditoria-components/auditoria-
 import { CompanyUsers } from "@/components/company-users"
 import { AuditoriaCostCenters } from "@/components/auditoria-components/auditoria-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
+import { SuperAllBookings } from "@/components/super-components/super-bookings"
 
 export default function AuditoriaPage() {
   const { user, logout } = useAuth()
@@ -79,7 +80,7 @@ export default function AuditoriaPage() {
               </TabsContent> */}
 
               <TabsContent value="bookings" className="mt-6">
-                <AuditoriaBookings />
+                <SuperAllBookings />
               </TabsContent>
             </Tabs>
           </div>

@@ -21,17 +21,11 @@ import {
   MapPin,
   Clock,
   User,
-  Hash,
   DollarSign,
-  RefreshCcw,
-  Table,
-  LayoutGrid,
   CheckCircle,
   XCircle,
-  Clock4,
   Search,
-  Building2,
-  Plus
+  Building2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -44,32 +38,37 @@ import {
 } from "@/components/ui/table"
 
 import * as XLSX from "xlsx";
-import ToolBar from "../tool-bar";
 import ToolBarAdmin from "../ToolBarAdmin";
 import TicketPDFButton from "../ticket-pdf";
 
 export function AdminBookings() {
   const { token, user } = useAuth.getState();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("");
-  const [empresaId, setEmpresaId] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
+  const [empresaId, setEmpresaId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
 
   const { toast } = useToast();
 
   type Ticket = {
     id: number;
     ticketNumber: string;
-    ticketStatus: "Confirmed" | "Anulado";
+    ticketStatus: "Confirmed" | "Anulado" | string;
     origin: string;
     destination: string;
     travelDate: string;
@@ -82,7 +81,6 @@ export function AdminBookings() {
     id_User: number;
     created_at: string;
     updated_at: string;
-
     user: User;
   };
 
@@ -97,35 +95,32 @@ export function AdminBookings() {
     estado: boolean;
     created_at: string;
     updated_at: string;
-    centroCosto: {
+    centroCosto?: {
       id: number;
       nombre: string;
       empresa_id: number;
     };
   };
 
+  // Cargar empresa del usuario al inicio
   useEffect(() => {
     if (user?.companyId) {
       fetchUserCompanyInfo();
-    } else {
-      fetchCompanies();
     }
   }, [user]);
 
+  // Cuando cambian las fechas o empresa, reiniciamos a página 1
   useEffect(() => {
-    if (!Number(empresaId)) return;
-    fetchTickets(Number(empresaId));
+    if (!empresaId) return;
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchTickets({
+      targetEmpresaId: Number(empresaId),
+      page: 1,
+      limit: pagination.limit,
+      ticketNumber: searchTerm.trim() || undefined,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId, dateDesde, dateHasta]);
-
-  const fetchCompanies = async () => {
-    try {
-      const res = await fetch("/api/companies", { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      setCompanies(data.map((c: any) => ({ id: c.id.toString(), nombre: c.nombre })));
-    } catch {
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
-    }
-  };
 
   const fetchUserCompanyInfo = async () => {
     if (!user?.companyId || !token) return;
@@ -156,40 +151,39 @@ export function AdminBookings() {
     }
   };
 
-  const fetchTickets = async (targetEmpresaId: number) => {
+  const fetchTickets = async (opts: { targetEmpresaId: number; page?: number; limit?: number; ticketNumber?: string }) => {
+    const { targetEmpresaId, page = pagination.page, limit = pagination.limit, ticketNumber } = opts;
+
     if (!targetEmpresaId) {
-      toast({
-        title: "Información",
-        description: "Por favor selecciona una empresa",
-        variant: "default",
-      });
       return;
     }
 
     setIsLoading(true);
     try {
-      // Construir URL con parámetros de fecha correctos
-      let url = `/api/confirm-db/empresa/${targetEmpresaId}`;
-
       const params = new URLSearchParams();
-      if (dateDesde) params.append('travelDate_desde', dateDesde);
-      if (dateHasta) params.append('travelDate_hasta', dateHasta);
+      params.set("page", String(page));
+      params.set("limit", String(limit));
 
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
+      if (dateDesde) params.set("travelDate_desde", dateDesde);
+      if (dateHasta) params.set("travelDate_hasta", dateHasta);
+
+      // ticketNumber como string (no validamos formato)
+      if (ticketNumber && ticketNumber.trim() !== "") {
+        params.set("ticketNumber", ticketNumber.trim());
       }
 
-      console.log("Fetching tickets from:", url); // Para debug
+      const queryString = params.toString();
+      const url = `/api/confirm-db/empresa/${targetEmpresaId}${queryString ? `?${queryString}` : ""}`;
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
       });
 
       if (res.status === 404) {
         const errorData = await res.json().catch(() => ({}));
         setTickets([]);
-        setFilteredTickets([]);
+        setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
         toast({
           title: "Información",
           description: errorData.message || "No se encontraron tickets para esta empresa",
@@ -206,7 +200,7 @@ export function AdminBookings() {
 
       if (responseData && responseData.empty) {
         setTickets([]);
-        setFilteredTickets([]);
+        setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
         toast({
           title: "Información",
           description: responseData.message || "No se encontraron tickets para esta empresa",
@@ -215,31 +209,31 @@ export function AdminBookings() {
         return;
       }
 
-      const ticketsArray = Array.isArray(responseData) ? responseData : [];
+      // aceptamos { tickets, pagination } o un array (en cuyo caso construimos pag)
+      const ticketsArray = Array.isArray(responseData.tickets) ? responseData.tickets : (Array.isArray(responseData) ? responseData : []);
+      const pag = responseData.pagination || {
+        page,
+        limit,
+        total: ticketsArray.length,
+        totalPages: Math.ceil((ticketsArray.length || 0) / limit),
+        hasNextPage: false,
+        hasPrevPage: page > 1
+      };
 
       setTickets(ticketsArray);
-      setFilteredTickets(ticketsArray);
+      setPagination({
+        page: pag.page ?? page,
+        limit: pag.limit ?? limit,
+        total: pag.total ?? ticketsArray.length,
+        totalPages: pag.totalPages ?? Math.ceil((pag.total ?? ticketsArray.length) / (pag.limit ?? limit)),
+        hasNextPage: Boolean(pag.hasNextPage),
+        hasPrevPage: Boolean(pag.hasPrevPage),
+      });
 
-      if (ticketsArray.length === 0) {
+      if ((ticketsArray || []).length === 0) {
         let message = "No se encontraron tickets";
-        if (dateDesde || dateHasta) {
-          message += " para el período seleccionado";
-        }
-        toast({
-          title: "Información",
-          description: message,
-          variant: "default",
-        });
-      } else {
-        let message = `${ticketsArray.length} tickets encontrados`;
-        if (dateDesde || dateHasta) {
-          message += ` (filtrado por fecha)`;
-        }
-        toast({
-          title: "Éxito",
-          description: message,
-          variant: "default",
-        });
+        if (dateDesde || dateHasta) message += " para el período seleccionado";
+        toast({ title: "Información", description: message, variant: "default" });
       }
     } catch (err) {
       console.error("Error fetching tickets:", err);
@@ -249,41 +243,10 @@ export function AdminBookings() {
         variant: "destructive",
       });
       setTickets([]);
-      setFilteredTickets([]);
+      setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
     } finally {
       setIsLoading(false);
     }
-  }
-
-  useEffect(() => {
-    filterTickets();
-  }, [tickets, searchTerm, statusFilter, dateFilter]);
-
-  const filterTickets = () => {
-    // Asegurar que tickets sea siempre un array
-    let filtered = Array.isArray(tickets) ? tickets : [];
-
-    // Filtro por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(ticket =>
-        ticket.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.seatNumbers.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filtro por estado
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(ticket => ticket.ticketStatus === statusFilter);
-    }
-
-    // Filtro por fecha
-    if (dateFilter) {
-      filtered = filtered.filter(ticket => ticket.travelDate === dateFilter);
-    }
-
-    setFilteredTickets(filtered);
   };
 
   const formatCurrency = (amount: number) => {
@@ -296,10 +259,12 @@ export function AdminBookings() {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
     return new Date(dateString).toLocaleDateString('es-AR');
   };
 
   const formatDateTime = (dateString: string) => {
+    if (!dateString) return "—";
     return new Date(dateString).toLocaleString('es-AR');
   };
 
@@ -340,9 +305,7 @@ export function AdminBookings() {
   };
 
   const exportToCSV = () => {
-
-    const ticketsToExport = Array.isArray(filteredTickets) ? filteredTickets : [];
-
+    const ticketsToExport = Array.isArray(tickets) ? tickets : [];
     if (ticketsToExport.length === 0) return;
 
     const headers = [
@@ -365,12 +328,12 @@ export function AdminBookings() {
       "Actualizado En"
     ];
 
-    const csvData = filteredTickets.map(ticket => [
+    const csvData = ticketsToExport.map(ticket => [
       ticket.ticketNumber,
-      ticket.user.nombre,
-      ticket.user.rut,
-      ticket.user.email,
-      ticket.user.centroCosto.nombre,
+      ticket.user?.nombre,
+      ticket.user?.rut,
+      ticket.user?.email,
+      ticket.user?.centroCosto?.nombre,
       ticket.ticketStatus,
       ticket.origin,
       ticket.destination,
@@ -387,7 +350,7 @@ export function AdminBookings() {
 
     const csvContent = [
       headers.join(","),
-      ...csvData.map(row => row.map(field => `"${field}"`).join(","))
+      ...csvData.map(row => row.map(field => `"${field ?? ""}"`).join(","))
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -403,22 +366,20 @@ export function AdminBookings() {
     setIsExportDialogOpen(false);
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${filteredTickets.length} tickets a CSV`,
+      description: `Se exportaron ${ticketsToExport.length} tickets a CSV`,
     });
   };
 
   const exportToXLSX = () => {
-
-    const ticketsToExport = Array.isArray(filteredTickets) ? filteredTickets : [];
-
+    const ticketsToExport = Array.isArray(tickets) ? tickets : [];
     if (ticketsToExport.length === 0) return;
 
-    const data = filteredTickets.map(ticket => ({
+    const data = ticketsToExport.map(ticket => ({
       "Número de Ticket": ticket.ticketNumber,
-      "Nombre Usuario": ticket.user.nombre,
-      "RUT Usuario": ticket.user.rut,
-      "Correo Usuario": ticket.user.email,
-      "Centro Costo": ticket.user.centroCosto.nombre,
+      "Nombre Usuario": ticket.user?.nombre ?? "",
+      "RUT Usuario": ticket.user?.rut ?? "",
+      "Correo Usuario": ticket.user?.email ?? "",
+      "Centro Costo": ticket.user?.centroCosto?.nombre ?? "",
       "Estado": ticket.ticketStatus,
       "Origen": ticket.origin,
       "Destino": ticket.destination,
@@ -434,16 +395,55 @@ export function AdminBookings() {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
-
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
-
     XLSX.writeFile(workbook, `tickets_${new Date().toISOString().split('T')[0]}.xlsx`);
 
     setIsExportDialogOpen(false);
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${filteredTickets.length} tickets a XLSX`,
+      description: `Se exportaron ${ticketsToExport.length} tickets a XLSX`,
+    });
+  };
+
+  const clearDateFilters = () => {
+    setDateDesde("");
+    setDateHasta("");
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage === pagination.page || (pagination.totalPages && newPage > pagination.totalPages)) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchTickets({
+      targetEmpresaId: Number(empresaId),
+      page: newPage,
+      limit: pagination.limit,
+      ticketNumber: searchTerm.trim() || undefined,
+    });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    if (newLimit === pagination.limit) return;
+    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    fetchTickets({
+      targetEmpresaId: Number(empresaId),
+      page: 1,
+      limit: newLimit,
+      ticketNumber: searchTerm.trim() || undefined,
+    });
+  };
+
+  const doSearch = () => {
+    if (!empresaId) {
+      toast({ title: "Información", description: "Cargando empresa del usuario...", variant: "default" });
+      return;
+    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchTickets({
+      targetEmpresaId: Number(empresaId),
+      page: 1,
+      limit: pagination.limit,
+      ticketNumber: searchTerm.trim() || undefined,
     });
   };
 
@@ -470,23 +470,24 @@ export function AdminBookings() {
         description="Visualice y exporte los tickets del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-
         companyInfo={userCompany ? {
           id: userCompany.id,
           nombre: userCompany.nombre
         } : undefined}
-
-        refreshAction={() => empresaId && fetchTickets(Number(empresaId))}
-
+        refreshAction={() => empresaId && fetchTickets({
+          targetEmpresaId: Number(empresaId),
+          page: pagination.page,
+          limit: pagination.limit,
+          ticketNumber: searchTerm.trim() || undefined,
+        })}
         primaryAction={{
           label: "Exportar",
           icon: <Download className="h-4 w-4" />,
           onClick: () => setIsExportDialogOpen(true),
-          disabled: !empresaId || filteredTickets.length === 0
+          disabled: !empresaId || tickets.length === 0
         }}
       />
 
-      {/* Estado de carga */}
       {isLoading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -494,99 +495,111 @@ export function AdminBookings() {
         </div>
       )}
 
-      {/* Estado inicial - Sin empresa seleccionada */}
       {!empresaId && !isLoading && (
         <Card>
           <CardContent className="text-center py-12">
             <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">Selecciona una empresa</h3>
+            <h3 className="text-lg font-semibold mb-2">Cargando empresa</h3>
             <p className="text-muted-foreground">
-              Selecciona una empresa para ver sus tickets
+              Obteniendo información de la empresa asignada...
             </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Sin resultados */}
       {empresaId && !isLoading && tickets.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
             <p className="text-muted-foreground mb-4">
-              No se encontraron tickets para la empresa seleccionada
+              No se encontraron tickets para la empresa {userCompany?.nombre}
             </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Filtros (solo se muestran cuando hay tickets) */}
-      {!isLoading && tickets.length > 0 && (
+      {/* Filtros */}
+      {!isLoading && empresaId && (
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4"> {/* Cambia de 4 a 5 columnas */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="search">Buscar</Label>
+                <Label htmlFor="search">Buscar por número de ticket</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="search"
-                    placeholder="Número, origen, destino..."
+                    placeholder="Código de ticket"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }}
                     className="pl-9"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
-                <select
-                  id="status"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="all">Todos los estados</option>
-                  <option value="Confirmed">Confirmados</option>
-                  <option value="Anulado">Anulado</option>
-                </select>
+                <p className="text-xs text-muted-foreground">La búsqueda por número se realiza en el servidor.</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateDesde">Fecha Desde</Label>
-                <Input
-                  id="dateDesde"
-                  type="date"
-                  value={dateDesde}
-                  onChange={(e) => setDateDesde(e.target.value)}
-                  max={dateHasta || undefined}
-                />
+                <Input id="dateDesde" type="date" value={dateDesde} onChange={(e) => setDateDesde(e.target.value)} max={dateHasta || undefined} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateHasta">Fecha Hasta</Label>
-                <Input
-                  id="dateHasta"
-                  type="date"
-                  value={dateHasta}
-                  onChange={(e) => setDateHasta(e.target.value)}
-                  min={dateDesde || undefined}
-                />
+                <Input id="dateHasta" type="date" value={dateHasta} onChange={(e) => setDateHasta(e.target.value)} min={dateDesde || undefined} />
               </div>
 
-              <div className="space-y-2">
-                <Label>Resultados</Label>
-                <div className="text-sm text-muted-foreground pt-2">
-                  {filteredTickets.length} tickets
-                  {(dateDesde || dateHasta) && (
-                    <div className="text-xs">
-                      Filtrado por fecha
-                      {dateDesde && ` desde ${dateDesde}`}
-                      {dateHasta && ` hasta ${dateHasta}`}
-                    </div>
-                  )}
+              <div className="space-y-2 md:col-span-2">
+                <Label>Acciones</Label>
+                <div className="flex gap-2">
+                  <Button onClick={doSearch} className="bg-accent hover:bg-accent/90">Buscar</Button>
+                  <Button variant="outline" onClick={() => {
+                    setSearchTerm("");
+                    clearDateFilters();
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                    fetchTickets({ targetEmpresaId: Number(empresaId), page: 1, limit: pagination.limit });
+                  }}>Limpiar</Button>
                 </div>
+                <div className="text-sm text-muted-foreground mt-2">
+                  {pagination.total} tickets — página {pagination.page} de {pagination.totalPages || 1}
+                </div>
+              </div>
+            </div>
+
+            {/* Paginación */}
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <label className="text-muted-foreground">Resultados por página:</label>
+                <select value={pagination.limit} onChange={(e) => handleLimitChange(parseInt(e.target.value))} className="p-2 border rounded-md bg-background">
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={() => handlePageChange(1)} disabled={!pagination.hasPrevPage} className="h-8 w-8 p-0">«</Button>
+                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page - 1)} disabled={!pagination.hasPrevPage} className="h-8 w-8 p-0">‹</Button>
+
+                {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                  let pageNum;
+                  const totalPages = pagination.totalPages || 1;
+                  if (totalPages <= 5) pageNum = i + 1;
+                  else if (pagination.page <= 3) pageNum = i + 1;
+                  else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = pagination.page - 2 + i;
+                  if (pageNum < 1 || pageNum > totalPages) return null;
+                  return (
+                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "outline"} size="sm" onClick={() => handlePageChange(pageNum)} className="h-8 w-8 p-0">
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+
+                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page + 1)} disabled={!pagination.hasNextPage} className="h-8 w-8 p-0">›</Button>
+                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.totalPages)} disabled={!pagination.hasNextPage} className="h-8 w-8 p-0">»</Button>
               </div>
             </div>
           </CardContent>
@@ -598,32 +611,20 @@ export function AdminBookings() {
           <DialogHeader>
             <DialogTitle>Exportar Tickets</DialogTitle>
             <DialogDescription>
-              Exporte los tickets filtrados ({filteredTickets.length} registros)
+              Exporte los tickets cargados ({tickets.length} registros)
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Formato de exportación</Label>
               <div className="flex gap-4">
-                <Button
-                  onClick={exportToCSV}
-                  className="flex-1 bg-accent hover:bg-accent/90"
-                >
-                  CSV
-                </Button>
-                <Button
-                  onClick={exportToXLSX}
-                  className="flex-1 bg-accent hover:bg-accent/90"
-                >
-                  XLSX
-                </Button>
+                <Button onClick={exportToCSV} className="flex-1 bg-accent hover:bg-accent/90">CSV</Button>
+                <Button onClick={exportToXLSX} className="flex-1 bg-accent hover:bg-accent/90">XLSX</Button>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -631,34 +632,22 @@ export function AdminBookings() {
       {/* Vista de Tarjetas */}
       {!isLoading && tickets.length > 0 && viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTickets.map((ticket, index) => (
-            <Card
-              key={ticket.id}
-              className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
+          {tickets.map((ticket, index) => (
+            <Card key={ticket.id} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in" style={{ animationDelay: `${index * 100}ms` }}>
               <CardHeader>
                 <div className="flex flex-col gap-5 justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      {getStatusIcon(ticket.ticketStatus)}
-                    </div>
+                    <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
                     <div>
                       <CardTitle className="text-lg">{ticket.ticketNumber}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        {getStatusBadge(ticket.ticketStatus)}
-                      </CardDescription>
+                      <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
                     </div>
                   </div>
-                  {ticket.ticketStatus === "Confirmed" &&
-                    <TicketPDFButton ticketNumber={ticket.ticketNumber} />
-                  }
-
+                  {ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
                 </div>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {/* Bloque: Usuario / Centro de Costo */}
                 <div className="p-3 bg-muted/10 rounded-md">
                   <div className="flex items-center justify-between">
                     <div>
@@ -683,58 +672,36 @@ export function AdminBookings() {
                   </div>
                 </div>
 
-                {/* Bloque: Origen / Destino / Fecha / Hora / Asiento */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{ticket.origin}</span>
+                    <span className="font-medium">{ticket.origin || "—"}</span>
                     <span className="text-muted-foreground">→</span>
-                    <span className="font-medium">{ticket.destination}</span>
+                    <span className="font-medium">{ticket.destination || "—"}</span>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDate(ticket.travelDate)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{ticket.departureTime}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>Asiento: {ticket.seatNumbers}</span>
-                    </div>
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDate(ticket.travelDate)}</span></div>
+                    <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> <span>{ticket.departureTime}</span></div>
+                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>Asiento: {ticket.seatNumbers}</span></div>
                   </div>
                 </div>
 
-                {/* Bloque: Valores */}
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <DollarSign className="h-3 w-3" />
-                      Valor Asiento
-                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Valor Asiento</div>
                     <p className="text-lg font-bold">{formatCurrency(ticket.fare)}</p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <DollarSign className="h-3 w-3" />
-                      Monto
-                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Monto</div>
                     <p className="text-lg font-bold">{formatCurrency(ticket.monto_boleto)}</p>
                   </div>
                 </div>
 
-                {/* Pie: Metadatos */}
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div>
-                      <p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p>
-                    </div>
-                    <div className="text-right">
-                      <p>ID Usuario: {ticket.id_User ?? "—"}</p>
-                    </div>
+                    <div><p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></div>
+                    <div className="text-right"><p>ID Usuario: {ticket.id_User ?? "—"}</p></div>
                   </div>
                 </div>
               </CardContent>
@@ -767,86 +734,31 @@ export function AdminBookings() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTickets.map((ticket) => (
+                {tickets.map((ticket) => (
                   <TableRow key={ticket.id} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">{ticket.ticketNumber}</p>
-                        </div>
+                        <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-4 w-4 text-primary" /></div>
+                        <div><p className="text-sm text-muted-foreground">{ticket.ticketNumber || "—"}</p></div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm">{ticket.user.nombre}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">{ticket.user.rut}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">{ticket.user.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm">{ticket.user.centroCosto.nombre}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(ticket.ticketStatus)}
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{ticket.origin}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{ticket.destination}</p>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(ticket.travelDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        {ticket.departureTime}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {ticket.seatNumbers}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(ticket.fare)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(ticket.monto_boleto)}
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm">{formatDate(ticket.confirmedAt)}</p>
-                    </TableCell>
-                    <TableCell>
-                      {ticket.ticketStatus === "Confirmed" &&
-                        <TicketPDFButton ticketNumber={ticket.ticketNumber} />
-                      }
-                    </TableCell>
+                    <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.email || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
+                    <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
+                    <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
+                    <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>
+                    <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDate(ticket.travelDate)}</div></TableCell>
+                    <TableCell><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" />{ticket.departureTime}</div></TableCell>
+                    <TableCell>{ticket.seatNumbers}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
+                    <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDate(ticket.confirmedAt) : "—"}</p></TableCell>
+                    <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </UITable>
-            {filteredTickets.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay tickets que coincidan con los filtros</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
