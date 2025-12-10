@@ -1429,7 +1429,7 @@ export function ServiceDetailDialog({
                           errorPasajero.includes("Puede crear") ? (
                             <Search className="h-4 w-4 mt-0.5 shrink-0" />
                           ) : (
-                            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                            <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                           )}
                           <div>
                             <p className="text-sm font-medium">
@@ -1504,7 +1504,7 @@ export function ServiceDetailDialog({
                           )}
                         </div>
 
-                        <div className="mt-2 flex justify-center">
+                        <div className="p-2 flex justify-center">
                           <Badge
                             variant="outline"
                             className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
@@ -1534,9 +1534,9 @@ export function ServiceDetailDialog({
                           <div className="flex items-start">
                             {errorPasajero.includes("creado") ||
                             errorPasajero.includes("actualizado") ? (
-                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                              <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                             ) : (
-                              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                              <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                             )}
                             <div>
                               <p className="text-sm font-medium">
@@ -1557,7 +1557,7 @@ export function ServiceDetailDialog({
                     {!pasajeroEncontrado && modoPasajero === "crear" && (
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex items-start">
-                          <Search className="h-4 w-4 mt-0.5 shrink-0 text-blue-600" />
+                          <Search className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-blue-600" />
                           <div>
                             <p className="text-sm font-medium text-blue-800">
                               Crear nuevo pasajero
@@ -1736,9 +1736,8 @@ export function ServiceDetailDialog({
 
                     <div className="text-xs text-muted-foreground">
                       <p>
-                        <strong>Nota:</strong> Complete los datos para crear un
-                        nuevo pasajero. Será asociado automáticamente a su
-                        empresa.
+                        <strong>Nota:</strong> El pasajero será asociado
+                        automáticamente a su empresa.
                       </p>
                     </div>
                   </div>

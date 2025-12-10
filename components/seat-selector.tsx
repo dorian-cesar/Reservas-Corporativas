@@ -389,8 +389,9 @@ export function SeatSelector({
       {/* Información adicional */}
       <div className="text-center text-xs sm:text-sm text-muted-foreground px-2 sm:px-6 md:px-8">
         <p>
-          Total: {totalSeats} | Disp: {seats.filter((s) => s.available).length}{" "}
-          | Ocup: {occupiedSeats.length}
+          Total: {totalSeats} | Disponibles:{" "}
+          {seats.filter((s) => s.available).length} | Ocupados:{" "}
+          {occupiedSeats.length}
           {processedLayout.isTwoFloor &&
             ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
         </p>
