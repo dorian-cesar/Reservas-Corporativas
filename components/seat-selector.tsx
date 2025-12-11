@@ -59,15 +59,12 @@ export function SeatSelector({
   }, [coachDetails, floor, totalSeats]);
 
   const showMaxSeatsAlert = () => {
-    // Primero, guardar el estado del modal padre
     const parentModal = document.querySelector(
       '[role="dialog"][data-state="open"]'
     ) as HTMLElement;
     const parentBackdrop = document.querySelector(
       '[data-aria-hidden="true"][data-state="open"]'
     ) as HTMLElement;
-
-    // Asegurarnos de que el modal padre mantenga su z-index
     const originalParentZIndex = parentModal?.style.zIndex || "";
     const originalBackdropZIndex = parentBackdrop?.style.zIndex || "";
 
@@ -107,17 +104,14 @@ export function SeatSelector({
           "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-amber-500 text-white hover:bg-amber-600 h-10 py-2 px-6 cursor-pointer",
       },
       buttonsStyling: false,
-      // IMPORTANTE: Estas configuraciones evitan que se cierre el modal padre
-      allowOutsideClick: false, // No permitir clic fuera
-      allowEscapeKey: false, // No permitir Escape
-      allowEnterKey: true, // Permitir Enter para confirmar
-      showCloseButton: false, // No mostrar botón de cierre (X)
-      // IMPORTANTE: No cerrar automáticamente
-      timer: undefined, // Sin timer automático
-      timerProgressBar: false, // Sin barra de progreso
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: true,
+      showCloseButton: false,
+      timer: undefined,
+      timerProgressBar: false,
       backdrop: true,
       didOpen: () => {
-        // Aumentar el z-index para que esté por encima del modal
         const container = document.querySelector(
           ".swal2-container"
         ) as HTMLElement;
@@ -134,17 +128,14 @@ export function SeatSelector({
         if (popup) {
           popup.style.zIndex = "1000000";
         }
-
-        // Mantener el modal padre en su lugar
         if (parentModal) {
-          parentModal.style.zIndex = "99999"; // Un poco menor que el SweetAlert
+          parentModal.style.zIndex = "99999";
         }
         if (parentBackdrop) {
           parentBackdrop.style.zIndex = "99998";
         }
       },
       willClose: () => {
-        // Restaurar los z-index originales cuando se cierre
         if (parentModal && originalParentZIndex) {
           parentModal.style.zIndex = originalParentZIndex;
         }
@@ -152,7 +143,6 @@ export function SeatSelector({
           parentBackdrop.style.zIndex = originalBackdropZIndex;
         }
       },
-      // Forzar a que solo se cierre con el botón confirm
       preConfirm: () => {
         return true;
       },
@@ -387,16 +377,13 @@ export function SeatSelector({
     let newSelectedSeats: string[];
 
     if (selectedSeats.includes(seatNumber)) {
-      // Deseleccionar el asiento
       newSelectedSeats = selectedSeats.filter((seat) => seat !== seatNumber);
       onSeatSelect(newSelectedSeats);
     } else {
-      // Verificar límite máximo
       if (selectedSeats.length >= maxSeats) {
         showMaxSeatsAlert();
-        return; // No permitir seleccionar más asientos
+        return;
       }
-      // Seleccionar el asiento
       newSelectedSeats = [...selectedSeats, seatNumber];
       onSeatSelect(newSelectedSeats);
     }

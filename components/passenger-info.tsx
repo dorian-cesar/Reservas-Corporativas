@@ -94,11 +94,6 @@ export function PassengerInfo({
     return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
   };
 
-  const validateRut = (rut: string) => {
-    const cleaned = rut.replace(/\./g, "").replace(/-/g, "");
-    return /^[0-9kK]{7,9}$/.test(cleaned);
-  };
-
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
@@ -106,15 +101,6 @@ export function PassengerInfo({
   const getCompanyId = (): string | null => {
     if (!user?.companyId) return null;
     return String(user.companyId);
-  };
-
-  const getUserId = (): number | undefined => {
-    if (!user?.id) return undefined;
-    if (typeof user.id === "string") {
-      const parsed = parseInt(user.id);
-      return isNaN(parsed) ? undefined : parsed;
-    }
-    return user.id;
   };
 
   const buscarPasajeroPorRut = async (rut: string) => {

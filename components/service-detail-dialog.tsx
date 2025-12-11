@@ -23,7 +23,6 @@ import {
   Users,
   ArrowRight,
   X,
-  Plus,
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -161,9 +160,7 @@ export function ServiceDetailDialog({
     }
   }, [open, serviceId]);
 
-  // Actualizar passengersData cuando cambian los asientos seleccionados
   useEffect(() => {
-    // Crear nuevos PassengerData para asientos recién seleccionados
     const newPassengersData: PassengerData[] = [];
 
     selectedSeats.forEach((seat) => {
@@ -180,7 +177,6 @@ export function ServiceDetailDialog({
       }
     });
 
-    // Remover PassengerData para asientos que ya no están seleccionados
     setPassengersData(newPassengersData);
   }, [selectedSeats]);
 
@@ -230,7 +226,7 @@ export function ServiceDetailDialog({
       };
 
       const precioConRecargo = extractPriceForVerification(service.cost);
-      const precioTotal = precioConRecargo * Math.min(MAX_SEATS, 5); // Considerar hasta 5 asientos
+      const precioTotal = precioConRecargo * Math.min(MAX_SEATS, 5);
 
       const res = await fetch("/api/disponibilidad", {
         method: "POST",
@@ -325,7 +321,6 @@ export function ServiceDetailDialog({
   const markSeatsAsUnavailable = (seatNumbers: string[]) => {
     if (!serviceDetail) return;
 
-    // Crear un mapa de asientos disponibles actuales
     const seatMap = new Map();
     serviceDetail.bus_layout.available
       .split(",")
@@ -337,12 +332,10 @@ export function ServiceDetailDialog({
         }
       });
 
-    // Remover los asientos que ya no están disponibles
     seatNumbers.forEach((seat) => {
       seatMap.delete(seat);
     });
 
-    // Convertir de vuelta a string
     const available = Array.from(seatMap.values()).join(",");
 
     setServiceDetail({
@@ -548,35 +541,28 @@ export function ServiceDetailDialog({
         if (!bookResponse.ok || !bookData.success) {
           console.error("Error booking seat:", passengerData.seat, bookData);
 
-          // Verificar si el error es específico de asiento ya reservado
           const isSeatAlreadyReserved =
             bookData?.error?.includes?.("El asiento ya está reservado") ||
             bookData?.error?.includes?.("no está disponible");
 
           if (isSeatAlreadyReserved) {
-            // Marcar este asiento como no disponible en la UI
             markSeatsAsUnavailable([passengerData.seat]);
 
-            // Eliminar este asiento de la selección actual
             setSelectedSeats((prev) =>
               prev.filter((seat) => seat !== passengerData.seat)
             );
 
-            // Eliminar el passengerData correspondiente
             setPassengersData((prev) =>
               prev.filter((p) => p.seat !== passengerData.seat)
             );
 
-            // Mostrar error en la interfaz como los demás errores
             setBookingError(
               `El asiento ${passengerData.seat} ya no está disponible. Posiblemente fue reservado por otro usuario. El asiento ha sido removido de tu selección.`
             );
 
-            // Continuar con los demás asientos si hay más
             if (passengersData.length > 1) {
               continue;
             } else {
-              // Si era el único asiento, detener el proceso
               setLoading(false);
               return;
             }
@@ -596,10 +582,8 @@ export function ServiceDetailDialog({
         });
       }
 
-      // Limpiar el error si todas las reservas fueron exitosas
       setBookingError(null);
 
-      // Confirmar todas las reservas
       const confirmations = [];
       for (const booking of bookings) {
         const confirmResponse = await fetch("/api/confirm", {
@@ -647,7 +631,6 @@ export function ServiceDetailDialog({
           terminal_destino: terminalDestino,
         };
 
-        // Guardar en base de datos
         try {
           const saveRes = await fetch("/api/confirm-db", {
             method: "POST",
@@ -762,7 +745,7 @@ export function ServiceDetailDialog({
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent
-        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto z-51"
+        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto z-51 p-4 sm:p-6"
         onEscapeKeyDown={(e) => {
           if (loading || loadingDetail) e.preventDefault();
         }}
@@ -772,10 +755,10 @@ export function ServiceDetailDialog({
       >
         {!success && (
           <DialogHeader>
-            <DialogTitle className="text-2xl">
+            <DialogTitle className="text-xl sm:text-2xl">
               Detalles del Servicio
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Revisa los detalles completos y selecciona hasta {MAX_SEATS}{" "}
               asientos
             </DialogDescription>
@@ -912,46 +895,47 @@ export function ServiceDetailDialog({
             <div className="space-y-6">
               {/* Información del servicio */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Bus className="h-5 w-5 text-primary" />
                     <span className="font-bold text-lg">
                       {serviceDetail.travels_name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <Badge
                       variant={
                         availableSeats.length > 0 ? "default" : "destructive"
                       }
+                      className="text-xs sm:text-sm"
                     >
                       {availableSeats.length} asientos disponibles
                     </Badge>
                     {selectedSeats.length > 0 && (
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
                         {selectedSeats.length} seleccionados
                       </Badge>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span className="font-medium flex items-center gap-1">
+                <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
+                  <span className="font-medium flex items-center gap-1 text-sm sm:text-base truncate">
                     {origin}
-                    <ArrowRight className="h-3 w-3 opacity-60" />
+                    <ArrowRight className="h-3 w-3 opacity-60 shrink-0" />
                     {destination}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="flex items-start gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span>{formatTravelDate(serviceDetail.travel_date)}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span>Salida: {serviceDetail.dep_time}</span>
                     </div>
                     {terminalOrigen && (
@@ -962,7 +946,7 @@ export function ServiceDetailDialog({
                   </div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span>Llegada: {serviceDetail.arr_time}</span>
                     </div>
                     {terminalDestino && (
@@ -980,11 +964,11 @@ export function ServiceDetailDialog({
                   </div>
                 )}
 
-                <div className="pt-3 border-t flex items-center justify-between">
+                <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="text-sm text-muted-foreground">
                     Precio por asiento:
                   </span>
-                  <div className="flex items-center gap-1 text-xl font-bold text-primary">
+                  <div className="flex items-center gap-1 text-lg sm:text-xl font-bold text-primary">
                     <DollarSign className="h-4 w-4" />
                     {extractPrice(serviceDetail.cost)}
                   </div>
@@ -993,7 +977,7 @@ export function ServiceDetailDialog({
 
               {/* Selector de asientos */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h3 className="font-semibold text-lg">
                     Selecciona tus Asientos (máximo {MAX_SEATS})
                   </h3>
@@ -1020,23 +1004,31 @@ export function ServiceDetailDialog({
 
                 {selectedSeats.length > 0 && (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-blue-800">
-                          Asientos seleccionados: {selectedSeats.join(", ")}
-                        </p>
-                        <p className="text-sm text-blue-600">
-                          Total: ${getTotalPrice().toLocaleString("es-CL")}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="bg-white text-xs">
+                            {selectedSeats.length} seleccionados
+                          </Badge>
+                          <span className="text-sm font-medium text-blue-800">
+                            ${getTotalPrice().toLocaleString("es-CL")}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-blue-600 truncate">
+                          Asientos: {selectedSeats.join(", ")}
                         </p>
                       </div>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => setSelectedSeats([])}
-                        className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-800"
+                        className="h-8 px-2 text-red-600 border border-red-300 hover:text-red-800 hover:bg-red-50 shrink-0 w-full sm:w-auto"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Limpiar selección
+                        <Trash2 className="h-4 w-4 sm:mr-1 inline" />
+                        <span className="hidden sm:inline">
+                          Limpiar selección
+                        </span>
+                        <span className="sm:hidden">Limpiar</span>
                       </Button>
                     </div>
                   </div>
@@ -1046,11 +1038,11 @@ export function ServiceDetailDialog({
               {/* Componentes de información del pasajero para cada asiento */}
               {selectedSeats.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <h3 className="font-semibold text-lg">
                       Datos de los Pasajeros
                     </h3>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="text-xs sm:text-sm">
                       {passengersData.filter((p) => p.completed).length} de{" "}
                       {selectedSeats.length} completados
                     </Badge>
@@ -1063,16 +1055,16 @@ export function ServiceDetailDialog({
                         className="border rounded-lg overflow-hidden"
                       >
                         <div className="bg-muted/50 px-4 py-3 flex justify-between items-center border-b">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-sm">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="text-xs">
                               Asiento {passengerData.seat}
                             </Badge>
                             {passengerData.completed && (
                               <Badge
                                 variant="outline"
-                                className="bg-green-100 text-green-800 border-green-300"
+                                className="bg-green-100 text-green-800 border-green-300 text-xs"
                               >
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                <CheckCircle2 className="h-3 w-3 mr-1 inline" />
                                 Completado
                               </Badge>
                             )}
@@ -1131,31 +1123,32 @@ export function ServiceDetailDialog({
               </Alert>
             )}
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 flex-col sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={loading}
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleBooking}
                 disabled={!canConfirm || loading}
-                className={
+                className={`w-full sm:w-auto order-1 sm:order-2 ${
                   !canConfirm
                     ? "opacity-50 cursor-not-allowed bg-accent hover:bg-accent/90 text-accent-foreground"
                     : "bg-accent hover:bg-accent/90 text-accent-foreground"
-                }
+                }`}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     Confirmando Reserva(s)...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
                     Confirmar {selectedSeats.length} Reserva(s)
                   </>
                 )}
