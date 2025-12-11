@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
@@ -13,6 +13,7 @@ import { CompanyUsers } from "@/components/company-users"
 import { SuperCostCenters } from "@/components/super-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
+import { CompanyPassengers } from "@/components/super-components/super-passengers"
 
 export default function SuperUserPage() {
   const { user, logout } = useAuth()
@@ -69,6 +70,11 @@ export default function SuperUserPage() {
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
                 </TabsTrigger> */}
+
+                <TabsTrigger value="passengers" className="gap-2">
+                  <IdCard className="h-4 w-4" />
+                  Pasajeros
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -92,6 +98,10 @@ export default function SuperUserPage() {
 
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
+              </TabsContent>
+
+              <TabsContent value="passengers" className="mt-6">
+                <CompanyPassengers />
               </TabsContent>
 
               {/* <TabsContent value="bookings" className="mt-6">

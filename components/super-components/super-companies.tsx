@@ -62,7 +62,7 @@ export function SuperCompanies() {
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
   const [empresaId, setEmpresaId] = useState("")
   const [searchMode, setSearchMode] = useState<"all" | "single">("all")
 

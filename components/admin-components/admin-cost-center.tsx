@@ -43,7 +43,7 @@ export function AdminCostCenters() {
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-    const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+    const [viewMode, setViewMode] = useState<"cards" | "table">("table")
     const [isLoading, setIsLoading] = useState(false)
     const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
     const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);

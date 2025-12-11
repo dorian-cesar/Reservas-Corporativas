@@ -42,7 +42,7 @@ export function SuperCostCenters() {
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-    const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+    const [viewMode, setViewMode] = useState<"cards" | "table">("table")
     const [empresaId, setEmpresaId] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
