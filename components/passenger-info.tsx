@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 
-// Interface más flexible para el usuario
 interface PassengerUser {
   id?: number | string;
   companyId?: string | number;
@@ -39,7 +38,6 @@ export function PassengerInfo({
   initialMode = "buscar",
   requireCentroCosto = true,
 }: PassengerInfoProps) {
-  // Estados
   const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
     initialMode
   );
@@ -47,8 +45,6 @@ export function PassengerInfo({
   const [buscandoPasajero, setBuscandoPasajero] = useState(false);
   const [pasajeroEncontrado, setPasajeroEncontrado] = useState<any>(null);
   const [errorPasajero, setErrorPasajero] = useState<string | null>(null);
-
-  // Estados para creación/edición
   const [passengerName, setPassengerName] = useState<string>("");
   const [passengerRut, setPassengerRut] = useState<string>("");
   const [passengerEmail, setPassengerEmail] = useState<string>("");
@@ -58,8 +54,6 @@ export function PassengerInfo({
     rut?: string;
     email?: string;
   }>({});
-
-  // Estados para centro de costo
   const [centroCostoSeleccionado, setCentroCostoSeleccionado] = useState<{
     id: number;
     nombre: string;
@@ -69,7 +63,6 @@ export function PassengerInfo({
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<boolean>(false);
 
-  // Formatear RUT para input
   const formatRutInput = (value: string): string => {
     const clean = value.replace(/[^0-9kK]/g, "");
     if (clean.length === 0) return "";
@@ -82,19 +75,16 @@ export function PassengerInfo({
     return `${cuerpoFormateado}-${dv}`;
   };
 
-  // Validar RUT
   const validarRut = (rut: string): boolean => {
     if (!rut) return false;
     const rutLimpio = rut.replace(/\./g, "").toUpperCase();
     return /^[0-9]{7,8}-[0-9kK]{1}$/.test(rutLimpio);
   };
 
-  // Limpiar RUT
   const cleanRut = (rut: string): string => {
     return rut.replace(/\./g, "").toUpperCase();
   };
 
-  // Formatear RUT para mostrar
   const formatearRutParaMostrar = (rut: string): string => {
     if (!rut) return "";
     const sinGuion = rut.replace(/-/g, "");
@@ -104,7 +94,6 @@ export function PassengerInfo({
     return `${cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}-${dv}`;
   };
 
-  // Validaciones
   const validateRut = (rut: string) => {
     const cleaned = rut.replace(/\./g, "").replace(/-/g, "");
     return /^[0-9kK]{7,9}$/.test(cleaned);
@@ -114,13 +103,11 @@ export function PassengerInfo({
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  // Helper para obtener el companyId como string
   const getCompanyId = (): string | null => {
     if (!user?.companyId) return null;
     return String(user.companyId);
   };
 
-  // Helper para obtener el userId como number
   const getUserId = (): number | undefined => {
     if (!user?.id) return undefined;
     if (typeof user.id === "string") {
@@ -130,7 +117,6 @@ export function PassengerInfo({
     return user.id;
   };
 
-  // Buscar pasajero por RUT
   const buscarPasajeroPorRut = async (rut: string) => {
     if (!rut) {
       setErrorPasajero("Ingrese un RUT para buscar");
@@ -206,8 +192,6 @@ export function PassengerInfo({
         setPasajeroSeleccionado(true);
         setPassengerErrors({});
         setErrorPasajero(null);
-
-        // Llenar datos del formulario
         setPassengerName(pasajero.nombre);
         setPassengerRut(pasajero.rut);
         setPassengerEmail(pasajero.correo || "");
@@ -220,7 +204,6 @@ export function PassengerInfo({
           });
         }
 
-        // Notificar al componente padre
         onPassengerSelected(pasajero);
         return pasajero;
       } else {
@@ -254,7 +237,6 @@ export function PassengerInfo({
     }
   };
 
-  // Cambiar a modo crear
   const handleCambiarAModoCrear = () => {
     setErrorPasajero(null);
     setPassengerErrors({});
@@ -271,9 +253,7 @@ export function PassengerInfo({
     onPassengerSelected(null);
   };
 
-  // Buscar o crear pasajero
   const buscarOCrearPasajero = async () => {
-    // Validaciones
     if (!validarRut(passengerRut)) {
       setPassengerErrors((prev) => ({ ...prev, rut: "RUT inválido" }));
       return null;
@@ -363,7 +343,6 @@ export function PassengerInfo({
         setPassengerErrors({});
         setErrorPasajero(null);
 
-        // Notificar al componente padre
         onPassengerSelected(result.pasajero);
 
         if (result.creado) {
@@ -432,7 +411,6 @@ export function PassengerInfo({
     }
   };
 
-  // Cargar centros de costo
   const cargarCentrosCosto = async () => {
     const companyId = getCompanyId();
     if (!companyId) return;
@@ -459,14 +437,12 @@ export function PassengerInfo({
     }
   };
 
-  // Cargar centros de costo al montar
   useEffect(() => {
     if (getCompanyId()) {
       cargarCentrosCosto();
     }
   }, [user?.companyId]);
 
-  // Resetear cuando cambia el modo
   useEffect(() => {
     if (modoPasajero === "buscar") {
       setPassengerErrors({});
