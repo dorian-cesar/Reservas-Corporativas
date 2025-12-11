@@ -95,8 +95,6 @@ export async function POST(request: NextRequest) {
       route_id: routeId,
     };
 
-    // console.log("Booking payload:", JSON.stringify(bookingPayload, null, 2));
-
     const apiUrl = `${URL_KUPOS}/tentative_booking/${serviceId}.json?api_key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
@@ -115,6 +113,26 @@ export async function POST(request: NextRequest) {
       } catch {
         kuposError = await response.text();
       }
+
+      const KuposMessage = kuposError?.response?.message?.toString() || "";
+
+      const isSeatError =
+        KuposMessage.includes("434") ||
+        KuposMessage.toLowerCase().includes("seat number not found") ||
+        KuposMessage.toLowerCase().includes("seat fare mismatched");
+
+      if (isSeatError) {
+        return NextResponse.json(
+          {
+            success: false,
+            type: "SEAT_UNAVAILABLE",
+            error: "El asiento ya está reservado o no está disponible.",
+            details: kuposError,
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,
@@ -127,6 +145,27 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    const kuposMessageOk = data?.response?.message?.toString() || "";
+    const kuposCodeOk = data?.response?.code?.toString() || "";
+
+    const isSeatErrorOk =
+      kuposCodeOk === "400" ||
+      kuposMessageOk.includes("434") ||
+      kuposMessageOk.toLowerCase().includes("seat number not found") ||
+      kuposMessageOk.toLowerCase().includes("seat fare mismatched");
+
+    if (isSeatErrorOk) {
+      return NextResponse.json(
+        {
+          success: false,
+          type: "SEAT_UNAVAILABLE",
+          error: "El asiento ya está reservado o no está disponible.",
+          details: data,
+        },
+        { status: 400 }
+      );
+    }
 
     if (!data.result || !data.result.ticket_details) {
       return NextResponse.json(

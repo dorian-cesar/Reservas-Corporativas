@@ -5,16 +5,18 @@ import type { Seat } from "@/types/service-detail";
 import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 
 interface SeatSelectorProps {
   totalSeats: number;
   occupiedSeats: string[];
-  onSeatSelect: (seatNumber: string) => void;
-  selectedSeat: string | null;
+  onSeatSelect: (seatNumbers: string[]) => void;
+  selectedSeats: string[];
   seats?: Seat[];
   coachDetails?: string;
   floor?: string;
   disabled: boolean;
+  maxSeats?: number;
 }
 
 interface BusLayout {
@@ -37,10 +39,12 @@ export function SeatSelector({
   totalSeats,
   occupiedSeats,
   onSeatSelect,
-  selectedSeat,
+  selectedSeats = [],
   seats = [],
   coachDetails = "",
   floor = "",
+  disabled,
+  maxSeats = 5,
 }: SeatSelectorProps) {
   const [currentFloor, setCurrentFloor] = useState<"first" | "second">("first");
   const [processedLayout, setProcessedLayout] = useState<BusLayout>({
@@ -53,6 +57,107 @@ export function SeatSelector({
   useEffect(() => {
     processBusLayout();
   }, [coachDetails, floor, totalSeats]);
+
+  const showMaxSeatsAlert = () => {
+    // Primero, guardar el estado del modal padre
+    const parentModal = document.querySelector(
+      '[role="dialog"][data-state="open"]'
+    ) as HTMLElement;
+    const parentBackdrop = document.querySelector(
+      '[data-aria-hidden="true"][data-state="open"]'
+    ) as HTMLElement;
+
+    // Asegurarnos de que el modal padre mantenga su z-index
+    const originalParentZIndex = parentModal?.style.zIndex || "";
+    const originalBackdropZIndex = parentBackdrop?.style.zIndex || "";
+
+    Swal.fire({
+      icon: "info",
+      title: "Límite alcanzado",
+      html: `
+        <div style="text-align: center; padding: 15px;">
+          <div style="font-size: 1.1rem; font-weight: 600; color: #d97706; margin-bottom: 10px;">
+            Has alcanzado el máximo de asientos
+          </div>
+          <div style="background-color: #fef3c7; border: 1px solid #fbbf24; 
+                border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 15px;">
+            <p style="color: #92400e; margin: 0; font-size: 0.95rem;">
+              Puedes seleccionar un máximo de <strong>${maxSeats} asientos</strong> por reserva.
+            </p>
+          </div>
+          <div style="margin-top: 15px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
+            <p style="color: #4b5563; font-size: 0.85rem; margin: 0;">
+              Asientos seleccionados: <strong>${selectedSeats.join(
+                ", "
+              )}</strong>
+            </p>
+          </div>
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: "Entendido",
+      confirmButtonColor: "#f59e0b",
+      background: "#f9fafb",
+      customClass: {
+        container: "swal-container",
+        popup:
+          "swal-popup bg-background border-2 border-amber-200 rounded-lg shadow-xl",
+        title: "swal-title text-amber-700 font-bold text-lg",
+        confirmButton:
+          "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-amber-500 text-white hover:bg-amber-600 h-10 py-2 px-6 cursor-pointer",
+      },
+      buttonsStyling: false,
+      // IMPORTANTE: Estas configuraciones evitan que se cierre el modal padre
+      allowOutsideClick: false, // No permitir clic fuera
+      allowEscapeKey: false, // No permitir Escape
+      allowEnterKey: true, // Permitir Enter para confirmar
+      showCloseButton: false, // No mostrar botón de cierre (X)
+      // IMPORTANTE: No cerrar automáticamente
+      timer: undefined, // Sin timer automático
+      timerProgressBar: false, // Sin barra de progreso
+      backdrop: true,
+      didOpen: () => {
+        // Aumentar el z-index para que esté por encima del modal
+        const container = document.querySelector(
+          ".swal2-container"
+        ) as HTMLElement;
+        const popup = document.querySelector(".swal2-popup") as HTMLElement;
+
+        if (container) {
+          container.style.zIndex = "999999";
+          container.style.position = "fixed";
+          container.style.top = "0";
+          container.style.left = "0";
+          container.style.width = "100%";
+          container.style.height = "100%";
+        }
+        if (popup) {
+          popup.style.zIndex = "1000000";
+        }
+
+        // Mantener el modal padre en su lugar
+        if (parentModal) {
+          parentModal.style.zIndex = "99999"; // Un poco menor que el SweetAlert
+        }
+        if (parentBackdrop) {
+          parentBackdrop.style.zIndex = "99998";
+        }
+      },
+      willClose: () => {
+        // Restaurar los z-index originales cuando se cierre
+        if (parentModal && originalParentZIndex) {
+          parentModal.style.zIndex = originalParentZIndex;
+        }
+        if (parentBackdrop && originalBackdropZIndex) {
+          parentBackdrop.style.zIndex = originalBackdropZIndex;
+        }
+      },
+      // Forzar a que solo se cierre con el botón confirm
+      preConfirm: () => {
+        return true;
+      },
+    });
+  };
 
   const processBusLayout = () => {
     if (!coachDetails) {
@@ -276,6 +381,33 @@ export function SeatSelector({
     return !occupiedSeats.includes(seatNumber);
   };
 
+  const handleSeatClick = (seatNumber: string) => {
+    if (!isSeatAvailable(seatNumber) || disabled) return;
+
+    let newSelectedSeats: string[];
+
+    if (selectedSeats.includes(seatNumber)) {
+      // Deseleccionar el asiento
+      newSelectedSeats = selectedSeats.filter((seat) => seat !== seatNumber);
+      onSeatSelect(newSelectedSeats);
+    } else {
+      // Verificar límite máximo
+      if (selectedSeats.length >= maxSeats) {
+        showMaxSeatsAlert();
+        return; // No permitir seleccionar más asientos
+      }
+      // Seleccionar el asiento
+      newSelectedSeats = [...selectedSeats, seatNumber];
+      onSeatSelect(newSelectedSeats);
+    }
+  };
+
+  const getTotalPrice = (): number => {
+    return selectedSeats.reduce((total, seatNumber) => {
+      return total + getSeatPrice(seatNumber);
+    }, 0);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8 sm:py-12">
@@ -328,14 +460,12 @@ export function SeatSelector({
                 <div key={seatIndex} className="flex items-center">
                   {seat ? (
                     <button
-                      onClick={() =>
-                        isSeatAvailable(seat) && onSeatSelect(seat)
-                      }
-                      disabled={!isSeatAvailable(seat)}
+                      onClick={() => handleSeatClick(seat)}
+                      disabled={!isSeatAvailable(seat) || disabled}
                       className={cn(
                         "h-10 w-10 sm:h-12 sm:w-12 rounded-lg border-2 flex items-center justify-center transition-all duration-200 font-bold text-xs sm:text-sm",
-                        selectedSeat === seat
-                          ? "bg-accent border-orange-600 text-accent-foreground scale-105 shadow-md"
+                        selectedSeats.includes(seat)
+                          ? "bg-accent border-orange-600 text-accent-foreground scale-105 shadow-md cursor-pointer"
                           : isSeatAvailable(seat)
                           ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 hover:border-blue-400 hover:scale-105 cursor-pointer shadow-sm"
                           : "bg-red-100 border-red-300 text-red-800 cursor-not-allowed opacity-80"
@@ -395,16 +525,22 @@ export function SeatSelector({
           {processedLayout.isTwoFloor &&
             ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
         </p>
+        <p className="mt-1">
+          Seleccionados: {selectedSeats.length} / {maxSeats}
+        </p>
       </div>
       {/* Información del asiento seleccionado */}
-      {selectedSeat && (
+      {selectedSeats.length > 0 && (
         <div className="text-center p-3 sm:p-4 bg-primary/10 border border-primary/20 rounded-lg mx-2 sm:mx-6 md:mx-8">
           <p className="text-base sm:text-lg font-bold text-primary">
-            Asiento seleccionado:{" "}
-            <span className="text-xl sm:text-2xl">{selectedSeat}</span>
+            Asientos seleccionados:{" "}
+            <span className="text-xl sm:text-2xl">
+              {selectedSeats.join(", ")}
+            </span>
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Precio: ${getSeatPrice(selectedSeat).toLocaleString("es-CL")}
+            Total: ${getTotalPrice().toLocaleString("es-CL")} |{" "}
+            {selectedSeats.length} asiento(s)
             {processedLayout.isTwoFloor &&
               ` | Piso: ${currentFloor === "first" ? "1" : "2"}`}
           </p>

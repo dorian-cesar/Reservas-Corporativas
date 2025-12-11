@@ -22,6 +22,9 @@ import {
   Bus,
   Users,
   ArrowRight,
+  X,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -39,6 +42,13 @@ interface ServiceDetailDialogProps {
   terminalDestino: string | null;
 }
 
+interface PassengerData {
+  id: string;
+  seat: string;
+  passenger: any | null;
+  completed: boolean;
+}
+
 export function ServiceDetailDialog({
   serviceId,
   open,
@@ -53,16 +63,17 @@ export function ServiceDetailDialog({
   );
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [selectedSeat, setSelectedSeat] = useState<string | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bookingData, setBookingData] = useState<any>(null);
+  const [bookingData, setBookingData] = useState<any[]>([]);
   const { origin, destination } = useTravel();
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [disponibilidadVerificada, setDisponibilidadVerificada] =
     useState<boolean>(false);
-  const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState<any>(null);
+  const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const bookingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const MAX_SEATS = 5;
 
   const swalConfig = {
     customClass: {
@@ -143,12 +154,35 @@ export function ServiceDetailDialog({
       loadServiceDetail();
     } else {
       setServiceDetail(null);
-      setSelectedSeat(null);
+      setSelectedSeats([]);
       setError(null);
       setDisponibilidadVerificada(false);
-      setPasajeroSeleccionado(null);
+      setPassengersData([]);
     }
   }, [open, serviceId]);
+
+  // Actualizar passengersData cuando cambian los asientos seleccionados
+  useEffect(() => {
+    // Crear nuevos PassengerData para asientos recién seleccionados
+    const newPassengersData: PassengerData[] = [];
+
+    selectedSeats.forEach((seat) => {
+      const existingPassenger = passengersData.find((p) => p.seat === seat);
+      if (existingPassenger) {
+        newPassengersData.push(existingPassenger);
+      } else {
+        newPassengersData.push({
+          id: `passenger-${Date.now()}-${Math.random()}`,
+          seat,
+          passenger: null,
+          completed: false,
+        });
+      }
+    });
+
+    // Remover PassengerData para asientos que ya no están seleccionados
+    setPassengersData(newPassengersData);
+  }, [selectedSeats]);
 
   const loadServiceDetail = async () => {
     setLoadingDetail(true);
@@ -196,6 +230,7 @@ export function ServiceDetailDialog({
       };
 
       const precioConRecargo = extractPriceForVerification(service.cost);
+      const precioTotal = precioConRecargo * Math.min(MAX_SEATS, 5); // Considerar hasta 5 asientos
 
       const res = await fetch("/api/disponibilidad", {
         method: "POST",
@@ -205,7 +240,7 @@ export function ServiceDetailDialog({
         },
         body: JSON.stringify({
           id_User: user?.id ?? 1,
-          monto_boleto: precioConRecargo,
+          monto_boleto: precioTotal,
         }),
       });
 
@@ -287,13 +322,28 @@ export function ServiceDetailDialog({
     return allSeats.filter((seat) => !availableSeats.includes(seat));
   };
 
-  const markSeatAsUnavailable = (seatNumber: string) => {
+  const markSeatsAsUnavailable = (seatNumbers: string[]) => {
     if (!serviceDetail) return;
 
-    const available = serviceDetail.bus_layout.available
+    // Crear un mapa de asientos disponibles actuales
+    const seatMap = new Map();
+    serviceDetail.bus_layout.available
       .split(",")
-      .filter((s) => !s.startsWith(seatNumber + "|"))
-      .join(",");
+      .filter((s) => s.trim())
+      .forEach((seatInfo) => {
+        const [seatNumber] = seatInfo.split("|");
+        if (seatNumber) {
+          seatMap.set(seatNumber.trim(), seatInfo);
+        }
+      });
+
+    // Remover los asientos que ya no están disponibles
+    seatNumbers.forEach((seat) => {
+      seatMap.delete(seat);
+    });
+
+    // Convertir de vuelta a string
+    const available = Array.from(seatMap.values()).join(",");
 
     setServiceDetail({
       ...serviceDetail,
@@ -405,20 +455,55 @@ export function ServiceDetailDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleSeatSelection = (seat: string) => {
+  const handleSeatSelection = (seats: string[]) => {
     if (!disponibilidadVerificada) {
       return;
     }
-    setSelectedSeat(seat);
+    setSelectedSeats(seats);
+  };
+
+  const handleRemoveSeat = (seatToRemove: string) => {
+    setSelectedSeats(selectedSeats.filter((seat) => seat !== seatToRemove));
+  };
+
+  const handlePassengerSelected = (passengerId: string, passenger: any) => {
+    setPassengersData((prev) =>
+      prev.map((p) =>
+        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p
+      )
+    );
+  };
+
+  const handlePassengerCreated = (passengerId: string, passenger: any) => {
+    setPassengersData((prev) =>
+      prev.map((p) =>
+        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p
+      )
+    );
+  };
+
+  const getTotalPrice = (): number => {
+    const availableSeats = parseSeats();
+    return selectedSeats.reduce((total, seatNumber) => {
+      const seat = availableSeats.find((s) => s.number === seatNumber);
+      return total + (seat?.price || 0);
+    }, 0);
+  };
+
+  const allPassengersCompleted = (): boolean => {
+    return (
+      passengersData.length > 0 && passengersData.every((p) => p.completed)
+    );
   };
 
   const handleBooking = async () => {
-    if (!selectedSeat || !serviceDetail) return;
+    if (!selectedSeats.length || !serviceDetail) {
+      setBookingError("Debe seleccionar al menos un asiento");
+      return;
+    }
 
-    if (!pasajeroSeleccionado) {
-      setBookingError(
-        "Debe seleccionar o crear un pasajero antes de continuar"
-      );
+    if (!allPassengersCompleted()) {
+      setBookingError("Debe completar los datos de todos los pasajeros");
       return;
     }
 
@@ -427,143 +512,186 @@ export function ServiceDetailDialog({
 
     try {
       const boardingPoint = serviceDetail.boarding_stages?.split("|")[0];
-      const seatObj = availableSeats.find((s) => s.number === selectedSeat);
-      const seatPrice = seatObj?.basePrice || 0;
+      const availableSeats = parseSeats();
+      const bookings = [];
 
-      const bookResponse = await fetch("/api/reserve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          serviceId: serviceId.toString(),
-          seatNumber: selectedSeat,
-          price: seatPrice,
-          originId: serviceDetail.origin_id,
-          destinationId: serviceDetail.destination_id,
-          travelDate: serviceDetail.travel_date,
-          busType: serviceDetail.bus_type,
-          routeId: serviceDetail.route_id,
-          availableSeats: serviceDetail.available_seats,
-          cost: serviceDetail.cost,
-          boardingAt: boardingPoint,
-          passengerName: pasajeroSeleccionado.nombre,
-          passengerEmail: pasajeroSeleccionado.correo || "",
-          passengerRut: pasajeroSeleccionado.rut,
-        }),
-      });
+      // Reservar cada asiento
+      for (const passengerData of passengersData) {
+        const seatObj = availableSeats.find(
+          (s) => s.number === passengerData.seat
+        );
+        const seatPrice = seatObj?.basePrice || 0;
 
-      const bookData = await bookResponse.json();
-
-      if (!bookResponse.ok || !bookData.success) {
-        console.error("Error booking:", bookData);
-
-        let errorMessage = bookData?.error || "No se pudo reservar el asiento.";
-        let shouldMarkUnavailable = false;
-
-        const apiMessage =
-          bookData?.details?.response?.message || bookData?.error || "";
-
-        if (
-          apiMessage.includes("Seat Number not Found") ||
-          apiMessage.includes("Seat Fare mismatched") ||
-          apiMessage.includes("434") ||
-          apiMessage.toLowerCase().includes("seat")
-        ) {
-          shouldMarkUnavailable = true;
-          errorMessage =
-            "El asiento ya no está disponible. Por favor selecciona otro.";
-        }
-
-        if (shouldMarkUnavailable) {
-          markSeatAsUnavailable(selectedSeat);
-          setSelectedSeat(null);
-        }
-
-        setBookingError(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const confirmResponse = await fetch("/api/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pnrNumber: bookData.pnrNumber }),
-      });
-
-      const confirmData = await confirmResponse.json();
-
-      if (!confirmResponse.ok || !confirmData.success) {
-        setError(confirmData.error || "Error al confirmar la reserva");
-        setLoading(false);
-        return;
-      }
-
-      const baseFare = confirmData.totalFare || 0;
-      const recargo =
-        user?.companyRecargo && !isNaN(user.companyRecargo)
-          ? (baseFare * user.companyRecargo) / 100
-          : 0;
-      const monto_boleto = baseFare + recargo;
-
-      const payload = {
-        ticketNumber: confirmData.ticketNumber,
-        pnrNumber: confirmData.operatorPnr,
-        ticketStatus: confirmData.ticketStatus,
-        origin: confirmData.origin,
-        destination: confirmData.destination,
-        travelDate: confirmData.travelDate,
-        departureTime: serviceDetail.dep_time,
-        seatNumbers: confirmData.seatNumbers,
-        fare: baseFare,
-        confirmedAt: confirmData.confirmedAt,
-        monto_boleto,
-        id_User: user?.id,
-        nombre_pasajero: pasajeroSeleccionado.nombre,
-        rut_pasajero: pasajeroSeleccionado.rut,
-        email_pasajero: pasajeroSeleccionado.correo || "",
-        id_pasajero: pasajeroSeleccionado.id,
-        id_centro_costo: pasajeroSeleccionado.id_centro_costo || null,
-        terminal_origen: terminalOrigen,
-        terminal_destino: terminalDestino,
-      };
-
-      try {
-        const saveRes = await fetch("/api/confirm-db", {
+        const bookResponse = await fetch("/api/reserve", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            serviceId: serviceId.toString(),
+            seatNumber: passengerData.seat,
+            price: seatPrice,
+            originId: serviceDetail.origin_id,
+            destinationId: serviceDetail.destination_id,
+            travelDate: serviceDetail.travel_date,
+            busType: serviceDetail.bus_type,
+            routeId: serviceDetail.route_id,
+            availableSeats: serviceDetail.available_seats,
+            cost: serviceDetail.cost,
+            boardingAt: boardingPoint,
+            passengerName: passengerData.passenger.nombre,
+            passengerEmail: passengerData.passenger.correo || "",
+            passengerRut: passengerData.passenger.rut,
+          }),
         });
 
-        const saveData = await saveRes.json();
+        const bookData = await bookResponse.json();
 
-        if (!saveData.success) {
-          console.error("Error al guardar ticket:", saveData.error);
-        } else {
-          console.log("Ticket guardado exitosamente");
+        if (!bookResponse.ok || !bookData.success) {
+          console.error("Error booking seat:", passengerData.seat, bookData);
+
+          // Verificar si el error es específico de asiento ya reservado
+          const isSeatAlreadyReserved =
+            bookData?.error?.includes?.("El asiento ya está reservado") ||
+            bookData?.error?.includes?.("no está disponible");
+
+          if (isSeatAlreadyReserved) {
+            // Marcar este asiento como no disponible en la UI
+            markSeatsAsUnavailable([passengerData.seat]);
+
+            // Eliminar este asiento de la selección actual
+            setSelectedSeats((prev) =>
+              prev.filter((seat) => seat !== passengerData.seat)
+            );
+
+            // Eliminar el passengerData correspondiente
+            setPassengersData((prev) =>
+              prev.filter((p) => p.seat !== passengerData.seat)
+            );
+
+            // Mostrar error en la interfaz como los demás errores
+            setBookingError(
+              `El asiento ${passengerData.seat} ya no está disponible. Posiblemente fue reservado por otro usuario. El asiento ha sido removido de tu selección.`
+            );
+
+            // Continuar con los demás asientos si hay más
+            if (passengersData.length > 1) {
+              continue;
+            } else {
+              // Si era el único asiento, detener el proceso
+              setLoading(false);
+              return;
+            }
+          }
+
+          throw new Error(
+            `Error al reservar el asiento ${passengerData.seat}: ${
+              bookData?.error || "Error desconocido"
+            }`
+          );
         }
-      } catch (e) {
-        console.error("Error al enviar ticket:", e);
+
+        bookings.push({
+          seat: passengerData.seat,
+          pnrNumber: bookData.pnrNumber,
+          passenger: passengerData.passenger,
+        });
       }
 
-      setBookingData({
-        ...bookData,
-        ...confirmData,
-        monto_boleto,
-      });
+      // Limpiar el error si todas las reservas fueron exitosas
+      setBookingError(null);
 
+      // Confirmar todas las reservas
+      const confirmations = [];
+      for (const booking of bookings) {
+        const confirmResponse = await fetch("/api/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pnrNumber: booking.pnrNumber }),
+        });
+
+        const confirmData = await confirmResponse.json();
+
+        if (!confirmResponse.ok || !confirmData.success) {
+          throw new Error(
+            `Error al confirmar reserva para asiento ${booking.seat}: ${
+              confirmData.error || "Error desconocido"
+            }`
+          );
+        }
+
+        const baseFare = confirmData.totalFare || 0;
+        const recargo =
+          user?.companyRecargo && !isNaN(user.companyRecargo)
+            ? (baseFare * user.companyRecargo) / 100
+            : 0;
+        const monto_boleto = baseFare + recargo;
+
+        const payload = {
+          ticketNumber: confirmData.ticketNumber,
+          pnrNumber: confirmData.operatorPnr,
+          ticketStatus: confirmData.ticketStatus,
+          origin: confirmData.origin,
+          destination: confirmData.destination,
+          travelDate: confirmData.travelDate,
+          departureTime: serviceDetail.dep_time,
+          seatNumbers: confirmData.seatNumbers,
+          fare: baseFare,
+          confirmedAt: confirmData.confirmedAt,
+          monto_boleto,
+          id_User: user?.id,
+          nombre_pasajero: booking.passenger.nombre,
+          rut_pasajero: booking.passenger.rut,
+          email_pasajero: booking.passenger.correo || "",
+          id_pasajero: booking.passenger.id,
+          id_centro_costo: booking.passenger.id_centro_costo || null,
+          terminal_origen: terminalOrigen,
+          terminal_destino: terminalDestino,
+        };
+
+        // Guardar en base de datos
+        try {
+          const saveRes = await fetch("/api/confirm-db", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const saveData = await saveRes.json();
+          if (!saveData.success) {
+            console.error("Error al guardar ticket:", saveData.error);
+          }
+        } catch (e) {
+          console.error("Error al enviar ticket:", e);
+        }
+
+        confirmations.push({
+          ...confirmData,
+          monto_boleto,
+          seat: booking.seat,
+          passenger: booking.passenger,
+        });
+      }
+
+      setBookingData(confirmations);
+      markSeatsAsUnavailable(selectedSeats);
       setSuccess(true);
 
       bookingTimeoutRef.current = setTimeout(() => {
         setSuccess(false);
-        setSelectedSeat(null);
-        setBookingData(null);
+        setSelectedSeats([]);
+        setBookingData([]);
+        setPassengersData([]);
         onOpenChange(false);
-      }, 10000);
+      }, 15000);
     } catch (err) {
       console.error("Error inesperado:", err);
-      setBookingError("Error inesperado al procesar la reserva");
+      setBookingError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al procesar las reservas"
+      );
     } finally {
       setLoading(false);
     }
@@ -613,8 +741,9 @@ export function ServiceDetailDialog({
       if (bookingTimeoutRef.current) {
         clearTimeout(bookingTimeoutRef.current);
         setSuccess(false);
-        setSelectedSeat(null);
-        setBookingData(null);
+        setSelectedSeats([]);
+        setBookingData([]);
+        setPassengersData([]);
         bookingTimeoutRef.current = null;
       }
       onOpenChange(false);
@@ -627,13 +756,13 @@ export function ServiceDetailDialog({
 
   const canConfirm =
     disponibilidadVerificada &&
-    selectedSeat !== null &&
-    pasajeroSeleccionado !== null;
+    selectedSeats.length > 0 &&
+    allPassengersCompleted();
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent
-        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto z-51"
+        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto z-51"
         onEscapeKeyDown={(e) => {
           if (loading || loadingDetail) e.preventDefault();
         }}
@@ -647,7 +776,8 @@ export function ServiceDetailDialog({
               Detalles del Servicio
             </DialogTitle>
             <DialogDescription>
-              Revisa los detalles completos y selecciona tu asiento
+              Revisa los detalles completos y selecciona hasta {MAX_SEATS}{" "}
+              asientos
             </DialogDescription>
           </DialogHeader>
         )}
@@ -669,101 +799,101 @@ export function ServiceDetailDialog({
                 <CheckCircle2 className="h-20 w-20 text-orange-500 relative z-10" />
               </div>
 
-              {/* Título y mensaje */}
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-blue-600">
-                  Reserva Confirmada
+                  Reservas Confirmadas
                 </h3>
                 <p className="text-muted-foreground text-lg">
-                  ¡Tu asiento ha sido reservado!
+                  ¡{selectedSeats.length} asiento(s) han sido reservado(s)!
                 </p>
               </div>
 
-              {bookingData && (
-                <div className="w-full max-w-md bg-linear-to-br from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-6 shadow-lg">
-                  {/* Header de la tarjeta */}
+              {bookingData.length > 0 && (
+                <div className="w-full max-w-2xl bg-linear-to-br from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-6 shadow-lg">
                   <div className="text-center mb-4">
                     <Badge
                       variant="outline"
                       className="bg-blue-500 text-white border-blue-600 mb-2"
                     >
-                      Confirmado
+                      Confirmado ({bookingData.length})
                     </Badge>
                     <p className="text-sm text-blue-600">
-                      Reserva realizada exitosamente
+                      Reservas realizadas exitosamente
                     </p>
                   </div>
 
-                  {/* Información principal */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
-                      <p className="text-xs text-muted-foreground">N° de PNR</p>
-                      <p className="font-bold text-blue-800 text-sm">
-                        {bookingData.operatorPnr}
-                      </p>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border border-blue-100">
-                      <p className="text-xs text-muted-foreground">Asiento</p>
-                      <p className="font-bold text-blue-800 text-lg">
-                        {selectedSeat}
-                      </p>
-                    </div>
+                  <div className="space-y-4">
+                    {bookingData.map((booking, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-white rounded-lg border border-blue-100"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-bold text-blue-800">
+                              {booking.passenger?.nombre || "Pasajero"}
+                            </h4>
+                            <p className="text-xs text-muted-foreground">
+                              RUT: {booking.passenger?.rut || "N/A"}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-800"
+                          >
+                            Asiento: {booking.seat}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                          <div>
+                            <span className="text-muted-foreground">
+                              N° de PNR:
+                            </span>
+                            <p className="font-medium">{booking.operatorPnr}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">
+                              Precio:
+                            </span>
+                            <p className="font-bold text-blue-700">
+                              ${booking.monto_boleto.toLocaleString("es-CL")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Detalles del viaje */}
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Operador:</span>
-                      <span className="font-medium text-blue-800">
-                        {bookingData.travelName}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Origen - Destino:
-                      </span>
-                      <span className="font-medium text-blue-800">
-                        {origin} - {destination}
-                      </span>
-                    </div>
-
-                    {serviceDetail && (
-                      <>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Fecha:</span>
-                          <span className="font-medium text-blue-800">
-                            {formatTravelDate(serviceDetail.travel_date)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Hora salida:
-                          </span>
-                          <span className="font-medium text-blue-800">
-                            {serviceDetail.dep_time}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Precio total */}
-                  <div className="border-t border-blue-200 pt-4">
-                    <div className="flex items-center justify-between">
+                  <div className="mt-6 pt-4 border-t border-blue-200">
+                    <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-muted-foreground">
-                        Precio total:
+                        Total reservas:
+                      </span>
+                      <span className="text-lg font-bold text-blue-700">
+                        {bookingData.length} asiento(s)
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Monto total:
                       </span>
                       <span className="text-xl font-bold text-blue-700">
-                        ${bookingData.monto_boleto.toLocaleString("es-CL")}
+                        $
+                        {bookingData
+                          .reduce(
+                            (total, booking) => total + booking.monto_boleto,
+                            0
+                          )
+                          .toLocaleString("es-CL")}
                       </span>
                     </div>
                   </div>
 
-                  {/* Información adicional */}
                   <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
                     <p className="text-xs text-blue-700 text-center">
-                      Recibirás un email de confirmación con los detalles de tu
-                      reserva
+                      Los pasajeros recibirán un email de confirmación con los
+                      detalles de su reserva
                     </p>
                   </div>
                 </div>
@@ -772,7 +902,7 @@ export function ServiceDetailDialog({
               <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-600">
                   Esta ventana se cerrará automáticamente en{" "}
-                  <span className="font-bold">10 segundos</span>
+                  <span className="font-bold">15 segundos</span>
                 </p>
               </div>
             </div>
@@ -789,13 +919,20 @@ export function ServiceDetailDialog({
                       {serviceDetail.travels_name}
                     </span>
                   </div>
-                  <Badge
-                    variant={
-                      availableSeats.length > 0 ? "default" : "destructive"
-                    }
-                  >
-                    {availableSeats.length} asientos disponibles
-                  </Badge>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={
+                        availableSeats.length > 0 ? "default" : "destructive"
+                      }
+                    >
+                      {availableSeats.length} asientos disponibles
+                    </Badge>
+                    {selectedSeats.length > 0 && (
+                      <Badge variant="secondary">
+                        {selectedSeats.length} seleccionados
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 whitespace-nowrap">
@@ -858,7 +995,7 @@ export function ServiceDetailDialog({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-lg">
-                    Selecciona tu Asiento
+                    Selecciona tus Asientos (máximo {MAX_SEATS})
                   </h3>
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4" />
@@ -872,31 +1009,118 @@ export function ServiceDetailDialog({
                 <SeatSelector
                   totalSeats={serviceDetail.bus_layout.total_seats}
                   occupiedSeats={occupiedSeats}
-                  onSeatSelect={(seat) => {
-                    handleSeatSelection(seat);
-                  }}
-                  selectedSeat={selectedSeat}
+                  onSeatSelect={handleSeatSelection}
+                  selectedSeats={selectedSeats}
                   seats={availableSeats}
                   coachDetails={serviceDetail.bus_layout.coach_details}
                   floor={serviceDetail.bus_layout.floor}
                   disabled={!disponibilidadVerificada}
+                  maxSeats={MAX_SEATS}
                 />
+
+                {selectedSeats.length > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-blue-800">
+                          Asientos seleccionados: {selectedSeats.join(", ")}
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          Total: ${getTotalPrice().toLocaleString("es-CL")}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedSeats([])}
+                        className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-800"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Limpiar selección
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Componente de información del pasajero */}
-              <PassengerInfo
-                token={token}
-                user={user}
-                swalConfig={swalConfig}
-                onPassengerSelected={(pasajero) => {
-                  setPasajeroSeleccionado(pasajero);
-                }}
-                onPassengerCreated={(pasajero) => {
-                  setPasajeroSeleccionado(pasajero);
-                }}
-                initialMode="buscar"
-                requireCentroCosto={true}
-              />
+              {/* Componentes de información del pasajero para cada asiento */}
+              {selectedSeats.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg">
+                      Datos de los Pasajeros
+                    </h3>
+                    <Badge variant="outline">
+                      {passengersData.filter((p) => p.completed).length} de{" "}
+                      {selectedSeats.length} completados
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-4">
+                    {passengersData.map((passengerData) => (
+                      <div
+                        key={passengerData.id}
+                        className="border rounded-lg overflow-hidden"
+                      >
+                        <div className="bg-muted/50 px-4 py-3 flex justify-between items-center border-b">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-sm">
+                              Asiento {passengerData.seat}
+                            </Badge>
+                            {passengerData.completed && (
+                              <Badge
+                                variant="outline"
+                                className="bg-green-100 text-green-800 border-green-300"
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completado
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveSeat(passengerData.seat)}
+                            className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="p-4">
+                          <PassengerInfo
+                            token={token}
+                            user={user}
+                            swalConfig={swalConfig}
+                            onPassengerSelected={(passenger) =>
+                              handlePassengerSelected(
+                                passengerData.id,
+                                passenger
+                              )
+                            }
+                            onPassengerCreated={(passenger) =>
+                              handlePassengerCreated(
+                                passengerData.id,
+                                passenger
+                              )
+                            }
+                            initialMode="buscar"
+                            requireCentroCosto={true}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-800">
+                      <strong>Nota:</strong> Debe completar los datos de cada
+                      pasajero antes de confirmar la reserva.
+                      {selectedSeats.length > 1 &&
+                        " Puede asignar diferentes pasajeros a cada asiento."}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {bookingError && (
@@ -927,12 +1151,12 @@ export function ServiceDetailDialog({
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Procesando...
+                    Confirmando Reserva(s)...
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    Confirmar Reserva
+                    Confirmar {selectedSeats.length} Reserva(s)
                   </>
                 )}
               </Button>
