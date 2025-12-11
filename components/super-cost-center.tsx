@@ -473,9 +473,9 @@ export function SuperCostCenters() {
                                         <div className="p-3 bg-muted/50 rounded-lg">
                                             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                                                 <FolderTree className="h-3 w-3" />
-                                                Creado
+                                                Actualizado
                                             </div>
-                                            <p className="text-sm font-medium">{formatDate(costCenter.created_at)}</p>
+                                            <p className="text-sm font-medium">{formatDate(costCenter.updated_at)}</p>
                                         </div>
                                     </div>
                                 </div>

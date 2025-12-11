@@ -88,7 +88,6 @@ export function CompanyUsers() {
   })
 
   useEffect(() => {
-    fetchUsers();
     fetchCompanies();
   }, []);
 
