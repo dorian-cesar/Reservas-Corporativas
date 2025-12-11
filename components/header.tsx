@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/lib/user-store";
 
 interface HeaderProps {
   onLogout?: () => void;
@@ -14,6 +15,7 @@ interface HeaderProps {
 
 export function Header({ onLogout }: HeaderProps) {
   const { user, logout, token } = useAuth();
+  const clearUser = useUserStore((state) => state.logout);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -27,6 +29,7 @@ export function Header({ onLogout }: HeaderProps) {
 
   const handleLogout = () => {
     logout();
+    clearUser();
     if (onLogout) onLogout();
     else router.push("/login");
   };

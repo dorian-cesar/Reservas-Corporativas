@@ -21,6 +21,7 @@ interface UserStore {
   user: UserData | null;
   loading: boolean;
   fetchUser: () => Promise<void>;
+  logout: () => void;
 }
 
 export const useUserStore = create<UserStore>((set) => ({
@@ -79,5 +80,12 @@ export const useUserStore = create<UserStore>((set) => ({
       console.error("Error cargando usuario:", err);
       set({ user: null, loading: false });
     }
+  },
+  logout: () => {
+    localStorage.removeItem("auth-storage");
+    set({
+      user: null,
+      loading: false,
+    });
   },
 }));
