@@ -193,7 +193,6 @@ export function PassengerInfo({
       if (Array.isArray(data) && data.length > 0) {
         const pasajero = data[0];
         const userCompanyId = getCompanyId();
-        console.log("userCompanyId", userCompanyId);
 
         if (pasajero.id_empresa.toString() !== userCompanyId) {
           setErrorPasajero(
