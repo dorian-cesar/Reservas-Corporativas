@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: data.message || "Error en login" },
-        { status: 401 }
+        { message: data.message || "Error en servidor" },
+        { status: res.status }
       );
     }
 

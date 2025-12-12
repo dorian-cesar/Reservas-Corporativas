@@ -34,27 +34,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
+      const result = await login(email, password);
 
-      if (success) {
-        const currentUser = useAuth.getState().user;
-        const role = currentUser?.role ?? "user";
+      if (!result.success) {
+        setError(result.message ?? "Error desconocido");
+        return;
+      }
 
-        if (role === "superuser") {
-          router.push("/superuser");
-        } else if (role === "admin") {
-          router.push("/admin");
-        } else if (role === "empresa") {
-          router.push("/empresa");
-        } else if (role === "auditoria") {
-          router.push("/auditoria");
-        } else if (role === "contralor") {
-          router.push("/controller");
-        } else {
-          router.push("/dashboard");
-        }
+      const currentUser = useAuth.getState().user;
+      const role = currentUser?.role ?? "user";
+
+      if (role === "superuser") {
+        router.push("/superuser");
+      } else if (role === "admin") {
+        router.push("/admin");
+      } else if (role === "empresa") {
+        router.push("/empresa");
+      } else if (role === "auditoria") {
+        router.push("/auditoria");
+      } else if (role === "contralor") {
+        router.push("/controller");
       } else {
-        setError("Credenciales incorrectas");
+        router.push("/dashboard");
       }
     } catch (err) {
       setError("Error al iniciar sesión");
@@ -62,6 +63,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-linear-to-br from-primary/10 via-background to-accent/10 p-4">
       <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">

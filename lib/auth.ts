@@ -2,9 +2,15 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
-export type UserRole = 'superuser' | 'admin' | 'empresa' | 'subusuario' | 'auditoria' | 'contralor';
+export type UserRole =
+  | "superuser"
+  | "admin"
+  | "empresa"
+  | "subusuario"
+  | "auditoria"
+  | "contralor";
 
 export interface User {
   id: string;
@@ -21,15 +27,18 @@ export interface User {
   centroCostoEstado?: boolean;
 }
 
-interface AuthState {
+export interface AuthState {
   token: string | null;
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
   isAuthenticated: boolean;
   _hasHydrated: boolean;
-  setHasHydrated: (state: boolean) => void;
-  getToken?: () => string | null;
+  setHasHydrated: (value: boolean) => void;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  logout: () => void;
+  getToken: () => string | null;
 }
 
 export interface TokenPayload {
@@ -64,9 +73,10 @@ export const useTokenExpiration = (
       try {
         const payloadB64 = t.split(".")[1];
         if (!payloadB64) return null;
-        const json = typeof window !== "undefined"
-          ? atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"))
-          : Buffer.from(payloadB64, "base64").toString("utf8");
+        const json =
+          typeof window !== "undefined"
+            ? atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"))
+            : Buffer.from(payloadB64, "base64").toString("utf8");
         return JSON.parse(json) as { exp?: number };
       } catch (e) {
         console.error("decode token error", e);
@@ -125,37 +135,51 @@ export const useAuth = create<AuthState>()(
             body: JSON.stringify({ email, password }),
           });
 
-          if (!res.ok) return false;
+          const data = await res.json().catch(() => ({}));
 
-          const data = await res.json();
+          if (!res.ok) {
+            return {
+              success: false,
+              message: data.message || "Error al iniciar sesión",
+            };
+          }
 
           const token = data.token ?? null;
           const rawUser = data.user ?? null;
-          const empresa = data.empresa ?? null;
-          const centroCosto = data.centroCosto ?? null;
 
-          if (!token || !rawUser) return false;
+          if (!token || !rawUser) {
+            return {
+              success: false,
+              message: "Respuesta inválida del servidor",
+            };
+          }
 
           const user: User = {
             id: String(rawUser.id),
             email: rawUser.email,
             name: rawUser.nombre,
             role: (rawUser.rol?.trim() || "user") as UserRole,
-            companyId: empresa ? String(empresa.id) : undefined,
-            companyName: empresa?.nombre,
-            companyEstado: empresa?.estado,
-            companyRecargo: empresa?.recargo,
-            companyPorcentajeDevolucion: empresa?.porcentaje_devolucion,
-            centroCostoId: centroCosto ? String(centroCosto.id) : undefined,
-            centroCostoName: centroCosto?.nombre,
-            centroCostoEstado: centroCosto?.estado,
+            companyId: data.empresa ? String(data.empresa.id) : undefined,
+            companyName: data.empresa?.nombre,
+            companyEstado: data.empresa?.estado,
+            companyRecargo: data.empresa?.recargo,
+            companyPorcentajeDevolucion: data.empresa?.porcentaje_devolucion,
+            centroCostoId: data.centroCosto
+              ? String(data.centroCosto.id)
+              : undefined,
+            centroCostoName: data.centroCosto?.nombre,
+            centroCostoEstado: data.centroCosto?.estado,
           };
 
           set({ token, user, isAuthenticated: true });
-          return true;
+
+          return { success: true };
         } catch (err) {
           console.error("login error:", err);
-          return false;
+          return {
+            success: false,
+            message: "No hay conexión con el servidor",
+          };
         }
       },
 
@@ -185,15 +209,15 @@ export const decodeToken = (token: string | null): TokenPayload | null => {
 
   try {
     // Los tokens JWT tienen 3 partes separadas por puntos: header.payload.signature
-    const payload = token.split('.')[1];
+    const payload = token.split(".")[1];
 
     const decodedPayload = JSON.parse(
-      atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
     ) as TokenPayload;
 
     return decodedPayload;
   } catch (error) {
-    console.error('Error decoding token:', error);
+    console.error("Error decoding token:", error);
     return null;
   }
 };
@@ -216,8 +240,8 @@ export const isTokenExpired = (token: string | null): boolean => {
 export const getTokenTimeRemaining = (token: string | null): string => {
   const timeRemaining = getTokenExpirationTime(token);
 
-  if (timeRemaining === null) return 'Token inválido';
-  if (timeRemaining <= 0) return 'Token expirado';
+  if (timeRemaining === null) return "Token inválido";
+  if (timeRemaining <= 0) return "Token expirado";
 
   const minutes = Math.floor(timeRemaining / (1000 * 60));
   const hours = Math.floor(minutes / 60);
