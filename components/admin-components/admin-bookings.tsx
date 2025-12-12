@@ -82,6 +82,7 @@ export function AdminBookings() {
     created_at: string;
     updated_at: string;
     user: User;
+    pasajero?: Pasajero;
   };
 
   type User = {
@@ -101,6 +102,17 @@ export function AdminBookings() {
       empresa_id: number;
     };
   };
+
+  type Pasajero = {
+    id: number;
+    nombre?: string;
+    rut?: string;
+    correo?: string;
+    centroCosto?: {
+      id: number;
+      nombre: string;
+    };
+  }
 
   // Cargar empresa del usuario al inicio
   useEffect(() => {
@@ -507,18 +519,6 @@ export function AdminBookings() {
         </Card>
       )}
 
-      {empresaId && !isLoading && tickets.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
-            <p className="text-muted-foreground mb-4">
-              No se encontraron tickets para la empresa {userCompany?.nombre}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Filtros */}
       {!isLoading && empresaId && (
         <Card>
@@ -606,6 +606,18 @@ export function AdminBookings() {
         </Card>
       )}
 
+      {empresaId && !isLoading && tickets.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
+            <p className="text-muted-foreground mb-4">
+              No se encontraron tickets para la empresa {userCompany?.nombre}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -659,12 +671,18 @@ export function AdminBookings() {
                       <p className="font-medium">{ticket.user?.rut || "—"}</p>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between mt-5">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pasajero</p>
+                      <p className="font-medium">{ticket.pasajero?.nombre || "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">RUT</p>
+                      <p className="font-medium">{ticket.pasajero?.rut || "—"}</p>
+                    </div>
+                  </div>
 
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Correo</p>
-                      <p className="text-sm">{ticket.user?.email || "—"}</p>
-                    </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Centro de Costo</p>
                       <p className="text-sm">{ticket.user?.centroCosto?.nombre || "—"}</p>
@@ -720,7 +738,8 @@ export function AdminBookings() {
                   <TableHead>Ticket</TableHead>
                   <TableHead>Nombre Usuario</TableHead>
                   <TableHead>RUT Usuario</TableHead>
-                  <TableHead>Correo Usuario</TableHead>
+                  <TableHead>Nombre Pasajero</TableHead>
+                  <TableHead>RUT Pasajero</TableHead>
                   <TableHead>Centro De Costo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Origen</TableHead>
@@ -744,7 +763,8 @@ export function AdminBookings() {
                     </TableCell>
                     <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
                     <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.email || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
                     <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
                     <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
                     <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
