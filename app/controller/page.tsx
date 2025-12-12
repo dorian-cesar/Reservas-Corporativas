@@ -9,20 +9,15 @@ import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { SuperAllBookings } from "@/components/super-components/super-bookings"
 import { SuperCompanies } from "@/components/super-components/super-companies"
-import { CompanyUsers } from "@/components/company-users"
+import { CompanyUsers } from "@/components/controller-components/company-users"
 import { SuperCostCenters } from "@/components/super-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
 
-export default function SuperUserPage() {
+export default function ControllersPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
-
-  const handleLogout = () => {
-    logout()
-    router.push("/login")
-  }
 
   return (
     <AuthGuard allowedRoles={["contralor"]}>
@@ -58,18 +53,10 @@ export default function SuperUserPage() {
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
                 </TabsTrigger>
-                {/* <TabsTrigger value="cuenta-corriente" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Cuenta corriente
-                </TabsTrigger> */}
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
                 </TabsTrigger>
-                {/* <TabsTrigger value="bookings" className="gap-2">
-                  <AlbumIcon className="h-4 w-4" />
-                  Reservas
-                </TabsTrigger> */}
 
                 <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
@@ -92,10 +79,6 @@ export default function SuperUserPage() {
                 <EstadoPago />
               </TabsContent>
 
-              {/* <TabsContent value="cuenta-corriente" className="mt-6">
-                <CurrentAccounts />
-              </TabsContent> */}
-
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
               </TabsContent>
@@ -103,10 +86,6 @@ export default function SuperUserPage() {
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
               </TabsContent>
-
-              {/* <TabsContent value="bookings" className="mt-6">
-                <TravelSearch />
-              </TabsContent> */}
             </Tabs>
           </div>
         </main>
