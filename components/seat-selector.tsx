@@ -103,7 +103,6 @@ export function SeatSelector({
           "swal-popup bg-background border-2 border-amber-200 rounded-lg shadow-xl",
         title: "swal-title text-amber-700 font-bold text-lg",
       },
-
       buttonsStyling: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
