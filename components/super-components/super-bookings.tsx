@@ -81,6 +81,7 @@ export function SuperAllBookings() {
     created_at: string;
     updated_at: string;
     user: User;
+    pasajero?: Pasajero;
   };
 
   type User = {
@@ -100,6 +101,17 @@ export function SuperAllBookings() {
       empresa_id: number;
     };
   };
+
+  type Pasajero = {
+    id: number;
+    nombre?: string;
+    rut?: string;
+    correo?: string;
+    centroCosto?: {
+      id: number;
+      nombre: string;
+    };
+  }
 
   useEffect(() => {
     fetchCompanies();
@@ -136,10 +148,7 @@ export function SuperAllBookings() {
     }
   };
 
-  /**
-   * fetchTickets: pide al proxy backend la lista ya filtrada/paginada.
-   * Espera respuesta: { tickets: Ticket[], pagination: { page, limit, total, totalPages, hasNextPage, hasPrevPage } }
-   */
+
   const fetchTickets = async (opts: { targetEmpresaId: number; page?: number; limit?: number; ticketNumber?: string }) => {
     const { targetEmpresaId, page = pagination.page, limit = pagination.limit, ticketNumber } = opts;
 
@@ -491,19 +500,6 @@ export function SuperAllBookings() {
         </Card>
       )}
 
-      {empresaId && !isLoading && tickets.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
-            <p className="text-muted-foreground mb-4">
-              No se encontraron tickets para la empresa seleccionada
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filtros (solo ticketNumber y fechas — todo el resto en servidor) */}
       {!isLoading && empresaId && (
         <Card>
           <CardContent className="pt-6">
@@ -590,6 +586,19 @@ export function SuperAllBookings() {
         </Card>
       )}
 
+      {empresaId && !isLoading && tickets.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
+            <p className="text-muted-foreground mb-4">
+              No se encontraron tickets para la empresa seleccionada
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -643,12 +652,18 @@ export function SuperAllBookings() {
                       <p className="font-medium">{ticket.user?.rut || "—"}</p>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between mt-5">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pasajero</p>
+                      <p className="font-medium">{ticket.pasajero?.nombre || "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">RUT</p>
+                      <p className="font-medium">{ticket.pasajero?.rut || "—"}</p>
+                    </div>
+                  </div>
 
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Correo</p>
-                      <p className="text-sm">{ticket.user?.email || "—"}</p>
-                    </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Centro de Costo</p>
                       <p className="text-sm">{ticket.user?.centroCosto?.nombre || "—"}</p>
@@ -703,7 +718,8 @@ export function SuperAllBookings() {
                   <TableHead>Ticket</TableHead>
                   <TableHead>Nombre Usuario</TableHead>
                   <TableHead>RUT Usuario</TableHead>
-                  <TableHead>Correo Usuario</TableHead>
+                  <TableHead>Nombre Pasajero</TableHead>
+                  <TableHead>RUT Pasajero</TableHead>
                   <TableHead>Centro De Costo</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Origen</TableHead>
@@ -727,7 +743,8 @@ export function SuperAllBookings() {
                     </TableCell>
                     <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
                     <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.email || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
+                    <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
                     <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
                     <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
                     <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>

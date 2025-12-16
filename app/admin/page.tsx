@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AdminCurrentAccounts } from "@/components/admin-components/admin-cuenta-corriente"
@@ -14,6 +14,7 @@ import { AdminCostCenters } from "@/components/admin-components/admin-cost-cente
 import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
 import { TravelSearch } from "@/components/travel-search"
 import { UserProvider } from "@/components/providers/user-provider";
+import { AdminPassengers } from "@/components/admin-components/admin-passengers"
 
 
 export default function AdminPage() {
@@ -63,6 +64,12 @@ export default function AdminPage() {
                   <BarChart className="h-4 w-4" />
                   Tickets
                 </TabsTrigger>
+
+                <TabsTrigger value="passengers" className="gap-2">
+                  <IdCard className="h-4 w-4" />
+                  Pasajeros
+                </TabsTrigger>
+
                 <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
@@ -75,7 +82,7 @@ export default function AdminPage() {
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
-                <CompanyUsers />
+                <AdminCompanyUsers />
               </TabsContent>
               {/* <TabsContent value="esp" className="mt-6">
                 <AdminEstadoPago />
@@ -89,10 +96,15 @@ export default function AdminPage() {
                 <AdminBookings />
               </TabsContent>
 
+              <TabsContent value="passengers" className="mt-6">
+                <AdminPassengers />
+              </TabsContent>
+
               <TabsContent value="bookings" className="mt-6">
                 <UserProvider />
                 <TravelSearch />
               </TabsContent>
+
             </Tabs>
           </div>
         </main>

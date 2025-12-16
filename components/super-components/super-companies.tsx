@@ -62,7 +62,7 @@ export function SuperCompanies() {
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
   const [empresaId, setEmpresaId] = useState("")
   const [searchMode, setSearchMode] = useState<"all" | "single">("all")
 
@@ -444,6 +444,13 @@ export function SuperCompanies() {
     );
   };
 
+  const formatNumber = (num: number | string): string => {
+    if (num === null || num === undefined || num === "") return "0";
+    const n = typeof num === "number" ? num : Number(num);
+    if (Number.isNaN(n)) return "0";
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -723,19 +730,19 @@ export function SuperCompanies() {
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Monto Máximo
                     </div>
-                    <p className="text-2xl font-bold">{company.max || "0"}</p>
+                    <p className="text-xl font-bold">{formatNumber(company.max) || "0"}</p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Monto Acumulado
                     </div>
-                    <p className="text-2xl font-bold">{company.count || "0"}</p>
+                    <p className="text-xl font-bold">{formatNumber(company.count) || "0"}</p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Cuenta Corriente
                     </div>
-                    <p className="text-2xl font-bold">{company.current_account || "-"}</p>
+                    <p className="text-lg font-bold">{company.current_account || "-"}</p>
                   </div>
                 </div>
 
@@ -827,12 +834,12 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{company.max || 0}</span>
+                        <span className="font-medium">{formatNumber(company.max) || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{company.count || 0}</span>
+                        <span className="font-medium">{formatNumber(company.count) || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>

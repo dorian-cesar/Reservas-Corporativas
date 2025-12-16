@@ -5,6 +5,8 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_URL_BACKEND;
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const page = searchParams.get("page");
+    const limit = searchParams.get("limit");
     const rut = searchParams.get("rut");
     const id_empresa = searchParams.get("id_empresa");
     const correo = searchParams.get("correo");
@@ -12,6 +14,11 @@ export async function GET(request: NextRequest) {
     const nombre = searchParams.get("nombre");
 
     const backendQuery = new URLSearchParams();
+
+    if (page && limit) {
+      backendQuery.set("page", page);
+      backendQuery.set("limit", limit);
+    }
 
     if (rut && rut.toUpperCase() !== "NO") {
       const rutClean = rut.replace(/\./g, "").toUpperCase();

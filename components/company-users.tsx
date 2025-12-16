@@ -45,10 +45,11 @@ export function CompanyUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
   const [costCenters, setCostCenters] = useState<{ id: string; nombre: string; empresa_id: string }[]>([]);
   const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -87,7 +88,6 @@ export function CompanyUsers() {
   })
 
   useEffect(() => {
-    fetchUsers();
     fetchCompanies();
   }, []);
 
@@ -100,6 +100,21 @@ export function CompanyUsers() {
       setFormData(prev => ({ ...prev, centro_costo_id: "" }));
     }
   }, [formData.empresa_id]);
+
+  useEffect(() => {
+    // cuando cambia la compañía volvemos a la primera página y solicitamos los usuarios
+    if (selectedCompany === "") {
+      // opcional: limpiar lista si no hay compañía seleccionada
+      setUsers([]);
+      setPagination(prev => ({ ...prev, page: 1, total: 0, totalPages: 0 }));
+      return;
+    }
+
+    // poner página 1 y pedir usuarios de la nueva compañía
+    setPagination(prev => ({ ...prev, page: 1 }));
+    // pasar company explícito para evitar depender del estado interno dentro de fetchUsers
+    fetchUsers({ page: 1, limit: pagination.limit, company: Number(selectedCompany) });
+  }, [selectedCompany]);
 
   const fetchCompanies = async () => {
     try {
@@ -152,11 +167,12 @@ export function CompanyUsers() {
     }
   };
 
-  const fetchUsers = async (opts?: { page?: number; limit?: number; email?: string }) => {
+  const fetchUsers = async (opts?: { page?: number; limit?: number; email?: string; company?: number; }) => {
     try {
       const page = opts?.page ?? pagination.page;
       const limit = opts?.limit ?? pagination.limit;
       const email = opts?.email ?? undefined;
+      const company = opts?.company ?? selectedCompany;
 
       const params = new URLSearchParams({
         page: String(page),
@@ -166,6 +182,10 @@ export function CompanyUsers() {
       // Si viene email (no vacío), lo agregamos como filtro exacto
       if (email && email.trim() !== "") {
         params.set("email", email.trim());
+      }
+
+      if (company && String(company).trim() !== "") {
+        params.set("empresa_id", String(company))
       }
 
       const res = await fetch(`/api/users?${params.toString()}`, {
@@ -471,7 +491,13 @@ export function CompanyUsers() {
         description="Administre los usuarios del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        refreshAction={fetchUsers}
+
+        showCompanySelect
+        companies={companies}
+        selectedCompany={selectedCompany}
+        onCompanyChange={(id) => setSelectedCompany(id)}
+
+        refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={{
           label: "Agregar Usuario",
           icon: <Plus className="h-4 w-4" />,
@@ -604,243 +630,245 @@ export function CompanyUsers() {
         </DialogContent>
       </Dialog>
 
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="grid md:grid-cols-3 gap-4 items-end">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="search">Buscar por email (búsqueda exacta)</Label>
-              <Input
-                id="search"
-                placeholder="Ej: usuario@empresa.com"
-                value={emailSearch}
-                onChange={(e) => setEmailSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setPagination(prev => ({ ...prev, page: 1 }));
-                    fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
-                  }
-                }}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={() => {
-                  setPagination(prev => ({ ...prev, page: 1 }));
-                  fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
-                }}
-                className="bg-accent hover:bg-accent/90"
-              >
-                Buscar
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEmailSearch("");
-                  // traer primera página sin filtro email
-                  setPagination(prev => ({ ...prev, page: 1 }));
-                  fetchUsers({ page: 1, limit: pagination.limit });
-                }}
-              >
-                Limpiar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
-          {pagination.total > 0 ? (
-            <>
-              Mostrando{" "}
-              <strong>
-                {(pagination.page - 1) * pagination.limit + 1}
-                {" - "}
-                {Math.min(pagination.page * pagination.limit, pagination.total)}
-              </strong>{" "}
-              de <strong>{pagination.total}</strong> usuarios
-            </>
-          ) : (
-            <>No hay usuarios para mostrar</>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Limit selector */}
-          <div className="flex items-center gap-2 text-sm">
-            <label className="text-muted-foreground">Resultados:</label>
-            <select
-              value={pagination.limit}
-              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
-              className="p-2 border rounded-md bg-background"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-
-          {/* Page controls */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(1)}
-              disabled={!pagination.hasPrevPage}
-              className="h-8 w-8 p-0"
-            >
-              {/* icon o texto */}
-              «
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPrevPage}
-              className="h-8 w-8 p-0"
-            >
-              ‹
-            </Button>
-
-            {/* páginas numeradas (máx 5 visibles) */}
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
-                let pageNum;
-                const totalPages = pagination.totalPages || 1;
-
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (pagination.page <= 3) {
-                  pageNum = i + 1;
-                } else if (pagination.page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = pagination.page - 2 + i;
-                }
-
-                if (pageNum < 1 || pageNum > totalPages) return null;
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pagination.page === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage}
-              className="h-8 w-8 p-0"
-            >
-              ›
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(pagination.totalPages)}
-              disabled={!pagination.hasNextPage}
-              className="h-8 w-8 p-0"
-            >
-              »
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* pequeño separador */}
-      <div className="my-4 border-t" />
-
-      {/* Vista de Tarjetas */}
-      {viewMode === "cards" && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {users.map((user, index) => (
-            <Card
-              key={user.id}
-              className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <User className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-3">
-                        {user.nombre}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        <span className={getRoleBadgeColor(user.rol)}>
-                          {getRoleDisplayName(user.rol)}
-                        </span>
-                        {getStatusBadge(user.estado)}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <Mail className="h-3 w-3" />
-                      Email
-                    </div>
-                    <p className="text-sm font-medium truncate">{user.email}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <Key className="h-3 w-3" />
-                      RUT
-                    </div>
-                    <p className="text-sm font-medium">{user.rut}</p>
-                  </div>
-                  {user.empresa_id && (
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                        <Building2 className="h-3 w-3" />
-                        Empresa ID
-                      </div>
-                      <p className="text-sm font-medium">{user.empresa_id}</p>
-                    </div>
-                  )}
-                  {user.centro_costo_id && (
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                        <FolderTree className="h-3 w-3" />
-                        Centro de Costo ID
-                      </div>
-                      <p className="text-sm font-medium">{user.centro_costo_id}</p>
-                    </div>
-                  )}
+      {selectedCompany ? (
+        <>
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="grid md:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="search">Buscar por email (búsqueda exacta)</Label>
+                  <Input
+                    id="search"
+                    placeholder="Ej: usuario@empresa.com"
+                    value={emailSearch}
+                    onChange={(e) => setEmailSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setPagination(prev => ({ ...prev, page: 1 }));
+                        fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => openEditDialog(user)}
+                    onClick={() => {
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                      fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                    }}
+                    className="bg-accent hover:bg-accent/90"
                   >
-                    <Pencil className="h-3 w-3 mr-2" />
-                    Editar
+                    Buscar
                   </Button>
-                  {/* <Button
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEmailSearch("");
+                      // traer primera página sin filtro email
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                      fetchUsers({ page: 1, limit: pagination.limit });
+                    }}
+                  >
+                    Limpiar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <>
+                  Mostrando{" "}
+                  <strong>
+                    {(pagination.page - 1) * pagination.limit + 1}
+                    {" - "}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)}
+                  </strong>{" "}
+                  de <strong>{pagination.total}</strong> usuarios
+                </>
+              ) : (
+                <>No hay usuarios para mostrar</>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Limit selector */}
+              <div className="flex items-center gap-2 text-sm">
+                <label className="text-muted-foreground">Resultados:</label>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                  className="p-2 border rounded-md bg-background"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              {/* Page controls */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="h-8 w-8 p-0"
+                >
+                  {/* icon o texto */}
+                  «
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="h-8 w-8 p-0"
+                >
+                  ‹
+                </Button>
+
+                {/* páginas numeradas (máx 5 visibles) */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                    let pageNum;
+                    const totalPages = pagination.totalPages || 1;
+
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    if (pageNum < 1 || pageNum > totalPages) return null;
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="h-8 w-8 p-0"
+                >
+                  ›
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={!pagination.hasNextPage}
+                  className="h-8 w-8 p-0"
+                >
+                  »
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* pequeño separador */}
+          <div className="my-4 border-t" />
+
+          {/* Vista de Tarjetas */}
+          {viewMode === "cards" && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {users.map((user, index) => (
+                <Card
+                  key={user.id}
+                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-primary/10 rounded-lg">
+                          <User className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-3">
+                            {user.nombre}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2 mt-1">
+                            <span className={getRoleBadgeColor(user.rol)}>
+                              {getRoleDisplayName(user.rol)}
+                            </span>
+                            {getStatusBadge(user.estado)}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                          <Mail className="h-3 w-3" />
+                          Email
+                        </div>
+                        <p className="text-sm font-medium truncate">{user.email}</p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                          <Key className="h-3 w-3" />
+                          RUT
+                        </div>
+                        <p className="text-sm font-medium">{user.rut}</p>
+                      </div>
+                      {user.empresa_id && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                            <Building2 className="h-3 w-3" />
+                            Empresa ID
+                          </div>
+                          <p className="text-sm font-medium">{user.empresa_id}</p>
+                        </div>
+                      )}
+                      {user.centro_costo_id && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                            <FolderTree className="h-3 w-3" />
+                            Centro de Costo ID
+                          </div>
+                          <p className="text-sm font-medium">{user.centro_costo_id}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                        onClick={() => openEditDialog(user)}
+                      >
+                        <Pencil className="h-3 w-3 mr-2" />
+                        Editar
+                      </Button>
+                      {/* <Button
                     variant="outline"
                     size="sm"
                     className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
@@ -849,94 +877,94 @@ export function CompanyUsers() {
                     <Trash2 className="h-3 w-3 mr-2" />
                     Eliminar
                   </Button> */}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
-      {/* Vista de Tabla */}
-      {viewMode === "table" && (
-        <Card>
-          <CardContent className="p-0">
-            <UITable>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>RUT</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Empresa ID</TableHead>
-                  <TableHead>Centro Costo ID</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{user.nombre}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Key className="h-3 w-3 text-muted-foreground" />
-                        {user.rut}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        {user.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={getRoleBadgeColor(user.rol)}>
-                        {getRoleDisplayName(user.rol)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(user.estado)}
-                    </TableCell>
-                    <TableCell>
-                      {user.empresa_id ? (
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-3 w-3 text-muted-foreground" />
-                          {user.empresa_id}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {user.centro_costo_id ? (
-                        <div className="flex items-center gap-2">
-                          <FolderTree className="h-3 w-3 text-muted-foreground" />
-                          {user.centro_costo_id}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(user)}
-                          className="h-8 px-3"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        {/* <Button
+          {/* Vista de Tabla */}
+          {viewMode === "table" && (
+            <Card>
+              <CardContent className="p-0">
+                <UITable>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Usuario</TableHead>
+                      <TableHead>RUT</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Rol</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Empresa ID</TableHead>
+                      <TableHead>Centro Costo ID</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <User className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{user.nombre}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Key className="h-3 w-3 text-muted-foreground" />
+                            {user.rut}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            {user.email}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={getRoleBadgeColor(user.rol)}>
+                            {getRoleDisplayName(user.rol)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(user.estado)}
+                        </TableCell>
+                        <TableCell>
+                          {user.empresa_id ? (
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                              {user.empresa_id}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {user.centro_costo_id ? (
+                            <div className="flex items-center gap-2">
+                              <FolderTree className="h-3 w-3 text-muted-foreground" />
+                              {user.centro_costo_id}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(user)}
+                              className="h-8 px-3"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(user.id)}
@@ -944,21 +972,31 @@ export function CompanyUsers() {
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button> */}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </UITable>
-            {users.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay usuarios registrados</p>
-              </div>
-            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </UITable>
+                {users.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay usuarios registrados</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      ) : (
+        <Card>
+          <CardContent className="text-center py-8 text-muted-foreground">
+            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Seleccione una empresa para ver sus usuarios</p>
           </CardContent>
         </Card>
       )}
+
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

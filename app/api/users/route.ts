@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     const rawPage = params.get("page");
     const rawLimit = params.get("limit");
     const rawEmail = params.get("email");
+    const empresa = params.get("empresa_id");
 
     const page = Math.max(1, parseInt(rawPage ?? "1", 10) || 1);
     const limit = Math.max(1, parseInt(rawLimit ?? "10", 10) || 10);
@@ -30,6 +31,10 @@ export async function GET(req: NextRequest) {
       params.set("email", rawEmail.trim());
     } else {
       params.delete("email");
+    }
+
+    if (empresa) {
+      params.set("empresa_id", empresa)
     }
 
     const queryString = params.toString() ? `?${params.toString()}` : "";

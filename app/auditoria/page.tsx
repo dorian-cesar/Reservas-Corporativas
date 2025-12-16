@@ -3,16 +3,20 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, IdCard, AlbumIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { AuditoriaCurrentAccounts } from "@/components/auditoria-components/auditoria-cuenta-corriente"
 import { AuditoriaBookings } from "@/components/auditoria-components/auditoria-bookings"
 import { AuditoriaCompanies } from "@/components/auditoria-components/auditoria-companies"
-import { CompanyUsers } from "@/components/company-users"
+import { CompanyUsers } from "@/components/controller-components/company-users"
 import { AuditoriaCostCenters } from "@/components/auditoria-components/auditoria-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { SuperAllBookings } from "@/components/super-components/super-bookings"
+import { SuperCostCenters } from "@/components/super-cost-center"
+import { CompanyPassengers } from "@/components/super-components/super-passengers"
+import { UserProvider } from "@/components/providers/user-provider"
+import { TravelSearch } from "@/components/travel-search"
 
 export default function AuditoriaPage() {
   const { user, logout } = useAuth()
@@ -35,7 +39,7 @@ export default function AuditoriaPage() {
             {/* <AdminStats /> */}
 
             <Tabs defaultValue="companies-crud" className="w-full">
-            <TabsList className="
+              <TabsList className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap
                   p-2 -mx-2 sm:mx-0
@@ -49,6 +53,10 @@ export default function AuditoriaPage() {
                   <Settings className="h-4 w-4" />
                   Centros de Costo
                 </TabsTrigger>
+                <TabsTrigger value="users" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  Usuarios
+                </TabsTrigger>
                 <TabsTrigger value="esp" className="gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
@@ -57,18 +65,31 @@ export default function AuditoriaPage() {
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
                 </TabsTrigger> */}
-                <TabsTrigger value="bookings" className="gap-2">
+                <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
+                </TabsTrigger>
+
+                <TabsTrigger value="passengers" className="gap-2">
+                  <IdCard className="h-4 w-4" />
+                  Pasajeros
+                </TabsTrigger>
+
+                <TabsTrigger value="bookings" className="gap-2">
+                  <AlbumIcon className="h-4 w-4" />
+                  Reservas
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
                 <AuditoriaCompanies />
               </TabsContent>
+              <TabsContent value="users" className="mt-6">
+                <CompanyUsers />
+              </TabsContent>
 
               <TabsContent value="cost-center" className="mt-6">
-                <AuditoriaCostCenters />
+                <SuperCostCenters />
               </TabsContent>
 
               <TabsContent value="esp" className="mt-6">
@@ -79,8 +100,17 @@ export default function AuditoriaPage() {
                 <AuditoriaCurrentAccounts />
               </TabsContent> */}
 
-              <TabsContent value="bookings" className="mt-6">
+              <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
+              </TabsContent>
+
+              <TabsContent value="passengers" className="mt-6">
+                <CompanyPassengers />
+              </TabsContent>
+
+              <TabsContent value="bookings" className="mt-6">
+                <UserProvider />
+                <TravelSearch />
               </TabsContent>
             </Tabs>
           </div>

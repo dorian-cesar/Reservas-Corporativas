@@ -20,6 +20,7 @@ import {
   Pencil,
   Trash2,
   Percent,
+  RefreshCcw
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -31,7 +32,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import Swal from "sweetalert2";
+
 import ToolBar from "../tool-bar";
+import { count } from "console";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -58,30 +62,64 @@ export function AuditoriaCompanies() {
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
   const [empresaId, setEmpresaId] = useState("")
   const [searchMode, setSearchMode] = useState<"all" | "single">("all")
 
   type Company = {
     id: string;
+    rut?: string;
     name: string;
+    current_account?: string;
     state: boolean;
     surchargePercentage?: number;
     returnPercentage?: string;
     billingDay: number;
     expirationDay: number;
+    max: number;
+    count: number
+  };
+
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
+    rut: "",
     name: "",
+    current_account: "",
     state: true,
     surchargePercentage: "20",
     returnPercentage: "80",
     billingDay: "5",
-    expirationDay: "15"
+    expirationDay: "15",
+    max: "100000",
+    count: "0"
   })
 
   useEffect(() => {
@@ -105,12 +143,16 @@ export function AuditoriaCompanies() {
           const percent = backendToPercent(raw);
           return {
             id: empresa.id.toString(),
+            rut: empresa.rut || "-",
             name: empresa.nombre,
+            current_account: empresa.cuenta_corriente || "-",
             state: empresa.estado,
             surchargePercentage: empresa.recargo || 0,
             returnPercentage: percent,
             billingDay: empresa.dia_facturacion,
-            expirationDay: empresa.dia_vencimiento
+            expirationDay: empresa.dia_vencimiento,
+            max: empresa.monto_maximo,
+            count: empresa.monto_acumulado
           };
         });
 
@@ -159,12 +201,16 @@ export function AuditoriaCompanies() {
 
       const companyMapped = {
         id: empresa.id.toString(),
+        rut: empresa.rut,
         name: empresa.nombre,
+        current_account: empresa.cuenta_corriente,
         state: empresa.estado,
         surchargePercentage: empresa.recargo || 0,
         returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
         billingDay: empresa.dia_facturacion,
-        expirationDay: empresa.dia_vencimiento
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado
       };
 
       setFilteredCompanies([companyMapped]);
@@ -193,14 +239,20 @@ export function AuditoriaCompanies() {
 
   const resetForm = () => {
     setFormData({
+      rut: "",
       name: "",
+      current_account: "",
       state: true,
       surchargePercentage: "20",
       returnPercentage: "80",
       billingDay: "5",
-      expirationDay: "15"
+      expirationDay: "15",
+      max: "100000",
+      count: "0"
     });
   };
+
+
 
 
   const getStatusBadge = (state: boolean) => {
@@ -209,6 +261,13 @@ export function AuditoriaCompanies() {
     ) : (
       <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Inactiva</span>
     );
+  };
+
+  const formatNumber = (num: number | string): string => {
+    if (num === null || num === undefined || num === "") return "0";
+    const n = typeof num === "number" ? num : Number(num);
+    if (Number.isNaN(n)) return "0";
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
   return (
@@ -248,7 +307,6 @@ export function AuditoriaCompanies() {
         </Card>
       )}
 
-      {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCompanies.map((company, index) => (
@@ -268,13 +326,14 @@ export function AuditoriaCompanies() {
                       <CardDescription className="flex items-center gap-2 mt-1">
                         {getStatusBadge(company.state)}
                         <span className="text-xs text-muted-foreground">ID: {company.id}</span>
+                        <span className="text-xs text-muted-foreground">Rut: {company.rut || "-"}</span>
                       </CardDescription>
                     </div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       <Percent className="h-3 w-3" />
@@ -301,6 +360,24 @@ export function AuditoriaCompanies() {
                     </div>
                     <p className="text-2xl font-bold">{company.expirationDay}</p>
                   </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Monto Máximo
+                    </div>
+                    <p className="text-xl font-bold">{formatNumber(company.max) || "0"}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Monto Acumulado
+                    </div>
+                    <p className="text-xl font-bold">{formatNumber(company.count) || "0"}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      Cuenta Corriente
+                    </div>
+                    <p className="text-lg font-bold">{company.current_account || "-"}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -322,6 +399,8 @@ export function AuditoriaCompanies() {
                   <TableHead>Devolución</TableHead>
                   <TableHead>Día Facturación</TableHead>
                   <TableHead>Día Vencimiento</TableHead>
+                  <TableHead>Monto Máximo</TableHead>
+                  <TableHead>Monto Acumulado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -363,6 +442,16 @@ export function AuditoriaCompanies() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{company.expirationDay || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{formatNumber(company.max) || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{formatNumber(company.count) || 0}</span>
                       </div>
                     </TableCell>
                   </TableRow>
