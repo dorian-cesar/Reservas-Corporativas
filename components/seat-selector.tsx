@@ -65,6 +65,7 @@ export function SeatSelector({
     const parentBackdrop = document.querySelector(
       '[data-aria-hidden="true"][data-state="open"]'
     ) as HTMLElement;
+
     const originalParentZIndex = parentModal?.style.zIndex || "";
     const originalBackdropZIndex = parentBackdrop?.style.zIndex || "";
 
@@ -72,45 +73,43 @@ export function SeatSelector({
       icon: "info",
       title: "Límite alcanzado",
       html: `
-        <div style="text-align: center; padding: 15px;">
-          <div style="font-size: 1.1rem; font-weight: 600; color: #d97706; margin-bottom: 10px;">
-            Has alcanzado el máximo de asientos
-          </div>
-          <div style="background-color: #fef3c7; border: 1px solid #fbbf24; 
-                border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 15px;">
-            <p style="color: #92400e; margin: 0; font-size: 0.95rem;">
-              Puedes seleccionar un máximo de <strong>${maxSeats} asientos</strong> por reserva.
-            </p>
-          </div>
-          <div style="margin-top: 15px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
-            <p style="color: #4b5563; font-size: 0.85rem; margin: 0;">
-              Asientos seleccionados: <strong>${selectedSeats.join(
-                ", "
-              )}</strong>
-            </p>
-          </div>
+      <div style="text-align: center; padding: 15px;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: #d97706; margin-bottom: 10px;">
+          Has alcanzado el máximo de asientos
         </div>
-      `,
-      showConfirmButton: true,
-      confirmButtonText: "Entendido",
-      confirmButtonColor: "#f59e0b",
+        <div style="background-color: #fef3c7; border: 1px solid #fbbf24; 
+              border-radius: 8px; padding: 12px; margin-top: 10px; margin-bottom: 15px;">
+          <p style="color: #92400e; margin: 0; font-size: 0.95rem;">
+            Puedes seleccionar un máximo de <strong>${maxSeats} asientos</strong> por reserva.
+          </p>
+        </div>
+        <div style="margin-top: 15px; padding: 10px; background-color: #f3f4f6; border-radius: 6px;">
+          <p style="color: #4b5563; font-size: 0.85rem; margin: 0;">
+            Asientos seleccionados: <strong>${selectedSeats.join(", ")}</strong>
+          </p>
+        </div>
+        <p style="margin-top: 12px; font-size: 0.8rem; color: #6b7280;">
+          Este mensaje se cerrará automáticamente
+        </p>
+      </div>
+    `,
+      showConfirmButton: false,
+      timer: 5000,
+      timerProgressBar: true,
       background: "#f9fafb",
       customClass: {
         container: "swal-container",
         popup:
           "swal-popup bg-background border-2 border-amber-200 rounded-lg shadow-xl",
         title: "swal-title text-amber-700 font-bold text-lg",
-        confirmButton:
-          "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-amber-500 text-white hover:bg-amber-600 h-10 py-2 px-6 cursor-pointer",
       },
+
       buttonsStyling: false,
       allowOutsideClick: false,
       allowEscapeKey: false,
-      allowEnterKey: true,
       showCloseButton: false,
-      timer: undefined,
-      timerProgressBar: false,
       backdrop: true,
+
       didOpen: () => {
         const container = document.querySelector(
           ".swal2-container"
@@ -120,31 +119,18 @@ export function SeatSelector({
         if (container) {
           container.style.zIndex = "999999";
           container.style.position = "fixed";
-          container.style.top = "0";
-          container.style.left = "0";
-          container.style.width = "100%";
-          container.style.height = "100%";
         }
         if (popup) {
           popup.style.zIndex = "1000000";
         }
-        if (parentModal) {
-          parentModal.style.zIndex = "99999";
-        }
-        if (parentBackdrop) {
-          parentBackdrop.style.zIndex = "99998";
-        }
+        if (parentModal) parentModal.style.zIndex = "99999";
+        if (parentBackdrop) parentBackdrop.style.zIndex = "99998";
       },
+
       willClose: () => {
-        if (parentModal && originalParentZIndex) {
-          parentModal.style.zIndex = originalParentZIndex;
-        }
-        if (parentBackdrop && originalBackdropZIndex) {
+        if (parentModal) parentModal.style.zIndex = originalParentZIndex;
+        if (parentBackdrop)
           parentBackdrop.style.zIndex = originalBackdropZIndex;
-        }
-      },
-      preConfirm: () => {
-        return true;
       },
     });
   };

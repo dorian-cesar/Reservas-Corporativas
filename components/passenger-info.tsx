@@ -354,7 +354,7 @@ export function PassengerInfo({
                 <div style="background-color: #dbeafe; border: 1px solid #93c5fd; 
                       border-radius: 8px; padding: 10px; margin-top: 10px;">
                   <p style="color: #1e40af; margin: 0; font-size: 0.9rem; font-weight: 500;">
-                    ✓ El pasajero ha sido asignado para la reserva
+                    ✓ El pasajero ha sido asignado para este asiento
                   </p>
                 </div>
               </div>
@@ -611,7 +611,7 @@ export function PassengerInfo({
                   variant="outline"
                   className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
                 >
-                  El pasajero ha sido asignado para la reserva
+                  El pasajero ha sido asignado para este asiento
                 </Badge>
               </div>
             </div>
