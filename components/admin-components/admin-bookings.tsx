@@ -100,6 +100,7 @@ export function AdminBookings() {
   type Ticket = {
     id: number;
     ticketNumber: string;
+    pnrNumber?: string;
     ticketStatus: "Confirmed" | "Anulado" | string;
     origin: string;
     destination: string;
@@ -927,7 +928,7 @@ export function AdminBookings() {
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
                     <div>
-                      <CardTitle className="text-lg">{ticket.ticketNumber}</CardTitle>
+                      <CardTitle className="text-lg">{ticket.pnrNumber ?? "-"}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
                     </div>
                   </div>
@@ -1036,7 +1037,7 @@ export function AdminBookings() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-4 w-4 text-primary" /></div>
-                          <div><p className="text-sm text-muted-foreground">{ticket.ticketNumber || "—"}</p></div>
+                          <div><p className="text-sm text-muted-foreground">{ticket.pnrNumber ?? "-"}</p></div>
                         </div>
                       </TableCell>
                       <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
