@@ -293,15 +293,17 @@ export function SuperAllBookings() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateOnly = (dateString?: string) => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString('es-AR');
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleString('es-AR');
+    return new Date(dateString).toLocaleDateString("es-CL");
   };
+  
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -954,7 +956,7 @@ export function SuperAllBookings() {
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDate(ticket.travelDate)}</span></div>
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDateOnly(ticket.travelDate)}</span></div>
                     <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> <span>{ticket.departureTime}</span></div>
                     <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>Asiento: {ticket.seatNumbers}</span></div>
                   </div>
@@ -1025,11 +1027,11 @@ export function SuperAllBookings() {
                       <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
                       <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
                       <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>
-                      <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDate(ticket.travelDate)}</div></TableCell>
+                      <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDateOnly(ticket.travelDate)}</div></TableCell>
                       <TableCell><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" />{ticket.departureTime}</div></TableCell>
                       <TableCell>{ticket.seatNumbers}</TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
-                      <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDate(ticket.confirmedAt) : "—"}</p></TableCell>
+                      <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></TableCell>
                       <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
                         {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
                           <Button
