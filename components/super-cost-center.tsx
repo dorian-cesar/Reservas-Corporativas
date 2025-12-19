@@ -24,7 +24,8 @@ import {
     Table,
     LayoutGrid,
     FolderTree,
-    Search
+    Search,
+    Upload
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -38,7 +39,7 @@ import {
 import ToolBar from "./tool-bar";
 
 export function SuperCostCenters() {
-    const { token } = useAuth.getState();
+    const { user, token } = useAuth.getState();
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -46,6 +47,11 @@ export function SuperCostCenters() {
     const [empresaId, setEmpresaId] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+    const [csvModalOpen, setCsvModalOpen] = useState(false);
+    const [csvFile, setCsvFile] = useState<File | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<any>(null);
+
 
     type CostCenter = {
         id: string;
@@ -276,6 +282,52 @@ export function SuperCostCenters() {
         }
     };
 
+    const sendCSV = () => {
+        resetCSVModal();
+        setCsvModalOpen(true);
+    };
+
+    const handleUploadCSV = async () => {
+        if (!csvFile) {
+            alert("Selecciona un archivo CSV");
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            const formData = new FormData();
+            formData.append("file", csvFile);
+
+            const response = await fetch("/api/csv/cost-centers", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error("Error al subir el CSV");
+            }
+
+            const data = await response.json();
+            setResult(data);
+            console.log("Resultado CSV:", data);
+
+        } catch (err: any) {
+            alert(err.message || "Error inesperado");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const resetCSVModal = () => {
+        setCsvFile(null);
+        setResult(null);
+        setLoading(false);
+    };
+
     const openEditDialog = (costCenter: CostCenter) => {
         setSelectedCostCenter(costCenter);
         setFormData({
@@ -323,13 +375,6 @@ export function SuperCostCenters() {
                 selectedCompany={empresaId}
                 onCompanyChange={(id) => setEmpresaId(id)}
 
-                // search: aquí usaremos el mismo comportamiento del botón de buscar
-                // showSearch
-                // searchValue={empresaId}
-                // onSearchChange={(v) => setEmpresaId(v)}
-                // onSearch={handleSearch}
-                // searchPlaceholder="ID de empresa..."
-
                 refreshAction={() => handleSearch()}
 
                 primaryAction={{
@@ -338,6 +383,15 @@ export function SuperCostCenters() {
                     onClick: openAddDialog,
                     className: "bg-accent hover:bg-accent/90",
                 }}
+                secondaryAction={
+                    user?.role === "superuser"
+                        ? {
+                            label: "Subir CSV",
+                            icon: <Upload className="h-4 w-4" />,
+                            onClick: sendCSV,
+                        }
+                        : undefined
+                }
             />
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
@@ -623,6 +677,76 @@ export function SuperCostCenters() {
                         </Button>
                         <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
                             Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={csvModalOpen}
+                onOpenChange={(open) => {
+                    setCsvModalOpen(open);
+                    if (!open) {
+                        resetCSVModal();
+                    }
+                }}
+            >
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Importar centros de costo desde CSV</DialogTitle>
+                        <DialogDescription>
+                            Sube un archivo CSV con las columnas indicadas abajo.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium mr-5">Archivo CSV</label>
+                        <input
+                            key={csvModalOpen ? "open" : "closed"}
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                            className="border border-gray-300 rounded-lg py-2 px-2 cursor-pointer"
+                        />
+                    </div>
+
+                    <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+                        <p className="font-medium mb-2">Ejemplo de CSV:</p>
+                        <pre className="text-xs overflow-x-auto">
+                            {`nombre,empresa_id,estado`}
+                        </pre>
+                    </div>
+                    {result && (
+                        <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+                            <p>
+                                <strong>Datos cargados:</strong> {result.result?.success}
+                            </p>
+
+                            {result.result?.errors?.length > 0 && (
+                                <>
+                                    <p className="mt-2 font-medium text-red-600">
+                                        Errores:
+                                    </p>
+                                    <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
+                                        {result.result.errors.map((e: string, i: number) => (
+                                            <li key={i}>{e}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    <DialogFooter className="mt-4">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setCsvModalOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleUploadCSV} disabled={loading || !csvFile}>
+                            <Upload className="h-4 w-4 mr-2" />
+                            {loading ? "Enviando..." : "Enviar CSV"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
