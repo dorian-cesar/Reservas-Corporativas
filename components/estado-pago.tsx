@@ -171,26 +171,12 @@ export function EstadoPago() {
     const formatDate = (date?: string) => {
         if (!date) return "-";
 
-        try {
-            // Caso: 'YYYY-MM-DD HH:MM:SS' (VARCHAR de la BD)
-            if (date.includes(' ')) {
-                const [datePart /*, timePart*/] = date.split(' ');
-                // parseamos el datePart como local para evitar el shift UTC -> local
-                const d = parseYMDLocal(datePart);
-                return d.toLocaleDateString("es-CL");
-            }
+        // Extrae solo YYYY-MM-DD desde cualquier formato común
+        const match = date.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (!match) return date;
 
-            // Caso: date sólo con formato 'YYYY-MM-DD' (sin hora)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                return parseYMDLocal(date).toLocaleDateString("es-CL");
-            }
-
-            // Caso: ISO completo '2025-12-05T17:24:58.000Z' u otros formatos
-            // dejamos que el constructor Date maneje conversiones con zona UTC si vienen con Z
-            return new Date(date).toLocaleDateString("es-CL");
-        } catch {
-            return date; // si algo falla, devolver el string original
-        }
+        const [year, month, day] = match[1].split("-");
+        return `${day}-${month}-${year}`;
     };
 
 
