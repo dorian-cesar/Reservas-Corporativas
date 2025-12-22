@@ -236,13 +236,15 @@ export function EstadoPago() {
     const exportTicketsToCSV = (ticketsData: any[], cuenta: EstadoCuentaType | null) => {
         if (ticketsData.length === 0) return;
 
-        const headers = ["Ticket #", "Estado", "Origen", "Destino", "Fecha Viaje", "Hora Salida", "Monto"];
+        const headers = ["Ticket #", "Estado", "Origen", "Destino", "RUT Pasajero", "Nombre Pasajero", "Fecha Viaje", "Hora Salida", "Monto"];
         const csvData = ticketsData.map(ticket => [
-            ticket.ticketNumber,
+            ticket.pnrNumber || "",
             ticket.ticketStatus,
-            ticket.origin,
-            ticket.destination,
-            new Date(ticket.travelDate).toLocaleDateString('es-CL'),
+            ticket.terminal_origen || "",
+            ticket.terminal_destino || "",
+            ticket?.pasajero.rut || "",
+            ticket?.pasajero.nombre || "",
+            formatDate(ticket.travelDate),
             ticket.departureTime,
             `$${ticket.monto_boleto.toLocaleString('es-CL')}`
         ]);
@@ -264,11 +266,13 @@ export function EstadoPago() {
         if (ticketsData.length === 0) return;
 
         const data = ticketsData.map(ticket => ({
-            "Ticket #": ticket.ticketNumber,
+            "Ticket #": ticket.pnrNumber || "",
             "Estado": ticket.ticketStatus,
-            "Origen": ticket.origin,
-            "Destino": ticket.destination,
-            "Fecha Viaje": new Date(ticket.travelDate).toLocaleDateString('es-CL'),
+            "Origen": ticket.terminal_origen || "",
+            "Destino": ticket.terminal_destino || "",
+            "RUT Pasajero" : ticket?.pasajero.rut || "", 
+            "Nombre Pasajero": ticket?.pasajero.nombre || "",
+            "Fecha Viaje": formatDate(ticket.travelDate),
             "Hora Salida": ticket.departureTime,
             "Monto": `$${ticket.monto_boleto.toLocaleString('es-CL')}`
         }));
@@ -465,7 +469,7 @@ export function EstadoPago() {
             )}
 
             <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-auto">
+                <DialogContent className="sm:max-w-[1200px] max-h-[90vh] flex flex-col">
                     <DialogHeader>
                         <DialogTitle>
                             Tickets del Estado de Cuenta
@@ -476,7 +480,7 @@ export function EstadoPago() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-auto">
                         {isLoadingTickets ? (
                             <div className="text-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -488,10 +492,6 @@ export function EstadoPago() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-sm text-muted-foreground">
-                                    Mostrando {tickets.length} tickets
-                                </div>
-
                                 <div className="border rounded-md">
                                     <UITable>
                                         <TableHeader>
@@ -500,6 +500,8 @@ export function EstadoPago() {
                                                 <TableHead>Estado</TableHead>
                                                 <TableHead>Origen</TableHead>
                                                 <TableHead>Destino</TableHead>
+                                                <TableHead>RUT Pasajero</TableHead>
+                                                <TableHead>Nombre Pasajero</TableHead>
                                                 <TableHead>Fecha Viaje</TableHead>
                                                 <TableHead>Hora Salida</TableHead>
                                                 <TableHead>Monto</TableHead>
@@ -508,7 +510,7 @@ export function EstadoPago() {
                                         <TableBody>
                                             {tickets.map((ticket) => ( // CORREGIDO: usar 'ticket' no 'ec'
                                                 <TableRow key={ticket.id}>
-                                                    <TableCell>{ticket.ticketNumber}</TableCell>
+                                                    <TableCell>{ticket.pnrNumber ?? "-"}</TableCell>
                                                     <TableCell>
                                                         <span className={`px-2 py-1 rounded text-xs ${ticket.ticketStatus === 'Confirmed'
                                                             ? 'bg-green-100 text-green-800'
@@ -517,8 +519,10 @@ export function EstadoPago() {
                                                             {ticket.ticketStatus}
                                                         </span>
                                                     </TableCell>
-                                                    <TableCell>{ticket.origin}</TableCell>
-                                                    <TableCell>{ticket.destination}</TableCell>
+                                                    <TableCell>{ticket.terminal_origen ?? "-"}</TableCell>
+                                                    <TableCell>{ticket.terminal_destino ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.pasajero.rut ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.pasajero.nombre ?? "-"}</TableCell>
                                                     <TableCell>
                                                         {formatDate(ticket.travelDate)}
                                                     </TableCell>
@@ -535,7 +539,10 @@ export function EstadoPago() {
                         )}
                     </div>
 
-                    <DialogFooter className="gap-2">
+                    <DialogFooter className="gap-2 flex items-center justify-between w-full">
+                        <div className="text-sm text-muted-foreground">
+                            Mostrando {tickets.length} tickets
+                        </div>
                         <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
                             Cerrar
                         </Button>
