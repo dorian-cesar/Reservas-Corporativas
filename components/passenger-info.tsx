@@ -27,6 +27,7 @@ interface PassengerInfoProps {
   onPassengerCreated: (passenger: any) => void;
   initialMode?: "buscar" | "crear";
   requireCentroCosto?: boolean;
+  initialPassenger?: any;
 }
 
 export function PassengerInfo({

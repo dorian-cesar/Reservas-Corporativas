@@ -672,9 +672,9 @@ export function TravelSearch() {
                 ? `Busca y reserva tu viaje de ida: ${
                     origin?.name || "Origen"
                   } → ${destination?.name || "Destino"}`
-                : `Busca y reserva tu viaje de vuelta: ${
-                    origin?.name || "Origen"
-                  } → ${destination?.name || "Destino"}`}
+                : `Busca tu viaje de vuelta: ${origin?.name || "Origen"} → ${
+                    destination?.name || "Destino"
+                  }`}
             </CardDescription>
           </CardHeader>
 
