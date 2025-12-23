@@ -38,6 +38,7 @@ export function PassengerInfo({
   onPassengerCreated,
   initialMode = "buscar",
   requireCentroCosto = true,
+  initialPassenger,
 }: PassengerInfoProps) {
   const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
     initialMode
@@ -63,6 +64,48 @@ export function PassengerInfo({
   const [cargandoCentros, setCargandoCentros] = useState(false);
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<boolean>(false);
+
+  // Nuevo estado para trackear si ya se precargó el pasajero inicial
+  const [initialPassengerLoaded, setInitialPassengerLoaded] = useState(false);
+
+  // Efecto para precargar el pasajero inicial
+  useEffect(() => {
+    if (initialPassenger && !initialPassengerLoaded) {
+      console.log("Precargando pasajero inicial:", initialPassenger);
+
+      // Establecer modo buscar ya que tenemos un pasajero
+      setModoPasajero("buscar");
+
+      // Precargar los datos del pasajero
+      setPasajeroEncontrado(initialPassenger);
+      setPasajeroSeleccionado(true);
+
+      // Llenar los campos del formulario
+      setPassengerName(initialPassenger.nombre || "");
+      setPassengerRut(initialPassenger.rut || "");
+      setPassengerEmail(initialPassenger.correo || "");
+      setPassengerPhone(initialPassenger.telefono || "");
+
+      // Llenar RUT de búsqueda para mostrar
+      if (initialPassenger.rut) {
+        setRutBusqueda(formatearRutParaMostrar(initialPassenger.rut));
+      }
+
+      // Configurar centro de costo si existe
+      if (initialPassenger.id_centro_costo) {
+        setCentroCostoSeleccionado({
+          id: initialPassenger.id_centro_costo,
+          nombre: initialPassenger.centroCosto?.nombre || "Centro de costo",
+        });
+      }
+
+      // Notificar que el pasajero fue seleccionado
+      onPassengerSelected(initialPassenger);
+
+      // Marcar como cargado
+      setInitialPassengerLoaded(true);
+    }
+  }, [initialPassenger, initialPassengerLoaded, onPassengerSelected]);
 
   const formatRutInput = (value: string): string => {
     const clean = value.replace(/[^0-9kK]/g, "");
@@ -117,7 +160,6 @@ export function PassengerInfo({
 
     setBuscandoPasajero(true);
     setErrorPasajero(null);
-    setPasajeroEncontrado(null);
     setPasajeroSeleccionado(false);
 
     try {
@@ -437,6 +479,13 @@ export function PassengerInfo({
     }
   }, [modoPasajero]);
 
+  // Efecto para resetear el estado cuando cambia initialPassenger
+  useEffect(() => {
+    if (initialPassenger) {
+      setInitialPassengerLoaded(false);
+    }
+  }, [initialPassenger]);
+
   return (
     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
       <div className="flex items-center justify-between">
@@ -565,7 +614,9 @@ export function PassengerInfo({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <span className="font-medium text-green-800">
-                    Pasajero encontrado ✓
+                    {initialPassenger
+                      ? "Pasajero precargado ✓"
+                      : "Pasajero encontrado ✓"}
                   </span>
                 </div>
                 <Badge variant="outline" className="text-xs">
@@ -612,7 +663,9 @@ export function PassengerInfo({
                   variant="outline"
                   className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
                 >
-                  El pasajero ha sido asignado para este asiento
+                  {initialPassenger
+                    ? "Pasajero asignado automáticamente ✓"
+                    : "El pasajero ha sido asignado para este asiento"}
                 </Badge>
               </div>
             </div>
