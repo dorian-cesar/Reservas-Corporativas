@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -92,10 +92,25 @@ export function TravelSearch() {
   // Estado para controlar si ya se reservó la ida
   const [departureBooked, setDepartureBooked] = useState(false);
 
+  // Estado para controlar si ya se intercambiaron las ciudades para la vuelta
+  const [citiesSwappedForReturn, setCitiesSwappedForReturn] = useState(false);
+
   const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
     useTravel();
   const user = useUserStore((s) => s.user);
   const loadingUser = useUserStore((s) => s.loading);
+
+  // Refs para trackear las ciudades originales de ida
+  const originalDepartureCities = useRef<{
+    origin: City | null;
+    destination: City | null;
+  }>({
+    origin: null,
+    destination: null,
+  });
+
+  // Ref para controlar limpieza
+  const cleanupDone = useRef(false);
 
   const getTodayLocalStart = (): Date => {
     const today = new Date();
@@ -124,40 +139,127 @@ export function TravelSearch() {
     loadCities();
   }, []);
 
-  // Escuchar eventos de reserva exitosa
+  // Guardar las ciudades originales de ida cuando se hace la búsqueda
+  useEffect(() => {
+    if (
+      searchMode === "departure" &&
+      origin &&
+      destination &&
+      !originalDepartureCities.current.origin
+    ) {
+      originalDepartureCities.current = {
+        origin: origin,
+        destination: destination,
+      };
+    }
+  }, [searchMode, origin, destination]);
+
+  // Efecto para limpiar reservas antiguas cuando se inicia un nuevo viaje
+  useEffect(() => {
+    // Limpiar reservas cuando:
+    // 1. Se carga el componente por primera vez
+    // 2. Se cambia de modo de búsqueda (departure/return)
+    // 3. Se desactiva ida y vuelta
+
+    if (!cleanupDone.current) {
+      // Limpiar reservas antiguas al cargar el componente
+      localStorage.removeItem("completedBookings");
+      cleanupDone.current = true;
+      console.log("Reservas limpiadas al cargar componente");
+    }
+
+    // También limpiar cuando se desactiva ida y vuelta
+    const handleBeforeUnload = () => {
+      localStorage.removeItem("completedBookings");
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  // Efecto para limpiar cuando se cambia el modo de búsqueda
+  useEffect(() => {
+    // Cuando cambiamos a modo "departure" (nuevo viaje), limpiar reservas
+    if (searchMode === "departure" && hasSearched) {
+      // Solo limpiar si no hay reserva de ida confirmada aún
+      if (!departureBooked) {
+        localStorage.removeItem("completedBookings");
+        console.log("Reservas limpiadas al iniciar nueva búsqueda");
+      }
+    }
+  }, [searchMode, hasSearched, departureBooked]);
+
+  // Escuchar evento de reserva exitosa de ida
   useEffect(() => {
     const handleDepartureBooked = () => {
       setDepartureBooked(true);
-      // Si es ida y vuelta, cambiar a modo de búsqueda de vuelta
-      if (isRoundTrip) {
-        setSearchMode("return");
-        // Limpiar resultados de ida
-        setDepartureServices([]);
-        setHasSearched(false);
-      }
     };
 
+    window.addEventListener("departureBooked", handleDepartureBooked);
+
+    return () => {
+      window.removeEventListener("departureBooked", handleDepartureBooked);
+    };
+  }, []);
+
+  // Escuchar evento para continuar con la vuelta (desde el modal de éxito)
+  useEffect(() => {
     const handleContinueToReturn = () => {
       setDepartureBooked(true);
+
+      // Intercambiar automáticamente las ciudades al pasar a vuelta
+      if (origin && destination) {
+        swapCitiesForReturn();
+      }
+
       setSearchMode("return");
       setDepartureServices([]);
       setHasSearched(false);
     };
 
-    window.addEventListener("departureBooked", handleDepartureBooked);
     window.addEventListener("continueToReturn", handleContinueToReturn);
 
     return () => {
-      window.removeEventListener("departureBooked", handleDepartureBooked);
       window.removeEventListener("continueToReturn", handleContinueToReturn);
     };
-  }, [isRoundTrip]);
+  }, [origin, destination]);
+
+  // Función especial para intercambiar ciudades cuando se pasa a vuelta
+  const swapCitiesForReturn = () => {
+    if (origin && destination) {
+      // Intercambiar las ciudades
+      const temp = origin;
+      setOrigin(destination);
+      setDestination(temp);
+      setCitiesSwappedForReturn(true);
+    }
+  };
+
+  // Función para restaurar las ciudades originales de ida
+  const restoreDepartureCities = () => {
+    if (
+      originalDepartureCities.current.origin &&
+      originalDepartureCities.current.destination
+    ) {
+      setOrigin(originalDepartureCities.current.origin);
+      setDestination(originalDepartureCities.current.destination);
+      setCitiesSwappedForReturn(false);
+    }
+  };
 
   const swapCities = () => {
     if (origin && destination) {
       const temp = origin;
       setOrigin(destination);
       setDestination(temp);
+
+      // Actualizar el estado de intercambio
+      if (searchMode === "return") {
+        setCitiesSwappedForReturn(!citiesSwappedForReturn);
+      }
 
       // Si ya hay resultados, intercambiar también
       if (hasSearched && searchMode === "departure") {
@@ -233,9 +335,9 @@ export function TravelSearch() {
     setSearchError(null);
 
     try {
-      const searchOrigin = searchMode === "departure" ? origin : destination;
-      const searchDestination =
-        searchMode === "departure" ? destination : origin;
+      // IMPORTANTE: Usar las ciudades actuales del estado
+      const searchOrigin = origin;
+      const searchDestination = destination;
       const searchDate =
         searchMode === "departure" ? departureDateString : returnDateString;
 
@@ -327,11 +429,27 @@ export function TravelSearch() {
       setSearchMode("departure");
       setDepartureBooked(false);
       setReturnServices([]);
+      setCitiesSwappedForReturn(false);
+
+      // Restaurar las ciudades originales de ida
+      restoreDepartureCities();
+
+      // Limpiar reservas cuando se desactiva ida y vuelta
+      localStorage.removeItem("completedBookings");
+      console.log("Reservas limpiadas al desactivar ida y vuelta");
+    } else {
+      // Cuando se activa ida y vuelta, también limpiar reservas
+      localStorage.removeItem("completedBookings");
+      console.log("Reservas limpiadas al activar ida y vuelta");
     }
   };
 
   const handleSwitchToReturnSearch = () => {
     if (isRoundTrip && departureBooked) {
+      // Intercambiar automáticamente las ciudades al pasar a vuelta
+      if (origin && destination) {
+        swapCitiesForReturn();
+      }
       setSearchMode("return");
       setReturnServices([]);
       setHasSearched(false);
@@ -339,6 +457,9 @@ export function TravelSearch() {
   };
 
   const handleSwitchToDepartureSearch = () => {
+    // Restaurar las ciudades originales de ida
+    restoreDepartureCities();
+
     setSearchMode("departure");
     setDepartureServices([]);
     setHasSearched(false);
@@ -455,7 +576,9 @@ export function TravelSearch() {
             <CardDescription>
               {searchMode === "departure"
                 ? "Busca y reserva tu viaje de ida"
-                : "Busca y reserva tu viaje de vuelta"}
+                : `Busca y reserva tu viaje de vuelta: ${
+                    origin?.name || "Origen"
+                  } → ${destination?.name || "Destino"}`}
             </CardDescription>
           </CardHeader>
 
@@ -677,7 +800,7 @@ export function TravelSearch() {
                   ) : (
                     <>
                       <ArrowRightLeft className="h-5 w-5 text-primary rotate-180" />
-                      Viaje de Vuelta: {destination?.name} → {origin?.name}
+                      Viaje de Vuelta: {origin?.name} → {destination?.name}
                       {returnDateString && (
                         <span className="text-lg font-normal text-muted-foreground ml-2">
                           ({formatDate(returnDateString)})

@@ -77,6 +77,9 @@ export function ServiceDetailDialog({
   const bookingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const MAX_SEATS = 5;
 
+  // Ref para trackear si ya se limpiaron las reservas antiguas
+  const oldBookingsCleaned = useRef(false);
+
   const swalConfig = {
     customClass: {
       container: "swal-container",
@@ -682,6 +685,13 @@ export function ServiceDetailDialog({
         bookingData: confirmations,
       };
 
+      // IMPORTANTE: Limpiar reservas antiguas solo la primera vez que se reserva la IDA
+      if (tripType === "departure" && !oldBookingsCleaned.current) {
+        localStorage.removeItem("completedBookings");
+        oldBookingsCleaned.current = true;
+        console.log("Reservas antiguas limpiadas al reservar la ida");
+      }
+
       // Guardar en localStorage
       const storedBookings = JSON.parse(
         localStorage.getItem("completedBookings") || "[]"
@@ -732,20 +742,23 @@ export function ServiceDetailDialog({
   };
 
   const handleFinish = () => {
+    // Solo cerrar el modal, NO limpiar localStorage aquí
     setSuccess(false);
     setSelectedSeats([]);
     setBookingData([]);
     setPassengersData([]);
     onOpenChange(false);
 
-    // Si es la vuelta, mostrar resumen final
-    if (tripType === "return") {
-      const event = new CustomEvent("showBookingSummary");
-      window.dispatchEvent(event);
-    }
+    // Resetear el flag de limpieza para el próximo viaje
+    oldBookingsCleaned.current = false;
   };
 
   const handleClose = () => {
+    // Si es la vuelta y está en éxito, resetear el flag
+    if (tripType === "return" && success) {
+      oldBookingsCleaned.current = false;
+    }
+
     setSuccess(false);
     setSelectedSeats([]);
     setBookingData([]);
@@ -842,15 +855,15 @@ export function ServiceDetailDialog({
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
+                <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>
+                <CheckCircle2 className="h-20 w-20 text-blue-500 relative z-10" />
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-green-600">
+                <h3 className="text-2xl font-bold text-blue-600">
                   {tripType === "departure"
                     ? "¡Viaje de Ida Reservado!"
-                    : "¡Viaje de Vuelta Reservado!"}
+                    : "¡Reservas Completadas!"}
                 </h3>
                 <p className="text-muted-foreground text-lg">
                   {selectedSeats.length} asiento(s) reservado(s) exitosamente
@@ -862,91 +875,459 @@ export function ServiceDetailDialog({
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-4">
-                    ¡Reserva completada! Ambas reservas han sido confirmadas
+                    ¡Ambas reservas han sido confirmadas!
                   </p>
                 )}
               </div>
 
               {bookingData.length > 0 && (
-                <div className="w-full max-w-2xl bg-linear-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
-                  <div className="text-center mb-4">
+                <div className="w-full max-w-4xl bg-linear-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
                     <Badge
                       variant="outline"
-                      className="bg-green-500 text-white border-green-600 mb-2"
+                      className="bg-blue-500 text-white border-blue-600 mb-2"
                     >
-                      Confirmado ({bookingData.length})
+                      {tripType === "departure"
+                        ? "Confirmado"
+                        : "Todas Confirmadas"}
+                      ({bookingData.length})
                     </Badge>
-                    <p className="text-sm text-green-600">
+                    <p className="text-sm text-blue-600">
                       {tripType === "departure"
                         ? "Reserva de ida exitosa"
-                        : "Reserva de vuelta exitosa"}
+                        : "Resumen completo de reservas"}
                     </p>
                   </div>
 
-                  <div className="space-y-4">
-                    {bookingData.map((booking, index) => (
-                      <div
-                        key={index}
-                        className="p-4 bg-white rounded-lg border border-green-100"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-bold text-green-800">
-                              {booking.passenger?.nombre || "Pasajero"}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              RUT: {booking.passenger?.rut || "N/A"}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="bg-green-100 text-green-800"
-                          >
-                            Asiento: {booking.seat}
-                          </Badge>
+                  {/* Si es la vuelta, mostrar TODAS las reservas en orden IDA primero */}
+                  {tripType === "return" ? (
+                    <>
+                      {/* PRIMERO: Mostrar las reservas de IDA del localStorage */}
+                      <div className="mb-8">
+                        <h4 className="font-bold text-blue-800 text-lg mb-4 pb-2 border-b border-blue-200 flex items-center gap-2">
+                          <ArrowRight className="h-5 w-5" />
+                          Viaje de Ida
+                        </h4>
+                        {(() => {
+                          // Cargar todas las reservas del localStorage
+                          const allBookings = JSON.parse(
+                            localStorage.getItem("completedBookings") || "[]"
+                          );
+
+                          // Filtrar solo las de ida
+                          const departureBookings = allBookings.filter(
+                            (b: any) => b.tripType === "departure"
+                          );
+
+                          if (departureBookings.length === 0) {
+                            return (
+                              <div className="text-center py-4 text-gray-500">
+                                No se encontraron reservas de ida
+                              </div>
+                            );
+                          }
+
+                          return departureBookings.map(
+                            (depBooking: any, index: number) => (
+                              <div key={index} className="mb-6">
+                                {/* Información general de la reserva de ida */}
+                                <div className="p-4 bg-blue-50 rounded-lg mb-3">
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Ruta:
+                                      </span>
+                                      <p className="font-medium">
+                                        {depBooking.origin} →{" "}
+                                        {depBooking.destination}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Fecha:
+                                      </span>
+                                      <p className="font-medium">
+                                        {depBooking.date}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Empresa:
+                                      </span>
+                                      <p className="font-medium">
+                                        {depBooking.travel_name}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">
+                                        Horario:
+                                      </span>
+                                      <p className="font-medium">
+                                        {depBooking.dep_time} -{" "}
+                                        {depBooking.arr_time}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Pasajeros de la ida */}
+                                <div className="space-y-3">
+                                  <h5 className="font-medium text-blue-700 text-sm mb-2">
+                                    Pasajeros:
+                                  </h5>
+                                  {depBooking.passengers?.map(
+                                    (passenger: any, pIndex: number) => (
+                                      <div
+                                        key={pIndex}
+                                        className="p-3 bg-white rounded-lg border border-blue-100"
+                                      >
+                                        <div className="flex justify-between items-start">
+                                          <div>
+                                            <h6 className="font-medium text-blue-800">
+                                              {passenger.nombre}
+                                            </h6>
+                                            <p className="text-xs text-muted-foreground">
+                                              RUT: {passenger.rut}
+                                            </p>
+                                          </div>
+                                          <Badge
+                                            variant="outline"
+                                            className="bg-blue-100 text-blue-800"
+                                          >
+                                            Asiento: {depBooking.seats[pIndex]}
+                                          </Badge>
+                                        </div>
+                                        {depBooking.pnrNumbers?.[pIndex] && (
+                                          <div className="mt-2 text-sm">
+                                            <span className="text-muted-foreground">
+                                              PNR:{" "}
+                                              {depBooking.pnrNumbers[pIndex]}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+
+                                <div className="mt-4 pt-3 border-t border-blue-100 text-right">
+                                  <span className="font-bold text-blue-700">
+                                    Total Ida: $
+                                    {depBooking.totalPrice.toLocaleString(
+                                      "es-CL"
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          );
+                        })()}
+                      </div>
+
+                      {/* SEGUNDO: Mostrar la reserva actual (vuelta) */}
+                      <div className="mb-8">
+                        <h4 className="font-bold text-blue-800 text-lg mb-4 pb-2 border-b border-blue-200 flex items-center gap-2">
+                          <ArrowLeft className="h-5 w-5" />
+                          Viaje de Vuelta
+                        </h4>
+                        <div className="space-y-4">
+                          {bookingData.map((booking, index) => (
+                            <div
+                              key={index}
+                              className="p-4 bg-white rounded-lg border border-blue-100"
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h4 className="font-bold text-blue-800">
+                                    {booking.passenger?.nombre || "Pasajero"}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    RUT: {booking.passenger?.rut || "N/A"}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-100 text-blue-800"
+                                >
+                                  Asiento: {booking.seat}
+                                </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    N° de PNR:
+                                  </span>
+                                  <p className="font-medium">
+                                    {booking.operatorPnr}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">
+                                    Precio:
+                                  </span>
+                                  <p className="font-bold text-blue-700">
+                                    $
+                                    {booking.monto_boleto.toLocaleString(
+                                      "es-CL"
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                        <div className="mt-4 pt-3 border-t border-blue-100 text-right">
+                          <span className="font-bold text-blue-700">
+                            Total Vuelta: $
+                            {bookingData
+                              .reduce(
+                                (total: number, booking: any) =>
+                                  total + booking.monto_boleto,
+                                0
+                              )
+                              .toLocaleString("es-CL")}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Resumen total */}
+                      <div className="mt-8 pt-6 border-t border-blue-200 bg-blue-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-4">
                           <div>
-                            <span className="text-muted-foreground">
-                              N° de PNR:
-                            </span>
-                            <p className="font-medium">{booking.operatorPnr}</p>
+                            <h4 className="text-lg font-bold text-blue-800 mb-2">
+                              Resumen Total
+                            </h4>
+                            <div className="text-sm text-blue-600">
+                              <div className="flex gap-4">
+                                <span>
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-blue-100"
+                                  >
+                                    Ida:{" "}
+                                    {(() => {
+                                      const allBookings = JSON.parse(
+                                        localStorage.getItem(
+                                          "completedBookings"
+                                        ) || "[]"
+                                      );
+                                      const departureBookings =
+                                        allBookings.filter(
+                                          (b: any) => b.tripType === "departure"
+                                        );
+                                      return departureBookings.reduce(
+                                        (total: number, b: any) =>
+                                          total + b.seats.length,
+                                        0
+                                      );
+                                    })()}{" "}
+                                    asiento(s)
+                                  </Badge>
+                                </span>
+                                <span>
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-blue-100"
+                                  >
+                                    Vuelta: {selectedSeats.length} asiento(s)
+                                  </Badge>
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">
-                              Precio:
-                            </span>
-                            <p className="font-bold text-green-700">
-                              ${booking.monto_boleto.toLocaleString("es-CL")}
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-blue-700">
+                              $
+                              {(() => {
+                                // Calcular total de todas las reservas
+                                const allBookings = JSON.parse(
+                                  localStorage.getItem("completedBookings") ||
+                                    "[]"
+                                );
+                                const totalIda = allBookings
+                                  .filter(
+                                    (b: any) => b.tripType === "departure"
+                                  )
+                                  .reduce(
+                                    (total: number, b: any) =>
+                                      total + b.totalPrice,
+                                    0
+                                  );
+                                const totalVuelta = bookingData.reduce(
+                                  (total: number, booking: any) =>
+                                    total + booking.monto_boleto,
+                                  0
+                                );
+                                return (totalIda + totalVuelta).toLocaleString(
+                                  "es-CL"
+                                );
+                              })()}
+                            </div>
+                            <p className="text-sm text-blue-600">
+                              Total general
                             </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                          <div className="text-center p-2 bg-white rounded border border-blue-100">
+                            <div className="text-blue-700 font-medium">
+                              Reservas Totales
+                            </div>
+                            <div className="text-xl font-bold text-blue-800">
+                              {(() => {
+                                const allBookings = JSON.parse(
+                                  localStorage.getItem("completedBookings") ||
+                                    "[]"
+                                );
+                                return (
+                                  allBookings.filter(
+                                    (b: any) => b.tripType === "departure"
+                                  ).length + 1
+                                );
+                              })()}
+                            </div>
+                          </div>
+                          <div className="text-center p-2 bg-white rounded border border-blue-100">
+                            <div className="text-blue-700 font-medium">
+                              Asientos Totales
+                            </div>
+                            <div className="text-xl font-bold text-blue-800">
+                              {(() => {
+                                const allBookings = JSON.parse(
+                                  localStorage.getItem("completedBookings") ||
+                                    "[]"
+                                );
+                                const departureSeats = allBookings
+                                  .filter(
+                                    (b: any) => b.tripType === "departure"
+                                  )
+                                  .reduce(
+                                    (total: number, b: any) =>
+                                      total + b.seats.length,
+                                    0
+                                  );
+                                return departureSeats + selectedSeats.length;
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  ) : (
+                    // Si es solo ida, mostrar solo esta reserva
+                    <div className="space-y-4">
+                      {bookingData.map((booking, index) => (
+                        <div
+                          key={index}
+                          className="p-4 bg-white rounded-lg border border-blue-100"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-bold text-blue-800">
+                                {booking.passenger?.nombre || "Pasajero"}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                RUT: {booking.passenger?.rut || "N/A"}
+                              </p>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-100 text-blue-800"
+                            >
+                              Asiento: {booking.seat}
+                            </Badge>
+                          </div>
 
-                  <div className="mt-6 pt-4 border-t border-green-200">
+                          <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                            <div>
+                              <span className="text-muted-foreground">
+                                N° de PNR:
+                              </span>
+                              <p className="font-medium">
+                                {booking.operatorPnr}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">
+                                Precio:
+                              </span>
+                              <p className="font-bold text-blue-700">
+                                ${booking.monto_boleto.toLocaleString("es-CL")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Totales (siempre visible) */}
+                  <div className="mt-6 pt-4 border-t border-blue-200">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-muted-foreground">
-                        Total reservas:
+                        {tripType === "return"
+                          ? "Total de todas las reservas:"
+                          : "Total reservas:"}
                       </span>
-                      <span className="text-lg font-bold text-green-700">
-                        {bookingData.length} asiento(s)
+                      <span className="text-lg font-bold text-blue-700">
+                        {tripType === "return"
+                          ? (() => {
+                              const allBookings = JSON.parse(
+                                localStorage.getItem("completedBookings") ||
+                                  "[]"
+                              );
+                              const departureSeats = allBookings
+                                .filter((b: any) => b.tripType === "departure")
+                                .reduce(
+                                  (total: number, b: any) =>
+                                    total + b.seats.length,
+                                  0
+                                );
+                              return `${
+                                departureSeats + selectedSeats.length
+                              } asiento(s)`;
+                            })()
+                          : `${bookingData.length} asiento(s)`}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm font-medium text-muted-foreground">
                         Monto total:
                       </span>
-                      <span className="text-xl font-bold text-green-700">
+                      <span className="text-xl font-bold text-blue-700">
                         $
-                        {bookingData
-                          .reduce(
-                            (total, booking) => total + booking.monto_boleto,
-                            0
-                          )
-                          .toLocaleString("es-CL")}
+                        {tripType === "return"
+                          ? (() => {
+                              const allBookings = JSON.parse(
+                                localStorage.getItem("completedBookings") ||
+                                  "[]"
+                              );
+                              const totalIda = allBookings
+                                .filter((b: any) => b.tripType === "departure")
+                                .reduce(
+                                  (total: number, b: any) =>
+                                    total + b.totalPrice,
+                                  0
+                                );
+                              const totalVuelta = bookingData.reduce(
+                                (total: number, booking: any) =>
+                                  total + booking.monto_boleto,
+                                0
+                              );
+                              return (totalIda + totalVuelta).toLocaleString(
+                                "es-CL"
+                              );
+                            })()
+                          : bookingData
+                              .reduce(
+                                (total: number, booking: any) =>
+                                  total + booking.monto_boleto,
+                                0
+                              )
+                              .toLocaleString("es-CL")}
                       </span>
                     </div>
                   </div>
@@ -971,10 +1352,10 @@ export function ServiceDetailDialog({
                   <>
                     <Button
                       onClick={handleFinish}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-blue-600 hover:bg-blue-700"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Ver Resumen Completo
+                      Finalizar
                     </Button>
                     <Button variant="outline" onClick={handleClose}>
                       Cerrar

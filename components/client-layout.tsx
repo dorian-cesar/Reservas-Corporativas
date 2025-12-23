@@ -56,10 +56,7 @@ export default function ClientLayout({
         <main className="flex-1 bg-blue-50">{children}</main>
         {!hideLayout && <Footer />}
 
-        {/* Modal de resumen de reservas */}
-        <BookingSummary open={showSummary} onOpenChange={setShowSummary} />
-
-        {/* Botón flotante para ver reservas si hay alguna */}
+        {/* <BookingSummary open={showSummary} onOpenChange={setShowSummary} />
         {hasBookings && !hideLayout && !showSummary && (
           <button
             onClick={() => setShowSummary(true)}
@@ -74,7 +71,7 @@ export default function ClientLayout({
               }
             </span>
           </button>
-        )}
+        )} */}
       </div>
     </TravelProvider>
   );
