@@ -80,6 +80,10 @@ export function ServiceDetailDialog({
   // Ref para trackear si ya se limpiaron las reservas antiguas
   const oldBookingsCleaned = useRef(false);
 
+  // Estados para las ciudades a mostrar
+  const [displayOrigin, setDisplayOrigin] = useState<string>("");
+  const [displayDestination, setDisplayDestination] = useState<string>("");
+
   const swalConfig = {
     customClass: {
       container: "swal-container",
@@ -135,6 +139,26 @@ export function ServiceDetailDialog({
       }
     },
   };
+
+  // Efecto para actualizar las ciudades a mostrar
+  useEffect(() => {
+    console.log("ServiceDetailDialog - Actualizando ciudades:", {
+      tripType,
+      origin,
+      destination,
+    });
+
+    if (tripType === "departure") {
+      // Para ida: mostrar origen → destino
+      setDisplayOrigin(origin || "");
+      setDisplayDestination(destination || "");
+    } else {
+      // Para vuelta: mostrar las ciudades INTERCAMBIADAS
+      // El origen visual es el destino real, y viceversa
+      setDisplayOrigin(destination || "");
+      setDisplayDestination(origin || "");
+    }
+  }, [tripType, origin, destination]);
 
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
@@ -669,8 +693,8 @@ export function ServiceDetailDialog({
       // Guardar esta reserva
       const currentBooking = {
         tripType,
-        origin: tripType === "departure" ? origin : destination,
-        destination: tripType === "departure" ? destination : origin,
+        origin: displayOrigin, // Usar las ciudades mostradas
+        destination: displayDestination, // Usar las ciudades mostradas
         date: serviceDetail.travel_date,
         dep_time: serviceDetail.dep_time,
         arr_time: serviceDetail.arr_time,
@@ -739,18 +763,6 @@ export function ServiceDetailDialog({
 
     // Disparar evento para continuar con la vuelta
     window.dispatchEvent(new CustomEvent("continueToReturn"));
-  };
-
-  const handleFinish = () => {
-    // Solo cerrar el modal, NO limpiar localStorage aquí
-    setSuccess(false);
-    setSelectedSeats([]);
-    setBookingData([]);
-    setPassengersData([]);
-    onOpenChange(false);
-
-    // Resetear el flag de limpieza para el próximo viaje
-    oldBookingsCleaned.current = false;
   };
 
   const handleClose = () => {
@@ -865,10 +877,6 @@ export function ServiceDetailDialog({
                     ? "¡Viaje de Ida Reservado!"
                     : "¡Reservas Completadas!"}
                 </h3>
-                <p className="text-muted-foreground text-lg">
-                  {selectedSeats.length} asiento(s) reservado(s) exitosamente
-                </p>
-
                 {tripType === "departure" ? (
                   <p className="text-sm text-muted-foreground mt-4">
                     Ahora puedes proceder a reservar tu viaje de vuelta
@@ -890,7 +898,6 @@ export function ServiceDetailDialog({
                       {tripType === "departure"
                         ? "Confirmado"
                         : "Todas Confirmadas"}
-                      ({bookingData.length})
                     </Badge>
                     <p className="text-sm text-blue-600">
                       {tripType === "departure"
@@ -1351,14 +1358,11 @@ export function ServiceDetailDialog({
                 ) : (
                   <>
                     <Button
-                      onClick={handleFinish}
+                      onClick={handleClose}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
                       Finalizar
-                    </Button>
-                    <Button variant="outline" onClick={handleClose}>
-                      Cerrar
                     </Button>
                   </>
                 )}
@@ -1397,9 +1401,9 @@ export function ServiceDetailDialog({
                 <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium flex items-center gap-1 text-sm sm:text-base truncate">
-                    {tripType === "departure" ? origin : destination}
+                    {displayOrigin}
                     <ArrowRight className="h-3 w-3 opacity-60 shrink-0" />
-                    {tripType === "departure" ? destination : origin}
+                    {displayDestination}
                   </span>
                 </div>
 

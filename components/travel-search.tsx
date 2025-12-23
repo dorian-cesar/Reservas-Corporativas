@@ -91,25 +91,16 @@ export function TravelSearch() {
   // Estado para controlar si ya se reservó la ida
   const [departureBooked, setDepartureBooked] = useState(false);
 
-  // Estado para controlar si ya se intercambiaron las ciudades para la vuelta
-  const [citiesSwappedForReturn, setCitiesSwappedForReturn] = useState(false);
-
   const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
     useTravel();
   const user = useUserStore((s) => s.user);
   const loadingUser = useUserStore((s) => s.loading);
 
-  // Refs para trackear las ciudades originales de ida
-  const originalDepartureCities = useRef<{
+  // Ref para trackear las ciudades originales de ida
+  const originalCitiesRef = useRef<{
     origin: City | null;
     destination: City | null;
-  }>({
-    origin: null,
-    destination: null,
-  });
-
-  // Ref para controlar limpieza
-  const cleanupDone = useRef(false);
+  }>({ origin: null, destination: null });
 
   const getTodayLocalStart = (): Date => {
     const today = new Date();
@@ -141,57 +132,16 @@ export function TravelSearch() {
     loadCities();
   }, []);
 
-  // Guardar las ciudades originales de ida cuando se hace la búsqueda
+  // Guardar ciudades originales cuando se hace búsqueda de ida
   useEffect(() => {
-    if (
-      searchMode === "departure" &&
-      origin &&
-      destination &&
-      !originalDepartureCities.current.origin
-    ) {
-      originalDepartureCities.current = {
-        origin: origin,
-        destination: destination,
-      };
+    if (searchMode === "departure" && origin && destination) {
+      originalCitiesRef.current = { origin, destination };
+      console.log("Ciudades originales guardadas:", {
+        origin: origin.name,
+        destination: destination.name,
+      });
     }
   }, [searchMode, origin, destination]);
-
-  // Efecto para limpiar reservas antiguas cuando se inicia un nuevo viaje
-  useEffect(() => {
-    // Limpiar reservas cuando:
-    // 1. Se carga el componente por primera vez
-    // 2. Se cambia de modo de búsqueda (departure/return)
-
-    if (!cleanupDone.current) {
-      // Limpiar reservas antiguas al cargar el componente
-      localStorage.removeItem("completedBookings");
-      cleanupDone.current = true;
-      console.log("Reservas limpiadas al cargar componente");
-    }
-
-    // También limpiar cuando se desactiva ida y vuelta (se borra fecha de vuelta)
-    const handleBeforeUnload = () => {
-      localStorage.removeItem("completedBookings");
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, []);
-
-  // Efecto para limpiar cuando se cambia el modo de búsqueda
-  useEffect(() => {
-    // Cuando cambiamos a modo "departure" (nuevo viaje), limpiar reservas
-    if (searchMode === "departure" && hasSearched) {
-      // Solo limpiar si no hay reserva de ida confirmada aún
-      if (!departureBooked) {
-        localStorage.removeItem("completedBookings");
-        console.log("Reservas limpiadas al iniciar nueva búsqueda");
-      }
-    }
-  }, [searchMode, hasSearched, departureBooked]);
 
   // Escuchar evento de reserva exitosa de ida
   useEffect(() => {
@@ -199,15 +149,49 @@ export function TravelSearch() {
       setDepartureBooked(true);
 
       // Si hay fecha de vuelta seleccionada, buscar automáticamente la vuelta
-      if (selectedReturnDate && origin && destination) {
-        // Intercambiar automáticamente las ciudades para la vuelta
-        swapCitiesForReturn();
+      if (
+        selectedReturnDate &&
+        originalCitiesRef.current.origin &&
+        originalCitiesRef.current.destination
+      ) {
+        console.log("Reserva de ida exitosa - preparando búsqueda de vuelta");
 
-        // Cambiar a modo vuelta después de un breve delay
-        setTimeout(() => {
-          setSearchMode("return");
-          handleReturnSearch();
-        }, 500);
+        // Intercambiar las ciudades para la vuelta usando las ciudades originales
+        const { origin: originalOrigin, destination: originalDestination } =
+          originalCitiesRef.current;
+
+        console.log("Ciudades originales de ida:", {
+          origen: originalOrigin.name,
+          destino: originalDestination.name,
+        });
+
+        // Para la vuelta: destino de ida → origen de vuelta, origen de ida → destino de vuelta
+        setOrigin(originalDestination);
+        setDestination(originalOrigin);
+
+        console.log("Ciudades intercambiadas para vuelta:", {
+          nuevoOrigen: originalDestination.name,
+          nuevoDestino: originalOrigin.name,
+        });
+
+        // Cambiar a modo vuelta y buscar inmediatamente
+        setSearchMode("return");
+        setHasSearched(false);
+        setReturnServices([]);
+
+        // Buscar automáticamente la vuelta con las ciudades intercambiadas
+        if (returnDateString) {
+          console.log("Buscando vuelta automáticamente con:", {
+            origen: originalDestination.name,
+            destino: originalOrigin.name,
+            fecha: returnDateString,
+          });
+
+          // Llamar a búsqueda específica para vuelta
+          handleReturnSearch(originalDestination, originalOrigin);
+        } else {
+          console.log("No hay fecha de vuelta para buscar automáticamente");
+        }
       }
     };
 
@@ -216,21 +200,46 @@ export function TravelSearch() {
     return () => {
       window.removeEventListener("departureBooked", handleDepartureBooked);
     };
-  }, [selectedReturnDate, origin, destination]);
+  }, [selectedReturnDate, returnDateString]);
 
   // Escuchar evento para continuar con la vuelta (desde el modal de éxito)
   useEffect(() => {
     const handleContinueToReturn = () => {
       setDepartureBooked(true);
 
-      // Intercambiar automáticamente las ciudades al pasar a vuelta
-      if (origin && destination) {
-        swapCitiesForReturn();
+      // Intercambiar las ciudades para la vuelta usando las ciudades originales
+      if (
+        originalCitiesRef.current.origin &&
+        originalCitiesRef.current.destination
+      ) {
+        const { origin: originalOrigin, destination: originalDestination } =
+          originalCitiesRef.current;
+
+        console.log("Continuando a vuelta - intercambiando ciudades:", {
+          originalOrigin: originalOrigin.name,
+          originalDestination: originalDestination.name,
+        });
+
+        setOrigin(originalDestination);
+        setDestination(originalOrigin);
       }
 
       setSearchMode("return");
       setDepartureServices([]);
       setHasSearched(false);
+      setReturnServices([]);
+
+      // Si hay fecha de vuelta, buscar automáticamente
+      if (
+        returnDateString &&
+        originalCitiesRef.current.origin &&
+        originalCitiesRef.current.destination
+      ) {
+        const { origin: originalOrigin, destination: originalDestination } =
+          originalCitiesRef.current;
+        console.log("Buscando vuelta desde continueToReturn");
+        handleReturnSearch(originalDestination, originalOrigin);
+      }
     };
 
     window.addEventListener("continueToReturn", handleContinueToReturn);
@@ -238,64 +247,88 @@ export function TravelSearch() {
     return () => {
       window.removeEventListener("continueToReturn", handleContinueToReturn);
     };
-  }, [origin, destination]);
+  }, [returnDateString]);
 
-  // Función especial para intercambiar ciudades cuando se pasa a vuelta
-  const swapCitiesForReturn = () => {
-    if (origin && destination) {
-      // Intercambiar las ciudades
-      const temp = origin;
-      setOrigin(destination);
-      setDestination(temp);
-      setCitiesSwappedForReturn(true);
+  // Función específica para buscar vuelta
+  const handleReturnSearch = async (
+    returnOrigin: City,
+    returnDestination: City
+  ) => {
+    console.log("handleReturnSearch llamado:", {
+      origen: returnOrigin.name,
+      destino: returnDestination.name,
+      fecha: returnDateString,
+    });
+
+    if (!returnOrigin || !returnDestination || !returnDateString) {
+      console.log("Faltan datos para búsqueda de vuelta");
+      setReturnServices([]);
+      setHasSearched(true);
+      return;
+    }
+
+    setIsLoadingReturn(true);
+    setHasSearched(true);
+    setSearchError(null);
+
+    try {
+      console.log("Realizando búsqueda de vuelta en API:", {
+        origen: returnOrigin.name,
+        destino: returnDestination.name,
+        origenId: returnOrigin.id,
+        destinoId: returnDestination.id,
+        fecha: returnDateString,
+      });
+
+      const params = new URLSearchParams({
+        originId: returnOrigin.id.toString(),
+        destinationId: returnDestination.id.toString(),
+        date: returnDateString,
+      });
+
+      const url = `/api/search?${params}`;
+      console.log("URL de búsqueda de vuelta:", url);
+
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const mapped =
+        data.services?.map((s: any) => {
+          return {
+            ...s,
+            boardingFirst: getFirstTerminal(s.boarding_stages),
+            dropoffLast: getLastTerminal(s.dropoff_stages),
+          };
+        }) ?? [];
+
+      setReturnServices(mapped);
+      console.log("Servicios de vuelta encontrados:", mapped.length);
+    } catch (error) {
+      console.error("Error searching return services:", error);
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : "Error al buscar servicios de vuelta"
+      );
+      setReturnServices([]);
+    } finally {
+      setIsLoadingReturn(false);
     }
   };
 
-  // Función para restaurar las ciudades originales de ida
-  const restoreDepartureCities = () => {
-    if (
-      originalDepartureCities.current.origin &&
-      originalDepartureCities.current.destination
-    ) {
-      setOrigin(originalDepartureCities.current.origin);
-      setDestination(originalDepartureCities.current.destination);
-      setCitiesSwappedForReturn(false);
-    }
-  };
-
+  // Función para intercambiar ciudades visualmente (swap del botón)
   const swapCities = () => {
     if (origin && destination) {
       const temp = origin;
       setOrigin(destination);
       setDestination(temp);
-
-      // Actualizar el estado de intercambio
-      if (searchMode === "return") {
-        setCitiesSwappedForReturn(!citiesSwappedForReturn);
-      }
-
-      // Si ya hay resultados, intercambiar también
-      if (hasSearched && searchMode === "departure") {
-        setDepartureServices((prev) =>
-          prev.map((service) => ({
-            ...service,
-            origin_id: service.destination_id,
-            destination_id: service.origin_id,
-            boardingFirst: service.dropoffLast,
-            dropoffLast: service.boardingFirst,
-          }))
-        );
-      } else if (hasSearched && searchMode === "return") {
-        setReturnServices((prev) =>
-          prev.map((service) => ({
-            ...service,
-            origin_id: service.destination_id,
-            destination_id: service.origin_id,
-            boardingFirst: service.dropoffLast,
-            dropoffLast: service.boardingFirst,
-          }))
-        );
-      }
     } else if (origin && !destination) {
       setDestination(origin);
       setOrigin(null);
@@ -328,31 +361,53 @@ export function TravelSearch() {
   }
 
   const handleSearch = async () => {
+    console.log("handleSearch llamado en modo:", searchMode);
+
     // Validaciones según el modo de búsqueda
     if (searchMode === "departure") {
       if (!origin || !destination || !departureDateString) {
+        console.log("Faltan datos para búsqueda de ida");
         setDepartureServices([]);
         setHasSearched(true);
         return;
       }
     } else {
       if (!origin || !destination || !returnDateString) {
+        console.log("Faltan datos para búsqueda de vuelta");
         setReturnServices([]);
         setHasSearched(true);
         return;
       }
     }
 
-    setIsLoading(true);
+    // Establecer loading según el modo
+    if (searchMode === "departure") {
+      setIsLoading(true);
+    } else {
+      setIsLoadingReturn(true);
+    }
+
     setHasSearched(true);
     setSearchError(null);
 
     try {
-      // IMPORTANTE: Usar las ciudades actuales del estado
       const searchOrigin = origin;
       const searchDestination = destination;
       const searchDate =
         searchMode === "departure" ? departureDateString : returnDateString;
+
+      if (!searchOrigin || !searchDestination) {
+        throw new Error("Ciudades no definidas");
+      }
+
+      console.log("Realizando búsqueda en API:", {
+        mode: searchMode,
+        origen: searchOrigin.name,
+        destino: searchDestination.name,
+        origenId: searchOrigin.id,
+        destinoId: searchDestination.id,
+        fecha: searchDate,
+      });
 
       // Solo establecer global cuando es búsqueda de ida
       if (searchMode === "departure") {
@@ -366,7 +421,10 @@ export function TravelSearch() {
         date: searchDate,
       });
 
-      const res = await fetch(`/api/search?${params}`);
+      const url = `/api/search?${params}`;
+      console.log("URL de búsqueda:", url);
+
+      const res = await fetch(url);
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -387,8 +445,10 @@ export function TravelSearch() {
 
       if (searchMode === "departure") {
         setDepartureServices(mapped);
+        console.log("Servicios de ida encontrados:", mapped.length);
       } else {
         setReturnServices(mapped);
+        console.log("Servicios de vuelta encontrados:", mapped.length);
       }
     } catch (error) {
       console.error("Error searching services:", error);
@@ -402,7 +462,11 @@ export function TravelSearch() {
         setReturnServices([]);
       }
     } finally {
-      setIsLoading(false);
+      if (searchMode === "departure") {
+        setIsLoading(false);
+      } else {
+        setIsLoadingReturn(false);
+      }
     }
   };
 
@@ -429,9 +493,6 @@ export function TravelSearch() {
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const formattedDate = `${year}-${month}-${day}`;
       setReturnDateString(formattedDate);
-
-      // Si hay fecha de vuelta, es un viaje de ida y vuelta
-      console.log("Fecha de vuelta seleccionada:", formattedDate);
     } else {
       setReturnDateString("");
       // Si se borra la fecha de vuelta, limpiar estado de vuelta
@@ -439,89 +500,63 @@ export function TravelSearch() {
         setSearchMode("departure");
         setDepartureBooked(false);
         setReturnServices([]);
-        restoreDepartureCities();
       }
-    }
-  };
-
-  // Función para buscar la vuelta automáticamente
-  const handleReturnSearch = async () => {
-    if (!origin || !destination || !returnDateString) {
-      setReturnServices([]);
-      setHasSearched(true);
-      return;
-    }
-
-    setIsLoadingReturn(true);
-    setHasSearched(true);
-    setSearchError(null);
-
-    try {
-      const searchOrigin = origin;
-      const searchDestination = destination;
-      const searchDate = returnDateString;
-
-      const params = new URLSearchParams({
-        originId: searchOrigin.id.toString(),
-        destinationId: searchDestination.id.toString(),
-        date: searchDate,
-      });
-
-      const res = await fetch(`/api/search?${params}`);
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${res.status}`);
-      }
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      const mapped =
-        data.services?.map((s: any) => {
-          return {
-            ...s,
-            boardingFirst: getFirstTerminal(s.boarding_stages),
-            dropoffLast: getLastTerminal(s.dropoff_stages),
-          };
-        }) ?? [];
-
-      setReturnServices(mapped);
-    } catch (error) {
-      console.error("Error searching return services:", error);
-      setSearchError(
-        error instanceof Error
-          ? error.message
-          : "Error al buscar servicios de vuelta"
-      );
-      setReturnServices([]);
-    } finally {
-      setIsLoadingReturn(false);
     }
   };
 
   const handleSwitchToReturnSearch = () => {
-    // Intercambiar automáticamente las ciudades al pasar a vuelta
-    if (origin && destination) {
-      swapCitiesForReturn();
+    console.log("Usuario clickeó 'Buscar Vuelta'");
+
+    // Intercambiar las ciudades para la vuelta usando las ciudades originales
+    if (
+      originalCitiesRef.current.origin &&
+      originalCitiesRef.current.destination
+    ) {
+      const { origin: originalOrigin, destination: originalDestination } =
+        originalCitiesRef.current;
+
+      console.log("Intercambiando ciudades para búsqueda manual de vuelta:", {
+        ida: `${originalOrigin.name} → ${originalDestination.name}`,
+        vuelta: `${originalDestination.name} → ${originalOrigin.name}`,
+      });
+
+      setOrigin(originalDestination);
+      setDestination(originalOrigin);
     }
+
     setSearchMode("return");
     setReturnServices([]);
     setHasSearched(false);
 
     // Si hay fecha de vuelta, buscar automáticamente
-    if (returnDateString) {
-      handleReturnSearch();
+    if (
+      returnDateString &&
+      originalCitiesRef.current.origin &&
+      originalCitiesRef.current.destination
+    ) {
+      const { origin: originalOrigin, destination: originalDestination } =
+        originalCitiesRef.current;
+      console.log("Buscando vuelta manualmente");
+      handleReturnSearch(originalDestination, originalOrigin);
     }
   };
 
   const handleSwitchToDepartureSearch = () => {
-    // Restaurar las ciudades originales de ida
-    restoreDepartureCities();
+    console.log("Volviendo a búsqueda de ida");
+
+    // Restaurar las ciudades originales
+    if (
+      originalCitiesRef.current.origin &&
+      originalCitiesRef.current.destination
+    ) {
+      setOrigin(originalCitiesRef.current.origin);
+      setDestination(originalCitiesRef.current.destination);
+    }
 
     setSearchMode("departure");
     setDepartureServices([]);
     setHasSearched(false);
+    setDepartureBooked(false);
   };
 
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
@@ -634,7 +669,9 @@ export function TravelSearch() {
             </CardTitle>
             <CardDescription>
               {searchMode === "departure"
-                ? "Busca y reserva tu viaje de ida"
+                ? `Busca y reserva tu viaje de ida: ${
+                    origin?.name || "Origen"
+                  } → ${destination?.name || "Destino"}`
                 : `Busca y reserva tu viaje de vuelta: ${
                     origin?.name || "Origen"
                   } → ${destination?.name || "Destino"}`}
@@ -768,7 +805,7 @@ export function TravelSearch() {
                 disabled={isSearchDisabled}
                 className="flex-1 bg-accent hover:bg-accent/90"
               >
-                {isLoading ? (
+                {currentLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Buscando...
@@ -913,35 +950,6 @@ export function TravelSearch() {
                   </CardContent>
                 </Card>
               )}
-
-            {/* Mensaje si ya se reservó la ida pero no se ha buscado la vuelta */}
-            {isRoundTrip && departureBooked && searchMode === "departure" && (
-              <Card className="border-2 border-green-200 bg-green-50">
-                <CardContent className="py-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-green-800">
-                        ¡Ida reservada exitosamente!
-                      </h3>
-                      <p className="text-sm text-green-600">
-                        {returnDateString
-                          ? "Buscando automáticamente servicios de vuelta..."
-                          : "Ahora puedes buscar y reservar tu viaje de vuelta usando el botón 'Buscar Vuelta'"}
-                      </p>
-                    </div>
-                    {!returnDateString && (
-                      <Button
-                        onClick={handleSwitchToReturnSearch}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <ArrowRightLeft className="h-4 w-4 mr-2" />
-                        Buscar Vuelta
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
       </div>
