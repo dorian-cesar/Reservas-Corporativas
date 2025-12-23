@@ -73,7 +73,6 @@ export function TravelSearch() {
   );
   const [departureDateString, setDepartureDateString] = useState("");
   const [returnDateString, setReturnDateString] = useState("");
-  const [isRoundTrip, setIsRoundTrip] = useState(false);
   const [searchMode, setSearchMode] = useState<"departure" | "return">(
     "departure"
   );
@@ -120,6 +119,9 @@ export function TravelSearch() {
 
   const todayForMinDate = useMemo(() => getTodayLocalStart(), []);
 
+  // Determinar si es viaje de ida y vuelta (si hay fecha de vuelta seleccionada)
+  const isRoundTrip = selectedReturnDate !== null;
+
   useEffect(() => {
     const loadCities = async () => {
       try {
@@ -159,7 +161,6 @@ export function TravelSearch() {
     // Limpiar reservas cuando:
     // 1. Se carga el componente por primera vez
     // 2. Se cambia de modo de búsqueda (departure/return)
-    // 3. Se desactiva ida y vuelta
 
     if (!cleanupDone.current) {
       // Limpiar reservas antiguas al cargar el componente
@@ -168,7 +169,7 @@ export function TravelSearch() {
       console.log("Reservas limpiadas al cargar componente");
     }
 
-    // También limpiar cuando se desactiva ida y vuelta
+    // También limpiar cuando se desactiva ida y vuelta (se borra fecha de vuelta)
     const handleBeforeUnload = () => {
       localStorage.removeItem("completedBookings");
     };
@@ -196,6 +197,18 @@ export function TravelSearch() {
   useEffect(() => {
     const handleDepartureBooked = () => {
       setDepartureBooked(true);
+
+      // Si hay fecha de vuelta seleccionada, buscar automáticamente la vuelta
+      if (selectedReturnDate && origin && destination) {
+        // Intercambiar automáticamente las ciudades para la vuelta
+        swapCitiesForReturn();
+
+        // Cambiar a modo vuelta después de un breve delay
+        setTimeout(() => {
+          setSearchMode("return");
+          handleReturnSearch();
+        }, 500);
+      }
     };
 
     window.addEventListener("departureBooked", handleDepartureBooked);
@@ -203,7 +216,7 @@ export function TravelSearch() {
     return () => {
       window.removeEventListener("departureBooked", handleDepartureBooked);
     };
-  }, []);
+  }, [selectedReturnDate, origin, destination]);
 
   // Escuchar evento para continuar con la vuelta (desde el modal de éxito)
   useEffect(() => {
@@ -416,43 +429,89 @@ export function TravelSearch() {
       const day = String(selectedDate.getDate()).padStart(2, "0");
       const formattedDate = `${year}-${month}-${day}`;
       setReturnDateString(formattedDate);
+
+      // Si hay fecha de vuelta, es un viaje de ida y vuelta
+      console.log("Fecha de vuelta seleccionada:", formattedDate);
     } else {
       setReturnDateString("");
+      // Si se borra la fecha de vuelta, limpiar estado de vuelta
+      if (searchMode === "return") {
+        setSearchMode("departure");
+        setDepartureBooked(false);
+        setReturnServices([]);
+        restoreDepartureCities();
+      }
     }
   };
 
-  const handleRoundTripChange = (checked: boolean) => {
-    setIsRoundTrip(checked);
-    if (!checked) {
-      setSelectedReturnDate(null);
-      setReturnDateString("");
-      setSearchMode("departure");
-      setDepartureBooked(false);
+  // Función para buscar la vuelta automáticamente
+  const handleReturnSearch = async () => {
+    if (!origin || !destination || !returnDateString) {
       setReturnServices([]);
-      setCitiesSwappedForReturn(false);
+      setHasSearched(true);
+      return;
+    }
 
-      // Restaurar las ciudades originales de ida
-      restoreDepartureCities();
+    setIsLoadingReturn(true);
+    setHasSearched(true);
+    setSearchError(null);
 
-      // Limpiar reservas cuando se desactiva ida y vuelta
-      localStorage.removeItem("completedBookings");
-      console.log("Reservas limpiadas al desactivar ida y vuelta");
-    } else {
-      // Cuando se activa ida y vuelta, también limpiar reservas
-      localStorage.removeItem("completedBookings");
-      console.log("Reservas limpiadas al activar ida y vuelta");
+    try {
+      const searchOrigin = origin;
+      const searchDestination = destination;
+      const searchDate = returnDateString;
+
+      const params = new URLSearchParams({
+        originId: searchOrigin.id.toString(),
+        destinationId: searchDestination.id.toString(),
+        date: searchDate,
+      });
+
+      const res = await fetch(`/api/search?${params}`);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      const mapped =
+        data.services?.map((s: any) => {
+          return {
+            ...s,
+            boardingFirst: getFirstTerminal(s.boarding_stages),
+            dropoffLast: getLastTerminal(s.dropoff_stages),
+          };
+        }) ?? [];
+
+      setReturnServices(mapped);
+    } catch (error) {
+      console.error("Error searching return services:", error);
+      setSearchError(
+        error instanceof Error
+          ? error.message
+          : "Error al buscar servicios de vuelta"
+      );
+      setReturnServices([]);
+    } finally {
+      setIsLoadingReturn(false);
     }
   };
 
   const handleSwitchToReturnSearch = () => {
-    if (isRoundTrip && departureBooked) {
-      // Intercambiar automáticamente las ciudades al pasar a vuelta
-      if (origin && destination) {
-        swapCitiesForReturn();
-      }
-      setSearchMode("return");
-      setReturnServices([]);
-      setHasSearched(false);
+    // Intercambiar automáticamente las ciudades al pasar a vuelta
+    if (origin && destination) {
+      swapCitiesForReturn();
+    }
+    setSearchMode("return");
+    setReturnServices([]);
+    setHasSearched(false);
+
+    // Si hay fecha de vuelta, buscar automáticamente
+    if (returnDateString) {
+      handleReturnSearch();
     }
   };
 
@@ -470,7 +529,7 @@ export function TravelSearch() {
   const isSearchDisabled =
     searchMode === "departure"
       ? !origin || !destination || !departureDateString || isLoading
-      : !origin || !destination || !returnDateString || isLoading;
+      : !origin || !destination || !returnDateString || isLoadingReturn;
 
   const isSwapDisabled = !origin && !destination;
 
@@ -665,59 +724,40 @@ export function TravelSearch() {
 
               {/* FECHA IDA */}
               <div className="space-y-2">
-                <Label htmlFor="date" className="flex items-center gap-2">
+                <Label
+                  htmlFor="departure-date"
+                  className="flex items-center gap-2"
+                >
                   <Calendar className="h-4 w-4 text-secondary" />
-                  {searchMode === "departure" ? "Fecha Ida" : "Fecha Vuelta"}
+                  Fecha Ida
                 </Label>
                 <ModernDatePicker
-                  selected={
-                    searchMode === "departure"
-                      ? selectedDepartureDate
-                      : selectedReturnDate
-                  }
-                  onChange={
-                    searchMode === "departure"
-                      ? handleDepartureDateChange
-                      : handleReturnDateChange
-                  }
-                  minDate={
-                    searchMode === "departure"
-                      ? todayForMinDate
-                      : selectedDepartureDate || todayForMinDate
-                  }
-                  placeholderText={
-                    searchMode === "departure"
-                      ? "Seleccionar fecha ida"
-                      : "Seleccionar fecha vuelta"
-                  }
-                  disabled={
-                    isLoading || (searchMode === "return" && !departureBooked)
-                  }
+                  selected={selectedDepartureDate}
+                  onChange={handleDepartureDateChange}
+                  minDate={todayForMinDate}
+                  placeholderText="Seleccionar fecha ida"
+                  disabled={isLoading}
                   className="w-full"
                 />
               </div>
 
-              {/* CHECKBOX IDA Y VUELTA */}
+              {/* FECHA VUELTA (OPCIONAL) */}
               <div className="space-y-2">
-                <Label htmlFor="roundtrip" className="flex items-center gap-2">
-                  <ArrowRightLeft className="h-4 w-4 text-secondary" />
-                  Tipo de Viaje
+                <Label
+                  htmlFor="return-date"
+                  className="flex items-center gap-2"
+                >
+                  <Calendar className="h-4 w-4 text-secondary" />
+                  Fecha Vuelta (opcional)
                 </Label>
-                <div className="flex items-center space-x-2 h-10">
-                  <input
-                    type="checkbox"
-                    id="roundtrip"
-                    checked={isRoundTrip}
-                    onChange={(e) => handleRoundTripChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <label
-                    htmlFor="roundtrip"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Ida y vuelta
-                  </label>
-                </div>
+                <ModernDatePicker
+                  selected={selectedReturnDate}
+                  onChange={handleReturnDateChange}
+                  minDate={selectedDepartureDate || todayForMinDate}
+                  placeholderText="Seleccionar fecha vuelta"
+                  disabled={isLoading}
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -754,7 +794,7 @@ export function TravelSearch() {
                 </Button>
               )}
 
-              {isRoundTrip && searchMode === "return" && (
+              {searchMode === "return" && (
                 <Button
                   onClick={handleSwitchToDepartureSearch}
                   variant="outline"
@@ -884,17 +924,20 @@ export function TravelSearch() {
                         ¡Ida reservada exitosamente!
                       </h3>
                       <p className="text-sm text-green-600">
-                        Ahora puedes buscar y reservar tu viaje de vuelta usando
-                        el botón "Buscar Vuelta"
+                        {returnDateString
+                          ? "Buscando automáticamente servicios de vuelta..."
+                          : "Ahora puedes buscar y reservar tu viaje de vuelta usando el botón 'Buscar Vuelta'"}
                       </p>
                     </div>
-                    <Button
-                      onClick={handleSwitchToReturnSearch}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Buscar Vuelta
-                    </Button>
+                    {!returnDateString && (
+                      <Button
+                        onClick={handleSwitchToReturnSearch}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        Buscar Vuelta
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Bus,
   ArrowRight,
-  ArrowLeft,
 } from "lucide-react";
 import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 import { useTravel } from "@/components/context/travel-context";
@@ -120,11 +119,7 @@ export function BusServiceCard({
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 {displayOrigin}
-                {tripType === "departure" ? (
-                  <ArrowRight className="h-3 w-3 block opacity-50" />
-                ) : (
-                  <ArrowLeft className="h-3 w-3 block opacity-50" />
-                )}
+                <ArrowRight className="h-3 w-3 block opacity-50" />
                 {displayDestination}
               </div>
 
@@ -135,13 +130,7 @@ export function BusServiceCard({
                     {service.boardingFirst || "—"}
                   </span>
                 </div>
-
-                {tripType === "departure" ? (
-                  <ArrowRight className="h-3 w-3 hidden sm:block opacity-50" />
-                ) : (
-                  <ArrowLeft className="h-3 w-3 hidden sm:block opacity-50" />
-                )}
-
+                <ArrowRight className="h-3 w-3 hidden sm:block opacity-50" />
                 <div className="flex items-center gap-1">
                   <span className="font-semibold">Llegada:</span>
                   <span className="text-muted-foreground">
