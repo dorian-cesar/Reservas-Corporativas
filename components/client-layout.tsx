@@ -11,7 +11,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideLayout = pathname === "/login" || pathname === "/unauthorized";
+  const hideLayout = pathname === "/login" || pathname === "/unauthorized" || pathname === "/verify-otp";
 
   return (
     <TravelProvider>

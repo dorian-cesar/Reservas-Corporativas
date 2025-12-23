@@ -37,7 +37,12 @@ export default function LoginPage() {
       const result = await login(email, password);
 
       if (!result.success) {
-        setError(result.message ?? "Error desconocido");
+        setError(result.message ?? "Error");
+        return;
+      }
+
+      if (result.requiresVerification) {
+        router.push("/verify-otp");
         return;
       }
 

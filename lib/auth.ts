@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 export type UserRole =
   | "superuser"
@@ -31,12 +32,33 @@ export interface AuthState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
+  requiresVerification: boolean;
+  pendingUserId: number | null;
+  pendingUserEmail: string | null;
+  verificationEmailSent: boolean;
+
   _hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
+
   login: (
     email: string,
     password: string
+  ) => Promise<{
+    success: boolean;
+    requiresVerification?: boolean;
+    message?: string;
+  }>;
+
+  verifyOtp: (
+    code: string
   ) => Promise<{ success: boolean; message?: string }>;
+
+  resendOtp: () => Promise<{ success: boolean; message?: string }>;
+
+  setPendingUserEmail: (email: string | null) => void;
+
+  clearVerificationState: () => void;
+
   logout: () => void;
   getToken: () => string | null;
 }
@@ -51,81 +73,19 @@ export interface TokenPayload {
   centro_costo_id?: number;
 }
 
-export const useTokenExpiration = (
-  checkInterval: number = 30_000,
-  logoutThresholdMs: number = 15 * 60 * 1000
-) => {
-  const { token, logout, getToken } = useAuth();
-
-  useEffect(() => {
-    let mounted = true;
-
-    const getCurrentToken = () => {
-      try {
-        return getToken ? getToken() : token;
-      } catch {
-        return token;
-      }
-    };
-
-    const decodeTokenSafe = (t: string | null) => {
-      if (!t) return null;
-      try {
-        const payloadB64 = t.split(".")[1];
-        if (!payloadB64) return null;
-        const json =
-          typeof window !== "undefined"
-            ? atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"))
-            : Buffer.from(payloadB64, "base64").toString("utf8");
-        return JSON.parse(json) as { exp?: number };
-      } catch (e) {
-        console.error("decode token error", e);
-        return null;
-      }
-    };
-
-    const checkToken = () => {
-      if (!mounted) return;
-      const t = getCurrentToken();
-      if (!t) {
-        return;
-      }
-
-      const payload = decodeTokenSafe(t);
-      if (!payload || !payload.exp) {
-        logout();
-        return;
-      }
-
-      const expirationMs = payload.exp * 1000;
-      const now = Date.now();
-      const msLeft = expirationMs - now;
-
-      if (msLeft <= 0 || msLeft < logoutThresholdMs) {
-        logout();
-      }
-    };
-
-    checkToken();
-    const id = setInterval(checkToken, checkInterval);
-
-    return () => {
-      mounted = false;
-      clearInterval(id);
-    };
-  }, [token, logout, getToken, checkInterval, logoutThresholdMs]);
-};
-
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => ({
       token: null,
       user: null,
       isAuthenticated: false,
+      requiresVerification: false,
+      pendingUserId: null,
+      pendingUserEmail: null,
+      verificationEmailSent: false,
+
       _hasHydrated: false,
-      setHasHydrated: (state) => {
-        set({ _hasHydrated: state });
-      },
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       login: async (email: string, password: string) => {
         try {
@@ -135,30 +95,38 @@ export const useAuth = create<AuthState>()(
             body: JSON.stringify({ email, password }),
           });
 
-          const data = await res.json().catch(() => ({}));
+          const data = await res.json();
 
           if (!res.ok) {
-            return {
-              success: false,
-              message: data.message || "Error al iniciar sesión",
-            };
+            return { success: false, message: data.message };
           }
 
-          const token = data.token ?? null;
-          const rawUser = data.user ?? null;
+          if (data.requiresVerification) {
+            set({
+              requiresVerification: true,
+              pendingUserId: data.userId,
+              pendingUserEmail: data.user?.email || email,
+              verificationEmailSent: true,
+              user: {
+                id: String(data.user.id),
+                email: data.user.email,
+                name: data.user.nombre,
+                role: data.user.rol,
+              },
+            });
 
-          if (!token || !rawUser) {
             return {
-              success: false,
-              message: "Respuesta inválida del servidor",
+              success: true,
+              requiresVerification: true,
+              message: "Código de verificación enviado"
             };
           }
 
           const user: User = {
-            id: String(rawUser.id),
-            email: rawUser.email,
-            name: rawUser.nombre,
-            role: (rawUser.rol?.trim() || "user") as UserRole,
+            id: String(data.user.id),
+            email: data.user.email,
+            name: data.user.nombre,
+            role: data.user.rol,
             companyId: data.empresa ? String(data.empresa.id) : undefined,
             companyName: data.empresa?.nombre,
             companyEstado: data.empresa?.estado,
@@ -171,85 +139,212 @@ export const useAuth = create<AuthState>()(
             centroCostoEstado: data.centroCosto?.estado,
           };
 
-          set({ token, user, isAuthenticated: true });
+          set({
+            token: data.token,
+            user,
+            isAuthenticated: true,
+            requiresVerification: false,
+            pendingUserId: null,
+            pendingUserEmail: null,
+            verificationEmailSent: false,
+          });
 
-          return { success: true };
+          return { success: true, message: "Login exitoso" };
         } catch (err) {
           console.error("login error:", err);
-          return {
-            success: false,
-            message: "No hay conexión con el servidor",
-          };
+          return { success: false, message: "No hay conexión con el servidor" };
         }
       },
 
-      logout: () => {
-        set({ token: null, user: null, isAuthenticated: false });
+      verifyOtp: async (code: string) => {
+        const { pendingUserId } = get();
+        if (!pendingUserId) {
+          return { success: false, message: "No hay verificación pendiente" };
+        }
+
+        try {
+          const res = await fetch("/api/auth/verify-2fa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: pendingUserId, code }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            return { success: false, message: data.message };
+          }
+
+          const user: User = {
+            id: String(data.user.id),
+            email: data.user.email,
+            name: data.user.nombre,
+            role: data.user.rol,
+            companyId: data.empresa ? String(data.empresa.id) : undefined,
+            companyName: data.empresa?.nombre,
+            companyEstado: data.empresa?.estado,
+            companyRecargo: data.empresa?.recargo,
+            companyPorcentajeDevolucion: data.empresa?.porcentaje_devolucion,
+            centroCostoId: data.centroCosto
+              ? String(data.centroCosto.id)
+              : undefined,
+            centroCostoName: data.centroCosto?.nombre,
+            centroCostoEstado: data.centroCosto?.estado,
+          };
+
+          set({
+            token: data.token,
+            user,
+            isAuthenticated: true,
+            requiresVerification: false,
+            pendingUserId: null,
+            pendingUserEmail: null,
+            verificationEmailSent: false,
+          });
+
+          return { success: true, message: "Verificación exitosa" };
+        } catch {
+          return { success: false, message: "Error verificando código" };
+        }
       },
 
-      getToken: () => {
-        return get().token ?? null;
+      resendOtp: async () => {
+        const { pendingUserId } = get();
+        if (!pendingUserId) {
+          return { success: false, message: "No hay verificación pendiente" };
+        }
+
+        try {
+          const res = await fetch("/api/auth/resend-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: pendingUserId }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            return { success: false, message: data.message };
+          }
+
+          set({
+            verificationEmailSent: true,
+          });
+
+          return { success: true, message: data.message || "Código reenviado" };
+        } catch {
+          return { success: false, message: "Error al reenviar código" };
+        }
       },
+
+      setPendingUserEmail: (email: string | null) => {
+        set({ pendingUserEmail: email });
+      },
+
+      clearVerificationState: () => {
+        set({
+          requiresVerification: false,
+          pendingUserId: null,
+          pendingUserEmail: null,
+          verificationEmailSent: false,
+        });
+      },
+
+      logout: () => {
+        set({
+          token: null,
+          user: null,
+          isAuthenticated: false,
+          requiresVerification: false,
+          pendingUserId: null,
+          pendingUserEmail: null,
+          verificationEmailSent: false,
+        });
+      },
+
+      getToken: () => get().token,
     }),
     {
       name: "auth-storage",
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        _hasHydrated: state._hasHydrated,
+        // No persistimos los estados temporales de verificación
+      }),
     }
   )
 );
 
-export const useAuthHydration = () => {
-  return useAuth((state) => state._hasHydrated);
+export const useTokenExpiration = (
+  checkInterval = 30_000,
+  logoutThresholdMs = 15 * 60 * 1000
+) => {
+  const { token, logout, getToken } = useAuth();
+
+  useEffect(() => {
+    const decode = (t: string | null) => {
+      if (!t) return null;
+      try {
+        return JSON.parse(atob(t.split(".")[1])) as { exp?: number };
+      } catch {
+        return null;
+      }
+    };
+
+    const check = () => {
+      const t = getToken();
+      if (!t) return;
+
+      const payload = decode(t);
+      if (!payload?.exp) return logout();
+
+      const msLeft = payload.exp * 1000 - Date.now();
+      if (msLeft <= 0 || msLeft < logoutThresholdMs) logout();
+    };
+
+    check();
+    const id = setInterval(check, checkInterval);
+    return () => clearInterval(id);
+  }, [token, logout, getToken, checkInterval, logoutThresholdMs]);
 };
 
-export const decodeToken = (token: string | null): TokenPayload | null => {
-  if (!token) return null;
+export const useAuthHydration = () =>
+  useAuth((state) => state._hasHydrated);
 
-  try {
-    // Los tokens JWT tienen 3 partes separadas por puntos: header.payload.signature
-    const payload = token.split(".")[1];
+// Hook adicional para facilitar el uso
+export const useVerificationState = () => {
+  const requiresVerification = useAuth((state) => state.requiresVerification);
+  const pendingUserId = useAuth((state) => state.pendingUserId);
+  const pendingUserEmail = useAuth((state) => state.pendingUserEmail);
+  const verificationEmailSent = useAuth((state) => state.verificationEmailSent);
+  const clearVerificationState = useAuth((state) => state.clearVerificationState);
+  const resendOtp = useAuth((state) => state.resendOtp);
 
-    const decodedPayload = JSON.parse(
-      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
-    ) as TokenPayload;
-
-    return decodedPayload;
-  } catch (error) {
-    console.error("Error decoding token:", error);
-    return null;
-  }
+  return {
+    requiresVerification,
+    pendingUserId,
+    pendingUserEmail,
+    verificationEmailSent,
+    clearVerificationState,
+    resendOtp,
+  };
 };
 
-export const getTokenExpirationTime = (token: string | null): number | null => {
-  const payload = decodeToken(token);
-  if (!payload || !payload.exp) return null;
+// Hook para proteger rutas que requieren verificación
+export const useRequireAuth = (redirectTo = "/login") => {
+  const { isAuthenticated, _hasHydrated } = useAuth();
+  const router = useRouter();
 
-  const expirationTime = payload.exp * 1000;
-  const currentTime = Date.now();
+  useEffect(() => {
+    if (_hasHydrated && !isAuthenticated) {
+      router.push(redirectTo);
+    }
+  }, [isAuthenticated, _hasHydrated, router, redirectTo]);
 
-  return expirationTime - currentTime;
-};
-
-export const isTokenExpired = (token: string | null): boolean => {
-  const timeRemaining = getTokenExpirationTime(token);
-  return timeRemaining !== null && timeRemaining <= 0;
-};
-
-export const getTokenTimeRemaining = (token: string | null): string => {
-  const timeRemaining = getTokenExpirationTime(token);
-
-  if (timeRemaining === null) return "Token inválido";
-  if (timeRemaining <= 0) return "Token expirado";
-
-  const minutes = Math.floor(timeRemaining / (1000 * 60));
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${remainingMinutes}m`;
-  }
-
-  return `${minutes}m`;
+  return { isAuthenticated, hasHydrated: _hasHydrated };
 };
