@@ -24,6 +24,7 @@ import {
   ArrowRight,
   X,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -39,6 +40,7 @@ interface ServiceDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   terminalOrigen: string | null;
   terminalDestino: string | null;
+  tripType?: "departure" | "return";
 }
 
 interface PassengerData {
@@ -54,6 +56,7 @@ export function ServiceDetailDialog({
   onOpenChange,
   terminalOrigen,
   terminalDestino,
+  tripType = "departure",
 }: ServiceDetailDialogProps) {
   const { user } = useUserStore();
   const { token } = useAuth();
@@ -157,6 +160,9 @@ export function ServiceDetailDialog({
       setError(null);
       setDisponibilidadVerificada(false);
       setPassengersData([]);
+      setSuccess(false);
+      setBookingData([]);
+      setBookingError(null);
     }
   }, [open, serviceId]);
 
@@ -657,17 +663,51 @@ export function ServiceDetailDialog({
         });
       }
 
+      // Guardar esta reserva
+      const currentBooking = {
+        tripType,
+        origin: tripType === "departure" ? origin : destination,
+        destination: tripType === "departure" ? destination : origin,
+        date: serviceDetail.travel_date,
+        dep_time: serviceDetail.dep_time,
+        arr_time: serviceDetail.arr_time,
+        travel_name: serviceDetail.travels_name,
+        seats: selectedSeats,
+        passengers: passengersData.map((p) => p.passenger),
+        totalPrice: getTotalPrice(),
+        pnrNumbers: confirmations.map((c) => c.operatorPnr),
+        ticketNumbers: confirmations.map((c) => c.ticketNumber),
+        terminalOrigen,
+        terminalDestino,
+        bookingData: confirmations,
+      };
+
+      // Guardar en localStorage
+      const storedBookings = JSON.parse(
+        localStorage.getItem("completedBookings") || "[]"
+      );
+      storedBookings.push(currentBooking);
+      localStorage.setItem("completedBookings", JSON.stringify(storedBookings));
+
+      // Disparar eventos según el tipo de viaje
+      if (tripType === "departure") {
+        // Evento para notificar que la ida fue reservada
+        window.dispatchEvent(new CustomEvent("departureBooked"));
+        // Evento para nueva reserva
+        window.dispatchEvent(new Event("newBooking"));
+      } else {
+        // Evento para nueva reserva (vuelta)
+        window.dispatchEvent(new Event("newBooking"));
+      }
+
       setBookingData(confirmations);
       markSeatsAsUnavailable(selectedSeats);
       setSuccess(true);
 
-      bookingTimeoutRef.current = setTimeout(() => {
-        setSuccess(false);
-        setSelectedSeats([]);
-        setBookingData([]);
-        setPassengersData([]);
-        onOpenChange(false);
-      }, 15000);
+      // No cerrar automáticamente
+      if (bookingTimeoutRef.current) {
+        clearTimeout(bookingTimeoutRef.current);
+      }
     } catch (err) {
       console.error("Error inesperado:", err);
       setBookingError(
@@ -680,13 +720,38 @@ export function ServiceDetailDialog({
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (bookingTimeoutRef.current) {
-        clearTimeout(bookingTimeoutRef.current);
-      }
-    };
-  }, []);
+  const handleContinueToReturn = () => {
+    setSuccess(false);
+    setSelectedSeats([]);
+    setBookingData([]);
+    setPassengersData([]);
+    onOpenChange(false);
+
+    // Disparar evento para continuar con la vuelta
+    window.dispatchEvent(new CustomEvent("continueToReturn"));
+  };
+
+  const handleFinish = () => {
+    setSuccess(false);
+    setSelectedSeats([]);
+    setBookingData([]);
+    setPassengersData([]);
+    onOpenChange(false);
+
+    // Si es la vuelta, mostrar resumen final
+    if (tripType === "return") {
+      const event = new CustomEvent("showBookingSummary");
+      window.dispatchEvent(event);
+    }
+  };
+
+  const handleClose = () => {
+    setSuccess(false);
+    setSelectedSeats([]);
+    setBookingData([]);
+    setPassengersData([]);
+    onOpenChange(false);
+  };
 
   const availableSeats = parseSeats();
   const occupiedSeats = getOccupiedSeats();
@@ -723,11 +788,6 @@ export function ServiceDetailDialog({
     if (!state && success) {
       if (bookingTimeoutRef.current) {
         clearTimeout(bookingTimeoutRef.current);
-        setSuccess(false);
-        setSelectedSeats([]);
-        setBookingData([]);
-        setPassengersData([]);
-        bookingTimeoutRef.current = null;
       }
       onOpenChange(false);
       return;
@@ -755,12 +815,16 @@ export function ServiceDetailDialog({
       >
         {!success && (
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">
+            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
               Detalles del Servicio
+              <Badge variant="outline">
+                {tripType === "departure" ? "Viaje de Ida" : "Viaje de Vuelta"}
+              </Badge>
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              Revisa los detalles completos y selecciona hasta {MAX_SEATS}{" "}
-              asientos
+              {tripType === "departure"
+                ? `Paso 1 de 2: Reserva tu viaje de ida`
+                : `Paso 2 de 2: Reserva tu viaje de vuelta`}
             </DialogDescription>
           </DialogHeader>
         )}
@@ -778,30 +842,44 @@ export function ServiceDetailDialog({
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 bg-orange-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-20 w-20 text-orange-500 relative z-10" />
+                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
+                <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-blue-600">
-                  Reservas Confirmadas
+                <h3 className="text-2xl font-bold text-green-600">
+                  {tripType === "departure"
+                    ? "¡Viaje de Ida Reservado!"
+                    : "¡Viaje de Vuelta Reservado!"}
                 </h3>
                 <p className="text-muted-foreground text-lg">
-                  ¡{selectedSeats.length} asiento(s) han sido reservado(s)!
+                  {selectedSeats.length} asiento(s) reservado(s) exitosamente
                 </p>
+
+                {tripType === "departure" ? (
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Ahora puedes proceder a reservar tu viaje de vuelta
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-4">
+                    ¡Reserva completada! Ambas reservas han sido confirmadas
+                  </p>
+                )}
               </div>
 
               {bookingData.length > 0 && (
-                <div className="w-full max-w-2xl bg-linear-to-br from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-6 shadow-lg">
+                <div className="w-full max-w-2xl bg-linear-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 shadow-lg">
                   <div className="text-center mb-4">
                     <Badge
                       variant="outline"
-                      className="bg-blue-500 text-white border-blue-600 mb-2"
+                      className="bg-green-500 text-white border-green-600 mb-2"
                     >
                       Confirmado ({bookingData.length})
                     </Badge>
-                    <p className="text-sm text-blue-600">
-                      Reservas realizadas exitosamente
+                    <p className="text-sm text-green-600">
+                      {tripType === "departure"
+                        ? "Reserva de ida exitosa"
+                        : "Reserva de vuelta exitosa"}
                     </p>
                   </div>
 
@@ -809,11 +887,11 @@ export function ServiceDetailDialog({
                     {bookingData.map((booking, index) => (
                       <div
                         key={index}
-                        className="p-4 bg-white rounded-lg border border-blue-100"
+                        className="p-4 bg-white rounded-lg border border-green-100"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-bold text-blue-800">
+                            <h4 className="font-bold text-green-800">
                               {booking.passenger?.nombre || "Pasajero"}
                             </h4>
                             <p className="text-xs text-muted-foreground">
@@ -839,7 +917,7 @@ export function ServiceDetailDialog({
                             <span className="text-muted-foreground">
                               Precio:
                             </span>
-                            <p className="font-bold text-blue-700">
+                            <p className="font-bold text-green-700">
                               ${booking.monto_boleto.toLocaleString("es-CL")}
                             </p>
                           </div>
@@ -848,12 +926,12 @@ export function ServiceDetailDialog({
                     ))}
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-blue-200">
+                  <div className="mt-6 pt-4 border-t border-green-200">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-muted-foreground">
                         Total reservas:
                       </span>
-                      <span className="text-lg font-bold text-blue-700">
+                      <span className="text-lg font-bold text-green-700">
                         {bookingData.length} asiento(s)
                       </span>
                     </div>
@@ -861,7 +939,7 @@ export function ServiceDetailDialog({
                       <span className="text-sm font-medium text-muted-foreground">
                         Monto total:
                       </span>
-                      <span className="text-xl font-bold text-blue-700">
+                      <span className="text-xl font-bold text-green-700">
                         $
                         {bookingData
                           .reduce(
@@ -872,21 +950,37 @@ export function ServiceDetailDialog({
                       </span>
                     </div>
                   </div>
-
-                  <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 text-center">
-                      Los pasajeros recibirán un email de confirmación con los
-                      detalles de su reserva
-                    </p>
-                  </div>
                 </div>
               )}
 
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-600">
-                  Esta ventana se cerrará automáticamente en{" "}
-                  <span className="font-bold">15 segundos</span>
-                </p>
+              <div className="flex gap-4 mt-6">
+                {tripType === "departure" ? (
+                  <>
+                    <Button
+                      onClick={handleContinueToReturn}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Continuar con la Vuelta
+                    </Button>
+                    <Button variant="outline" onClick={handleClose}>
+                      Cerrar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      onClick={handleFinish}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Ver Resumen Completo
+                    </Button>
+                    <Button variant="outline" onClick={handleClose}>
+                      Cerrar
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -922,9 +1016,9 @@ export function ServiceDetailDialog({
                 <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium flex items-center gap-1 text-sm sm:text-base truncate">
-                    {origin}
+                    {tripType === "departure" ? origin : destination}
                     <ArrowRight className="h-3 w-3 opacity-60 shrink-0" />
-                    {destination}
+                    {tripType === "departure" ? destination : origin}
                   </span>
                 </div>
 
@@ -1126,11 +1220,12 @@ export function ServiceDetailDialog({
             <DialogFooter className="gap-2 flex-col sm:flex-row">
               <Button
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 disabled={loading}
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
-                Cancelar
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
               </Button>
               <Button
                 onClick={handleBooking}
@@ -1149,7 +1244,9 @@ export function ServiceDetailDialog({
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Confirmar {selectedSeats.length} Reserva(s)
+                    {tripType === "departure"
+                      ? `Confirmar Ida (${selectedSeats.length} asiento(s))`
+                      : `Confirmar Vuelta (${selectedSeats.length} asiento(s))`}
                   </>
                 )}
               </Button>

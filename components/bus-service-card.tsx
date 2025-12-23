@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Bus,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 import { useTravel } from "@/components/context/travel-context";
@@ -50,9 +51,13 @@ interface BusService {
 
 interface BusServiceCardProps {
   service: BusService;
+  tripType?: "departure" | "return";
 }
 
-export function BusServiceCard({ service }: BusServiceCardProps) {
+export function BusServiceCard({
+  service,
+  tripType = "departure",
+}: BusServiceCardProps) {
   const [showServiceDetail, setShowServiceDetail] = useState(false);
   const availabilityPercentage =
     (service.available_seats / service.total_seats) * 100;
@@ -64,6 +69,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
     if (availabilityPercentage < 30) return "secondary";
     return "default";
   };
+
   const getMainBusType = (busType: string | null | undefined): string => {
     if (!busType) return "";
     const parts = busType.split(",").map((p) => p.trim());
@@ -94,6 +100,10 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
   }
   const precioFinal = Math.round(costoBase * (1 + recargo / 100));
 
+  // Determinar el origen y destino basado en el tipo de viaje
+  const displayOrigin = tripType === "departure" ? origin : destination;
+  const displayDestination = tripType === "departure" ? destination : origin;
+
   return (
     <>
       <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg gap-0">
@@ -103,13 +113,19 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
               <div className="flex items-center gap-2">
                 <Bus className="h-5 w-5 text-primary" />
                 <span className="font-bold text-lg">{service.travel_name}</span>
+                <Badge variant="outline" className="ml-2">
+                  {tripType === "departure" ? "Ida" : "Vuelta"}
+                </Badge>
               </div>
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
-                {
-                  origin
-                } <ArrowRight className="h-3 w-3 block opacity-50" />{" "}
-                {destination}
+                {displayOrigin}
+                {tripType === "departure" ? (
+                  <ArrowRight className="h-3 w-3 block opacity-50" />
+                ) : (
+                  <ArrowLeft className="h-3 w-3 block opacity-50" />
+                )}
+                {displayDestination}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-muted-foreground">
@@ -120,7 +136,11 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
                   </span>
                 </div>
 
-                <ArrowRight className="h-3 w-3 hidden sm:block opacity-50" />
+                {tripType === "departure" ? (
+                  <ArrowRight className="h-3 w-3 hidden sm:block opacity-50" />
+                ) : (
+                  <ArrowLeft className="h-3 w-3 hidden sm:block opacity-50" />
+                )}
 
                 <div className="flex items-center gap-1">
                   <span className="font-semibold">Llegada:</span>
@@ -233,6 +253,7 @@ export function BusServiceCard({ service }: BusServiceCardProps) {
         onOpenChange={setShowServiceDetail}
         terminalOrigen={service.boardingFirst}
         terminalDestino={service.dropoffLast}
+        tripType={tripType}
       />
     </>
   );
