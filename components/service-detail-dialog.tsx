@@ -33,6 +33,7 @@ import type { ServiceDetail, Seat } from "@/types/service-detail";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
 import Swal from "sweetalert2";
+import { BUILD_ID_FILE } from "next/dist/shared/lib/constants";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -758,6 +759,7 @@ export function ServiceDetailDialog({
           id_centro_costo: booking.passenger.id_centro_costo || null,
           terminal_origen: terminalOrigen,
           terminal_destino: terminalDestino,
+          // id_empresa: user?.companyId || null,
         };
 
         try {

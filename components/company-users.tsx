@@ -27,7 +27,8 @@ import {
   Table,
   LayoutGrid,
   Badge,
-  FolderTree
+  FolderTree,
+  Upload
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -41,7 +42,7 @@ import {
 import ToolBar from "./tool-bar";
 
 export function CompanyUsers() {
-  const { token } = useAuth.getState();
+  const { user, token } = useAuth.getState();
   const [users, setUsers] = useState<User[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -50,6 +51,11 @@ export function CompanyUsers() {
   const [costCenters, setCostCenters] = useState<{ id: string; nombre: string; empresa_id: string }[]>([]);
   const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -75,6 +81,10 @@ export function CompanyUsers() {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast()
+
+  const [superUser, setSuperUser] = useState(false);
+
+  useEffect(() => { setSuperUser(user?.role === "superuser") }, []);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -371,36 +381,52 @@ export function CompanyUsers() {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    const user = users.find((u) => u.id.toString() === userId);
-    if (!user) return;
+  const sendCSV = () => {
+    resetCSVModal();
+    setCsvModalOpen(true);
+  };
 
-    if (!confirm(`¿Está seguro que desea eliminar a ${user.nombre}?`)) return;
+  const handleUploadCSV = async () => {
+    if (!csvFile) {
+      alert("Selecciona un archivo CSV");
+      return;
+    }
 
     try {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "DELETE",
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", csvFile);
+
+      const response = await fetch("/api/csv/users", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        body: formData,
       });
 
-      if (!res.ok) throw new Error("Error al eliminar usuario");
+      if (!response.ok) {
+        throw new Error("Error al subir el CSV");
+      }
 
-      setUsers(users.filter((u) => u.id.toString() !== userId));
-      toast({
-        title: "Usuario eliminado",
-        description: `${user.nombre} ha sido eliminado exitosamente`,
-      });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el usuario",
-        variant: "destructive",
-      });
+      const data = await response.json();
+      setResult(data);
+      console.log("Resultado CSV:", data);
+
+    } catch (err: any) {
+      alert(err.message || "Error inesperado");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const resetCSVModal = () => {
+    setCsvFile(null);
+    setResult(null);
+    setLoading(false);
+  };
+
 
   const openEditDialog = async (user: User) => {
     setSelectedUser(user);
@@ -503,6 +529,15 @@ export function CompanyUsers() {
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
         }}
+        secondaryAction={
+          user?.role === "superuser"
+            ? {
+              label: "Subir CSV",
+              icon: <Upload className="h-4 w-4" />,
+              onClick: sendCSV,
+            }
+            : undefined
+        }
       />
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
@@ -998,7 +1033,6 @@ export function CompanyUsers() {
       )}
 
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1118,6 +1152,76 @@ export function CompanyUsers() {
             </Button>
             <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
               Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={csvModalOpen}
+        onOpenChange={(open) => {
+          setCsvModalOpen(open);
+          if (!open) {
+            resetCSVModal();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar usuarios desde CSV</DialogTitle>
+            <DialogDescription>
+              Sube un archivo CSV con las columnas indicadas abajo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium mr-5">Archivo CSV</label>
+            <input
+              key={csvModalOpen ? "open" : "closed"}
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+              className="border border-gray-300 rounded-lg py-2 px-2 cursor-pointer"
+            />
+          </div>
+
+          <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+            <p className="font-medium mb-2">Ejemplo de CSV:</p>
+            <pre className="text-xs overflow-x-auto">
+              {`nombre,rut,email,rol,empresa_id,centro_costo_id,estado`}
+            </pre>
+          </div>
+          {result && (
+            <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+              <p>
+                <strong>Usuarios cargados:</strong> {result.result?.success}
+              </p>
+
+              {result.result?.errors?.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium text-red-600">
+                    Errores:
+                  </p>
+                  <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
+                    {result.result.errors.map((e: string, i: number) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setCsvModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleUploadCSV} disabled={loading || !csvFile}>
+              <Upload className="h-4 w-4 mr-2" />
+              {loading ? "Enviando..." : "Enviar CSV"}
             </Button>
           </DialogFooter>
         </DialogContent>

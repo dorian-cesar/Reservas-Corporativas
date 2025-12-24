@@ -13,41 +13,10 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideLayout = pathname === "/login" || pathname === "/unauthorized";
-  const [showSummary, setShowSummary] = useState(false);
-  const [hasBookings, setHasBookings] = useState(false);
-
-  useEffect(() => {
-    // Verificar si hay reservas pendientes
-    const checkBookings = () => {
-      const storedBookings = JSON.parse(
-        localStorage.getItem("completedBookings") || "[]"
-      );
-      setHasBookings(storedBookings.length > 0);
-    };
-
-    // Escuchar eventos para mostrar el resumen
-    const handleShowSummary = () => {
-      setShowSummary(true);
-    };
-
-    // Escuchar eventos de nueva reserva
-    const handleNewBooking = () => {
-      checkBookings();
-    };
-
-    // Verificar inicialmente
-    checkBookings();
-
-    // Agregar listeners
-    window.addEventListener("showBookingSummary", handleShowSummary);
-    window.addEventListener("newBooking", handleNewBooking);
-
-    return () => {
-      window.removeEventListener("showBookingSummary", handleShowSummary);
-      window.removeEventListener("newBooking", handleNewBooking);
-    };
-  }, []);
+  const hideLayout =
+    pathname === "/login" ||
+    pathname === "/unauthorized" ||
+    pathname === "/verify-otp";
 
   return (
     <TravelProvider>

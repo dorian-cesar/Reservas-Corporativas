@@ -25,7 +25,8 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  Building2
+  Building2,
+  Loader2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -36,6 +37,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import Swal from "sweetalert2";
+
 
 import * as XLSX from "xlsx";
 import ToolBarAdmin from "../ToolBarAdmin";
@@ -53,6 +56,8 @@ export function AdminBookings() {
   const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -63,11 +68,39 @@ export function AdminBookings() {
     hasPrevPage: false,
   });
 
+  const swalConfig = {
+    customClass: {
+      container: "swal-container",
+      popup:
+        "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
+      header: "swal-header",
+      title: "swal-title text-foreground font-bold text-xl",
+      closeButton: "swal-close",
+      icon: "swal-icon",
+      image: "swal-image",
+      content: "swal-content text-foreground",
+      htmlContainer: "swal-html-container text-foreground",
+      input: "swal-input",
+      inputLabel: "swal-input-label",
+      validationMessage: "swal-validation-message",
+      actions: "swal-actions gap-3",
+      confirmButton:
+        "swal-confirm-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-destructive/80 text-destructive-foreground hover:bg-destructive h-10 py-2 px-4 cursor-pointer",
+      cancelButton:
+        "swal-cancel-btn inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-accent hover:text-accent-foreground h-10 py-2 px-4 cursor-pointer",
+      footer: "swal-footer",
+    },
+    buttonsStyling: false,
+    reverseButtons: true,
+  };
+
+
   const { toast } = useToast();
 
   type Ticket = {
     id: number;
     ticketNumber: string;
+    pnrNumber?: string;
     ticketStatus: "Confirmed" | "Anulado" | string;
     origin: string;
     destination: string;
@@ -270,14 +303,15 @@ export function AdminBookings() {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateOnly = (dateString?: string) => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString('es-AR');
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString?: string) => {
     if (!dateString) return "—";
-    return new Date(dateString).toLocaleString('es-AR');
+    return new Date(dateString).toLocaleDateString("es-CL");
   };
 
   const getStatusBadge = (status: string) => {
@@ -416,6 +450,250 @@ export function AdminBookings() {
       title: "Exportación exitosa",
       description: `Se exportaron ${ticketsToExport.length} tickets a XLSX`,
     });
+  };
+
+  const calculateRefundAmount = (monto_boleto: number): number => {
+    const refundPercentage = Number(user?.companyPorcentajeDevolucion) || 0;
+    const amount = monto_boleto * refundPercentage;
+    return Math.round(amount);
+  };
+
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
+    }).format(price);
+
+  const handleCancelBooking = async (ticket: Ticket) => {
+    if (!canCancelBooking(ticket)) {
+      Swal.fire({
+        icon: "warning",
+        title: "No es posible anular la reserva",
+        html: `
+          <p class="text-foreground mb-2">Solo puedes anular una reserva hasta 4 horas antes de la salida.</p>
+          <p class="text-sm text-muted-foreground">Si necesitas ayuda, contacta a tu empresa.</p>
+        `,
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+      return;
+    }
+
+    const refundAmount = calculateRefundAmount(ticket.monto_boleto);
+
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      html: `
+          <div class="text-left space-y-3">
+            <p class="text-foreground text-center mb-2">¿Deseas anular esta reserva?</p>
+            <p class="text-foreground text-center">Esta acción no se puede deshacer.</p>
+            <div class="bg-muted/50 p-3 rounded-lg border">
+              <p class="text-sm text-muted-foreground mb-1">Detalles de la anulación:</p>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="text-foreground">Asiento:</div>
+                <div class="font-medium">${ticket.seatNumbers}</div>
+                <div class="text-foreground">Monto original:</div>
+                <div class="font-medium">${formatPrice(
+        ticket.monto_boleto || ticket.fare
+      )}</div>
+                <div class="text-foreground">Porcentaje reembolso:</div>
+                <div class="font-medium">${(Number(user?.companyPorcentajeDevolucion) || 0) * 100
+        }%</div>
+                <div class="text-foreground font-semibold">Reembolso a Cuenta Corriente:</div>
+                <div class="font-bold text-green-600">${formatPrice(
+          refundAmount
+        )}</div>
+              </div>
+            </div>
+            <p class="text-sm text-muted-foreground mt-2">* El monto de reembolso será acreditado según las políticas de tu empresa.</p>
+          </div>
+        `,
+      icon: "warning",
+      iconColor: "#f59e0b",
+      showCancelButton: true,
+      confirmButtonText: "Sí, anular reserva",
+      cancelButtonText: "Cancelar",
+      ...swalConfig,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const bookingId = ticket.id;
+    setCancelingId(String(bookingId));
+
+    try {
+      console.log("Cancelando ticket:", {
+        ticketNumber: ticket.ticketNumber,
+        seatNumbers: ticket.seatNumbers,
+        fullTicket: ticket
+      });
+      const cancelResponse = await fetch("/api/tickets/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticketNumber: ticket.ticketNumber,
+          seatNumbers: ticket.seatNumbers,
+        }),
+      });
+
+      const cancelResult = await cancelResponse.json();
+
+      if (!cancelResponse.ok) {
+        throw new Error(
+          cancelResult.error || "Error al anular la reserva en Kupos"
+        );
+      }
+
+      if (cancelResult.success) {
+        const bookingId = ticket.id;
+        const updateResponse = await fetch(`/api/cancel-db/${bookingId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ticketStatus: "Anulado",
+            monto_devolucion: refundAmount,
+          }),
+        });
+
+        const contentType = updateResponse.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          const htmlText = await updateResponse.text();
+          console.error(
+            "Se recibió HTML en lugar de JSON:",
+            htmlText.substring(0, 500)
+          );
+          throw new Error("La ruta de API no existe (404)");
+        }
+
+        const updateResult = await updateResponse.json();
+
+        if (!updateResponse.ok) {
+          console.error("Error actualizando BD:", updateResult.error);
+          Swal.fire({
+            icon: "warning",
+            title: "Reserva anulada con observaciones",
+            html: `
+                <div class="text-center space-y-3">
+                  <p class="text-foreground">La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
+                  <div class="bg-muted/50 p-3 rounded-lg border">
+                    <p class="text-sm text-muted-foreground mb-2">Error técnico:</p>
+                    <p class="text-sm font-medium text-foreground">${updateResult.error
+              }</p>
+                  </div>
+                  <p class="text-sm text-muted-foreground">Por favor, contacte al administrador.</p>
+                  ${refundAmount
+                ? `<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <p class="font-semibold text-orange-800">Reembolso a Cuenta Corriente: ${formatPrice(
+                  refundAmount
+                )}</p>
+                        </div>`
+                : ""
+              }
+                </div>
+              `,
+            confirmButtonText: "Entendido",
+            ...swalConfig,
+          });
+        } else {
+          Swal.fire({
+            icon: "success",
+            title: "¡Reserva anulada!",
+            html: `
+                <div class="text-center space-y-3">
+                  <p class="text-foreground">La reserva ha sido anulada exitosamente.</p>
+                  ${refundAmount
+                ? `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <p class="text-sm text-orange-700 mb-1">Se ha procesado el reembolso:</p>
+                          <p class="text-xl font-bold text-orange-800">${formatPrice(
+                  refundAmount
+                )}</p>
+                          <p class="text-xs text-orange-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
+                        </div>`
+                : ""
+              }
+                </div>
+              `,
+            confirmButtonText: "Entendido",
+            ...swalConfig,
+          });
+        }
+
+        setTickets((prevBookings) =>
+          prevBookings.map((b) =>
+            b.id === bookingId
+              ? {
+                ...b,
+                ticketStatus: "Anulado",
+                status: "anulado",
+                monto_devolucion: cancelResult.refundAmount || 0,
+              }
+              : b
+          )
+        );
+      } else {
+        throw new Error(cancelResult.error || "Error al anular la reserva");
+      }
+    } catch (error) {
+      console.error("Error anulando reserva:", error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        html: `
+            <div class="text-center">
+              <p class="text-foreground mb-3">${error instanceof Error
+            ? error.message
+            : "Error al anular la reserva"
+          }</p>
+              <p class="text-sm text-muted-foreground">Por favor, intente nuevamente o contacte al administrador.</p>
+            </div>
+          `,
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
+
+  const canCancelBooking = (ticket: Ticket) => {
+    try {
+      const date = ticket.travelDate;
+      const time = ticket.departureTime;
+      if (!date || !time) return false;
+      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
+      const now = new Date();
+      const diffHours =
+        (travelDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      return diffHours >= 4;
+    } catch (err) {
+      console.error("Error calculando horas restantes:", err);
+      return false;
+    }
+  };
+
+  const isPastTrip = (ticket: Ticket) => {
+    try {
+      const date = ticket.travelDate;
+      const time = ticket.departureTime;
+      if (!date || !time) return true;
+      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
+      const now = new Date();
+      return travelDateTime < now;
+    } catch (err) {
+      console.error("Error verificando viaje pasado:", err);
+      return true;
+    }
   };
 
   const clearDateFilters = () => {
@@ -651,7 +929,7 @@ export function AdminBookings() {
                   <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
                     <div>
-                      <CardTitle className="text-lg">{ticket.ticketNumber}</CardTitle>
+                      <CardTitle className="text-lg">{ticket.pnrNumber ?? "-"}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
                     </div>
                   </div>
@@ -699,7 +977,7 @@ export function AdminBookings() {
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDate(ticket.travelDate)}</span></div>
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDateOnly(ticket.travelDate)}</span></div>
                     <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> <span>{ticket.departureTime}</span></div>
                     <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>Asiento: {ticket.seatNumbers}</span></div>
                   </div>
@@ -753,30 +1031,55 @@ export function AdminBookings() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tickets.map((ticket) => (
-                  <TableRow key={ticket.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-4 w-4 text-primary" /></div>
-                        <div><p className="text-sm text-muted-foreground">{ticket.ticketNumber || "—"}</p></div>
-                      </div>
-                    </TableCell>
-                    <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
-                    <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
-                    <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
-                    <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
-                    <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>
-                    <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDate(ticket.travelDate)}</div></TableCell>
-                    <TableCell><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" />{ticket.departureTime}</div></TableCell>
-                    <TableCell>{ticket.seatNumbers}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
-                    <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDate(ticket.confirmedAt) : "—"}</p></TableCell>
-                    <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}</TableCell>
-                  </TableRow>
-                ))}
+                {tickets.map((ticket) => {
+                  const isCanceling = cancelingId === String(ticket.id);
+                  return (
+                    <TableRow key={ticket.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-4 w-4 text-primary" /></div>
+                          <div><p className="text-sm text-muted-foreground">{ticket.pnrNumber ?? "-"}</p></div>
+                        </div>
+                      </TableCell>
+                      <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
+                      <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
+                      <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
+                      <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
+                      <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
+                      <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
+                      <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
+                      <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>
+                      <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDateOnly(ticket.travelDate)}</div></TableCell>
+                      <TableCell><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" />{ticket.departureTime}</div></TableCell>
+                      <TableCell>{ticket.seatNumbers}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
+                      <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></TableCell>
+                      <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
+                        {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
+                            onClick={() => handleCancelBooking(ticket)}
+                            disabled={isCanceling}
+                          >
+                            {isCanceling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Anulando...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4" />
+                                Anular Reserva
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </UITable>
           </CardContent>
