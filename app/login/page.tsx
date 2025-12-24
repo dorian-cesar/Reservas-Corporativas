@@ -37,7 +37,14 @@ export default function LoginPage() {
       const result = await login(email, password);
 
       if (!result.success) {
-        setError(result.message ?? "Error");
+        if (result.requiresPasswordUpdate) {
+          router.push(
+            `/change-password?userId=${result.passwordUpdateUserId}&reason=${result.passwordUpdateReason}&email=${encodeURIComponent(email)}`
+          );
+          return;
+        }
+
+        setError(result.message ?? "Credenciales inválidas");
         return;
       }
 

@@ -33,6 +33,10 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   requiresVerification: boolean;
+  requiresPasswordUpdate: boolean; // Nuevo campo
+  passwordUpdateReason?: string; // Nuevo campo
+  passwordUpdateUserId?: number; // Nuevo campo
+  validationError?: string; // Nuevo campo
   pendingUserId: number | null;
   pendingUserEmail: string | null;
   verificationEmailSent: boolean;
@@ -46,6 +50,10 @@ export interface AuthState {
   ) => Promise<{
     success: boolean;
     requiresVerification?: boolean;
+    requiresPasswordUpdate?: boolean;
+    passwordUpdateReason?: string;
+    passwordUpdateUserId?: number;
+    validationError?: string;
     message?: string;
   }>;
 
@@ -58,6 +66,8 @@ export interface AuthState {
   setPendingUserEmail: (email: string | null) => void;
 
   clearVerificationState: () => void;
+
+  clearPasswordUpdateState: () => void;
 
   logout: () => void;
   getToken: () => string | null;
@@ -80,6 +90,10 @@ export const useAuth = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       requiresVerification: false,
+      requiresPasswordUpdate: false,
+      passwordUpdateReason: undefined,
+      passwordUpdateUserId: undefined,
+      validationError: undefined,
       pendingUserId: null,
       pendingUserEmail: null,
       verificationEmailSent: false,
@@ -98,6 +112,30 @@ export const useAuth = create<AuthState>()(
           const data = await res.json();
 
           if (!res.ok) {
+            // Si hay un error específico de actualización de contraseña
+            if (data.requiresPasswordUpdate) {
+              set({
+                requiresPasswordUpdate: true,
+                passwordUpdateReason: data.reason,
+                passwordUpdateUserId: data.userId,
+                validationError: data.validationError,
+                user: {
+                  id: String(data.userId || "0"),
+                  email: email,
+                  name: "", // No tenemos el nombre aquí
+                  role: "empresa", // Rol por defecto
+                },
+              });
+
+              return {
+                success: false,
+                requiresPasswordUpdate: true,
+                passwordUpdateReason: data.reason,
+                passwordUpdateUserId: data.userId,
+                validationError: data.validationError,
+                message: data.message,
+              };
+            }
             return { success: false, message: data.message };
           }
 
@@ -144,6 +182,10 @@ export const useAuth = create<AuthState>()(
             user,
             isAuthenticated: true,
             requiresVerification: false,
+            requiresPasswordUpdate: false,
+            passwordUpdateReason: undefined,
+            passwordUpdateUserId: undefined,
+            validationError: undefined,
             pendingUserId: null,
             pendingUserEmail: null,
             verificationEmailSent: false,
@@ -197,6 +239,10 @@ export const useAuth = create<AuthState>()(
             user,
             isAuthenticated: true,
             requiresVerification: false,
+            requiresPasswordUpdate: false,
+            passwordUpdateReason: undefined,
+            passwordUpdateUserId: undefined,
+            validationError: undefined,
             pendingUserId: null,
             pendingUserEmail: null,
             verificationEmailSent: false,
@@ -250,12 +296,25 @@ export const useAuth = create<AuthState>()(
         });
       },
 
+      clearPasswordUpdateState: () => {
+        set({
+          requiresPasswordUpdate: false,
+          passwordUpdateReason: undefined,
+          passwordUpdateUserId: undefined,
+          validationError: undefined,
+        });
+      },
+
       logout: () => {
         set({
           token: null,
           user: null,
           isAuthenticated: false,
           requiresVerification: false,
+          requiresPasswordUpdate: false,
+          passwordUpdateReason: undefined,
+          passwordUpdateUserId: undefined,
+          validationError: undefined,
           pendingUserId: null,
           pendingUserEmail: null,
           verificationEmailSent: false,
@@ -274,7 +333,7 @@ export const useAuth = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         _hasHydrated: state._hasHydrated,
-        // No persistimos los estados temporales de verificación
+        // No persistimos los estados temporales
       }),
     }
   )
@@ -347,4 +406,20 @@ export const useRequireAuth = (redirectTo = "/login") => {
   }, [isAuthenticated, _hasHydrated, router, redirectTo]);
 
   return { isAuthenticated, hasHydrated: _hasHydrated };
+};
+
+export const usePasswordUpdateState = () => {
+  const requiresPasswordUpdate = useAuth((state) => state.requiresPasswordUpdate);
+  const passwordUpdateReason = useAuth((state) => state.passwordUpdateReason);
+  const passwordUpdateUserId = useAuth((state) => state.passwordUpdateUserId);
+  const validationError = useAuth((state) => state.validationError);
+  const clearPasswordUpdateState = useAuth((state) => state.clearPasswordUpdateState);
+
+  return {
+    requiresPasswordUpdate,
+    passwordUpdateReason,
+    passwordUpdateUserId,
+    validationError,
+    clearPasswordUpdateState,
+  };
 };

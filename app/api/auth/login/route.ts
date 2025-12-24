@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: data.message || "Error en servidor" },
+        {
+          message: data.message || "Error en servidor",
+          ...data,
+        },
         { status: res.status }
       );
     }
