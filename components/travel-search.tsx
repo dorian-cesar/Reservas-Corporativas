@@ -862,31 +862,41 @@ export function TravelSearch() {
           <div className="space-y-8">
             {/* Resultados actuales */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg sm:text-2xl font-bold flex flex-wrap items-center gap-2">
                   {searchMode === "departure" ? (
                     <>
-                      <ArrowRightLeft className="h-5 w-5 text-primary" />
-                      Viaje de Ida: {origin?.name} → {destination?.name}
+                      <ArrowRightLeft className="h-5 w-5 text-primary shrink-0" />
+                      <span className="break-words">
+                        Viaje de Ida: {origin?.name} → {destination?.name}
+                      </span>
+
                       {departureDateString && (
-                        <span className="text-lg font-normal text-muted-foreground ml-2">
+                        <span className="text-sm sm:text-lg font-normal text-muted-foreground">
                           ({formatDate(departureDateString)})
                         </span>
                       )}
                     </>
                   ) : (
                     <>
-                      <ArrowRightLeft className="h-5 w-5 text-primary rotate-180" />
-                      Viaje de Vuelta: {origin?.name} → {destination?.name}
+                      <ArrowRightLeft className="h-5 w-5 text-primary rotate-180 shrink-0" />
+                      <span className="break-words">
+                        Viaje de Vuelta: {origin?.name} → {destination?.name}
+                      </span>
+
                       {returnDateString && (
-                        <span className="text-lg font-normal text-muted-foreground ml-2">
+                        <span className="text-sm sm:text-lg font-normal text-muted-foreground">
                           ({formatDate(returnDateString)})
                         </span>
                       )}
                     </>
                   )}
                 </h2>
-                <Badge variant="outline" className="text-sm">
+
+                <Badge
+                  variant="outline"
+                  className="text-sm self-start sm:self-auto whitespace-nowrap"
+                >
                   {currentLoading
                     ? "Buscando..."
                     : currentServices.length > 0

@@ -971,19 +971,19 @@ export function ServiceDetailDialog({
           <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative">
-                <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-20 w-20 text-blue-500 relative z-10" />
+                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
+                <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-blue-600">
+                <h3 className="text-2xl font-bold text-green-600">
                   {tripType === "departure"
-                    ? "¡Viaje de Ida Reservado!"
+                    ? "¡Reserva Confirmada!"
                     : "¡Reservas Completadas!"}
                 </h3>
                 {tripType === "departure" ? (
                   <p className="text-sm text-muted-foreground mt-4">
-                    Ahora puedes proceder a reservar tu viaje de vuelta
+                    El pasaje ha sido reservado exitosamente
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-4">
@@ -1005,7 +1005,7 @@ export function ServiceDetailDialog({
                     </Badge>
                     <p className="text-sm text-blue-600">
                       {tripType === "departure"
-                        ? "Reserva de ida exitosa"
+                        ? "Resumen de reserva"
                         : "Resumen completo de reservas"}
                     </p>
                   </div>
@@ -1446,30 +1446,13 @@ export function ServiceDetailDialog({
               )}
 
               <div className="flex gap-4 mt-6">
-                {tripType === "departure" ? (
-                  <>
-                    <Button
-                      onClick={handleContinueToReturn}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Continuar con la Vuelta
-                    </Button>
-                    <Button variant="outline" onClick={handleClose}>
-                      Cerrar
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleClose}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Finalizar
-                    </Button>
-                  </>
-                )}
+                <Button
+                  onClick={handleClose}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Finalizar
+                </Button>
               </div>
             </div>
           </div>
@@ -1795,9 +1778,7 @@ export function ServiceDetailDialog({
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {tripType === "departure"
-                      ? `Confirmar Ida (${selectedSeats.length} asiento(s))`
-                      : `Confirmar Vuelta (${selectedSeats.length} asiento(s))`}
+                    Confirmar {selectedSeats.length} asiento(s)
                   </>
                 )}
               </Button>
