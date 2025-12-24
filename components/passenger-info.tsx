@@ -255,7 +255,7 @@ export function PassengerInfo({
       Swal.fire({
         icon: "warning",
         title: "Error de conexión",
-        text: "No se pudo conectar con el servidor. Puede crear el pasajero manualmente.",
+        text: "No se pudo conectar con el servidor",
         confirmButtonColor: "#3085d6",
         ...swalConfig,
       });
@@ -673,7 +673,7 @@ export function PassengerInfo({
         </div>
       )}
 
-      {/* Modo Crear/Editar Pasajero */}
+      {/* Modo Crear Pasajero */}
       {modoPasajero === "crear" && (
         <div className="space-y-3">
           {errorPasajero &&
