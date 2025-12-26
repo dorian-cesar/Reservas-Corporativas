@@ -377,12 +377,14 @@ export function SuperCostCenters() {
 
                 refreshAction={() => handleSearch()}
 
-                primaryAction={{
-                    label: "Agregar Centro",
-                    icon: <Plus className="h-4 w-4" />,
-                    onClick: openAddDialog,
-                    className: "bg-accent hover:bg-accent/90",
-                }}
+                primaryAction={
+                    user?.role === "superuser" ? {
+                        label: "Agregar Centro",
+                        icon: <Plus className="h-4 w-4" />,
+                        onClick: openAddDialog,
+                        className: "bg-accent hover:bg-accent/90",
+                    } : undefined
+                }
                 secondaryAction={
                     user?.role === "superuser"
                         ? {

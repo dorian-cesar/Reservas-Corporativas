@@ -1,5 +1,5 @@
 "use client"
-
+import { Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,6 +65,11 @@ export function SuperCompanies() {
   const [viewMode, setViewMode] = useState<"cards" | "table">("table")
   const [empresaId, setEmpresaId] = useState("")
   const [searchMode, setSearchMode] = useState<"all" | "single">("all")
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
 
   type Company = {
     id: string;
@@ -413,6 +418,74 @@ export function SuperCompanies() {
     }
   };
 
+  const sendCSV = () => {
+    resetCSVModal();
+    setCsvModalOpen(true);
+  };
+
+  const handleUploadCSV = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Selecciona un archivo CSV",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", csvFile);
+
+      const response = await fetch("/api/csv/companies", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al subir el CSV");
+      }
+
+      const data = await response.json();
+      setResult(data);
+      console.log("Resultado CSV:", data);
+
+      toast({
+        title: "CSV procesado",
+        description: `Se procesaron ${data.result?.success || 0} empresas exitosamente`,
+      });
+
+      // Recargar la lista de empresas
+      fetchCompanies();
+
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Error inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const resetCSVModal = () => {
+    setCsvFile(null);
+    setResult(null);
+    setLoading(false);
+  };
+
+
+
+
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
     setFormData({
@@ -468,6 +541,15 @@ export function SuperCompanies() {
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
         }}
+        secondaryAction={
+          user?.role === "superuser"
+            ? {
+              label: "Subir CSV",
+              icon: <Upload className="h-4 w-4" />,
+              onClick: sendCSV,
+            }
+            : undefined
+        }
       />
 
       {/* Indicador de búsqueda */}
@@ -1071,6 +1153,95 @@ export function SuperCompanies() {
             </Button>
             <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
               Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={csvModalOpen}
+        onOpenChange={(open) => {
+          setCsvModalOpen(open);
+          if (!open) {
+            resetCSVModal();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar empresas desde CSV</DialogTitle>
+            <DialogDescription>
+              Sube un archivo CSV con las columnas indicadas abajo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium mr-5">Archivo CSV</label>
+            <input
+              key={csvModalOpen ? "open" : "closed"}
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+              className="border border-gray-300 rounded-lg py-2 px-2 cursor-pointer"
+            />
+          </div>
+
+          <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+            <p className="font-medium mb-2">Ejemplo de CSV:</p>
+            <pre className="text-xs overflow-x-auto">
+              {`nombre_empresa,estado,porcentaje_recargo,
+porcentaje_devolucion,dia_facturacion,dia_vencimiento,
+monto_maximo,monto_acumulado,rut,cuenta_corriente`}
+            </pre>
+          </div>
+
+          {result && (
+            <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+              <p>
+                <strong>Procesamiento completado:</strong>
+              </p>
+              <p>✅ Éxitos: {result.result?.success}</p>
+              <p>❌ Errores: {result.result?.errors?.length || 0}</p>
+              <p>📊 Total filas: {result.result?.totalRows || 0}</p>
+
+              {result.result?.errors?.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium text-red-600">
+                    Detalle de errores:
+                  </p>
+                  <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
+                    {result.result.errors.map((e: string, i: number) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setCsvModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUploadCSV}
+              disabled={loading || !csvFile}
+              className="bg-accent hover:bg-accent/90"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir CSV
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
