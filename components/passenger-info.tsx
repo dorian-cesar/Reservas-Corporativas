@@ -614,9 +614,7 @@ export function PassengerInfo({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <span className="font-medium text-green-800">
-                    {initialPassenger
-                      ? "Pasajero precargado ✓"
-                      : "Pasajero encontrado ✓"}
+                    Pasajero encontrado
                   </span>
                 </div>
                 <Badge
@@ -629,7 +627,7 @@ export function PassengerInfo({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-600">Nombre:</span>
-                  <p className="font-medium break-words">
+                  <p className="font-medium wrap-break-words">
                     {pasajeroEncontrado.nombre}
                   </p>
                 </div>
@@ -644,7 +642,7 @@ export function PassengerInfo({
                 {pasajeroEncontrado.telefono && (
                   <div>
                     <span className="text-gray-600">Teléfono:</span>
-                    <p className="font-medium break-words">
+                    <p className="font-medium wrap-break-words">
                       {pasajeroEncontrado.telefono}
                     </p>
                   </div>
@@ -652,15 +650,15 @@ export function PassengerInfo({
                 {pasajeroEncontrado.empresa && (
                   <div>
                     <span className="text-gray-600">Empresa:</span>
-                    <p className="font-medium break-words whitespace-normal">
+                    <p className="font-medium wrap-break-words whitespace-normal">
                       {pasajeroEncontrado.empresa.nombre}
                     </p>
                   </div>
                 )}
                 {pasajeroEncontrado.centroCosto && (
                   <div>
-                    <span className="text-gray-600">Centro costo:</span>
-                    <p className="font-medium break-words">
+                    <span className="text-gray-600">Centro de costo:</span>
+                    <p className="font-medium wrap-break-words">
                       {pasajeroEncontrado.centroCosto.nombre}
                     </p>
                   </div>
@@ -671,7 +669,7 @@ export function PassengerInfo({
                   variant="outline"
                   className="bg-orange-100 text-orange-700 rounded-lg border-orange-300
                     text-center px-3 py-1
-                    whitespace-normal break-words max-w-full"
+                    whitespace-normal wrap-break-words max-w-full"
                 >
                   {initialPassenger
                     ? "Pasajero asignado automáticamente ✓"

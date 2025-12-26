@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Bus,
   ArrowRight,
+  Calendar,
 } from "lucide-react";
 import { ServiceDetailDialog } from "@/components/service-detail-dialog";
 import { useTravel } from "@/components/context/travel-context";
@@ -46,6 +47,7 @@ interface BusService {
   dropoffLast: string | null;
   terminalOrigen: string | null;
   terminalDestino: string | null;
+  travel_date: string;
 }
 
 interface BusServiceCardProps {
@@ -103,6 +105,33 @@ export function BusServiceCard({
   const displayOrigin = tripType === "departure" ? origin : destination;
   const displayDestination = tripType === "departure" ? destination : origin;
 
+  // Función para formatear la fecha
+  const formatTravelDate = (dateString?: string): string => {
+    if (!dateString) return "";
+
+    try {
+      const [year, month, day] = dateString.split("-").map(Number);
+      const months = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+      return `${day} de ${months[month - 1]} del ${year}`;
+    } catch (error) {
+      console.error("Error formateando fecha:", error);
+      return dateString;
+    }
+  };
+
   return (
     <>
       <Card className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg gap-0">
@@ -116,6 +145,7 @@ export function BusServiceCard({
                   {tripType === "departure" ? "Ida" : "Vuelta"}
                 </Badge>
               </div>
+
               <div className="flex items-center gap-2 text-sm text-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 {displayOrigin}
@@ -149,18 +179,25 @@ export function BusServiceCard({
 
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <div className="text-center">
+            <div className="flex-1 text-left">
               <p className="text-sm text-muted-foreground">Salida</p>
               <p className="font-bold text-lg">{service.dep_time}</p>
+              {service.travel_date && (
+                <p className="text-xs text-muted-foreground mt-1 wrap-break-word">
+                  {formatTravelDate(service.travel_date)}
+                </p>
+              )}
             </div>
-            <div className="text-center">
+
+            <div className="flex-1 text-center">
               <p className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
                 <Clock className="h-3 w-3" />
                 Duración
               </p>
               <p className="font-bold">{service.duration}</p>
             </div>
-            <div className="text-center">
+
+            <div className="flex-1 text-right">
               <p className="text-sm text-muted-foreground">Llegada</p>
               <p className="font-bold text-lg">{service.arr_time}</p>
             </div>

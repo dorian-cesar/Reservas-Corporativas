@@ -33,7 +33,7 @@ import type { ServiceDetail, Seat } from "@/types/service-detail";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
 import Swal from "sweetalert2";
-import { BUILD_ID_FILE } from "next/dist/shared/lib/constants";
+import { SuccessReservationModal } from "./success-reservation-modal";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -968,187 +968,19 @@ export function ServiceDetailDialog({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : success ? (
-          <div className="py-6 text-center animate-in fade-in zoom-in duration-300">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-16 w-16 text-green-500 relative z-10" />
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-green-600">
-                  {tripType === "departure"
-                    ? "¡Reserva Confirmada!"
-                    : "¡Reserva Confirmada!"}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {tripType === "departure"
-                    ? "El pasaje ha sido reservado exitosamente"
-                    : "Tu viaje de vuelta ha sido reservado exitosamente"}
-                </p>
-              </div>
-
-              {/* Tarjeta de resumen compacta */}
-              {bookingData.length > 0 && (
-                <div className="w-full bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border border-blue-200 rounded-xl p-4 shadow-sm backdrop-blur-sm">
-                  <div className="text-center mb-4">
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-500 text-white border-blue-600 mb-2"
-                    >
-                      Resumen de reserva
-                    </Badge>
-                  </div>
-
-                  {/* Información principal compacta */}
-                  <div className="bg-white/90 rounded-lg p-4 mb-4 border border-blue-100 backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 text-gray-700 mb-1">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="font-medium text-sm truncate">
-                            {displayOrigin} → {displayDestination}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3 text-gray-500" />
-                          <span className="font-medium text-sm">
-                            {serviceDetail?.travel_date
-                              ? formatTravelDate(serviceDetail.travel_date)
-                              : "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-blue-100 text-blue-800 text-xs"
-                      >
-                        {selectedSeats.length} asiento(s)
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm mt-3 text-left">
-                      <div className="space-y-1 text-left">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-gray-500" />
-                          <span className="text-gray-600 text-xs">Salida:</span>
-                        </div>
-                        <p className="font-medium text-gray-900 text-left">
-                          {serviceDetail?.dep_time || "N/A"}
-                        </p>
-                        {terminalOrigen && (
-                          <p className="text-xs text-gray-500 truncate text-left">
-                            {terminalOrigen}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 text-left">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-gray-500" />
-                          <span className="text-gray-600 text-xs">
-                            Llegada:
-                          </span>
-                        </div>
-                        <p className="font-medium text-gray-900 text-left">
-                          {serviceDetail?.arr_time || "N/A"}
-                        </p>
-                        {terminalDestino && (
-                          <p className="text-xs text-gray-500 truncate text-left">
-                            {terminalDestino}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 mt-3 border-t">
-                      <span className="text-gray-600 text-sm">
-                        Total reserva:
-                      </span>
-                      <span className="text-lg font-bold text-blue-700">
-                        $
-                        {bookingData
-                          .reduce(
-                            (total, booking) =>
-                              total + (booking.monto_boleto || 0),
-                            0
-                          )
-                          .toLocaleString("es-CL")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Resumen de pasajeros compacto */}
-                  <div className="mb-4">
-                    <h4 className="font-bold text-blue-800 text-sm mb-3 pb-2 border-b border-blue-200">
-                      Pasajeros ({bookingData.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {bookingData.map((booking, index) => (
-                        <div
-                          key={index}
-                          className="bg-white/90 rounded p-3 border border-blue-100 text-left backdrop-blur-sm"
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="flex-1 min-w-0">
-                              <h5 className="font-medium text-blue-800 truncate text-sm">
-                                {booking.passenger?.nombre || "Pasajero"}
-                              </h5>
-                              <p className="text-xs text-gray-600 truncate">
-                                RUT: {booking.passenger?.rut || "N/A"}
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-1 ml-2 flex-shrink-0 items-end">
-                              <Badge
-                                variant="outline"
-                                className="bg-green-50 text-green-800 border-green-300 text-xs"
-                              >
-                                Asiento {booking.seat}
-                              </Badge>
-
-                              <span className="font-medium text-blue-700 text-xs">
-                                $
-                                {booking.monto_boleto?.toLocaleString(
-                                  "es-CL"
-                                ) || "0"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Si es vuelta, mostrar breve conexión */}
-                  {tripType === "return" && (
-                    <div className="mb-4 p-3 bg-blue-50/80 rounded border border-blue-200 backdrop-blur-sm">
-                      <div className="flex items-center gap-2 text-blue-700 text-sm">
-                        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          Vinculado a tu viaje de ida ({savedPassengers.length}{" "}
-                          pasajero(s))
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Acciones */}
-                  <div className="pt-3 border-t border-blue-200">
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={handleClose}
-                        className="bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center"
-                        size="sm"
-                      >
-                        <CheckCircle2 className="h-3 w-3 mr-2" />
-                        Finalizar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <SuccessReservationModal
+            tripType={tripType}
+            bookingData={bookingData}
+            serviceDetail={serviceDetail}
+            displayOrigin={displayOrigin}
+            displayDestination={displayDestination}
+            terminalOrigen={terminalOrigen}
+            terminalDestino={terminalDestino}
+            selectedSeats={selectedSeats}
+            passengersData={passengersData}
+            savedPassengers={savedPassengers}
+            onClose={handleClose}
+          />
         ) : serviceDetail ? (
           <>
             <div className="space-y-6">
@@ -1304,7 +1136,7 @@ export function ServiceDetailDialog({
                       </h3>
 
                       {/* BOTÓN PARA USAR PASAJEROS GUARDADOS (solo en vuelta) */}
-                      {tripType === "return" &&
+                      {/* {tripType === "return" &&
                         savedPassengers.length > 0 &&
                         !usingSavedPassengers && (
                           <Button
@@ -1317,7 +1149,7 @@ export function ServiceDetailDialog({
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             Usar pasajeros de la ida ({savedPassengers.length})
                           </Button>
-                        )}
+                        )} */}
 
                       {/* Indicador de pasajeros cargados automáticamente */}
                       {tripType === "return" && usingSavedPassengers && (
@@ -1338,7 +1170,7 @@ export function ServiceDetailDialog({
                   </div>
 
                   {/* Mensaje informativo para la vuelta */}
-                  {tripType === "return" &&
+                  {/* {tripType === "return" &&
                     savedPassengers.length > 0 &&
                     !usingSavedPassengers && (
                       <Alert className="bg-blue-50 border-blue-200">
@@ -1352,7 +1184,7 @@ export function ServiceDetailDialog({
                           automáticamente.
                         </AlertDescription>
                       </Alert>
-                    )}
+                    )} */}
 
                   <div className="space-y-4">
                     {passengersData.map((passengerData) => (

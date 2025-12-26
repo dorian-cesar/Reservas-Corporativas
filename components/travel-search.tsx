@@ -60,6 +60,7 @@ interface BusService {
   dropoffLast: string | null;
   terminalOrigen: string | null;
   terminalDestino: string | null;
+  travel_date: string;
 }
 
 export function TravelSearch() {
@@ -443,6 +444,8 @@ export function TravelSearch() {
           };
         }) ?? [];
 
+      console.log("services:", mapped);
+
       if (searchMode === "departure") {
         setDepartureServices(mapped);
         console.log("Servicios de ida encontrados:", mapped.length);
@@ -589,7 +592,7 @@ export function TravelSearch() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container 2xl:max-w-[1300px] mx-auto px-4 py-8">
       <div className="space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Busca tu Viaje</h1>
@@ -600,7 +603,7 @@ export function TravelSearch() {
 
         {/* Banner de progreso si es ida y vuelta */}
         {isRoundTrip && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-blue-800 flex items-center gap-2">
@@ -867,7 +870,7 @@ export function TravelSearch() {
                   {searchMode === "departure" ? (
                     <>
                       <ArrowRightLeft className="h-5 w-5 text-primary shrink-0" />
-                      <span className="break-words">
+                      <span className="wrap-break-words">
                         Viaje de Ida: {origin?.name} → {destination?.name}
                       </span>
 
@@ -880,7 +883,7 @@ export function TravelSearch() {
                   ) : (
                     <>
                       <ArrowRightLeft className="h-5 w-5 text-primary rotate-180 shrink-0" />
-                      <span className="break-words">
+                      <span className="wrap-break-words">
                         Viaje de Vuelta: {origin?.name} → {destination?.name}
                       </span>
 
