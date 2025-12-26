@@ -1120,7 +1120,7 @@ export function SuperAllBookings() {
                   </div>
 
                   {/* Botón de anular */}
-                  {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
+                  {ticket.ticketStatus === "Confirmed" && user?.role !== "contralor" && user?.role !== "auditoria" && !isPastTrip(ticket) && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -1196,7 +1196,7 @@ export function SuperAllBookings() {
                       <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
                       <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></TableCell>
                       <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
-                        {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
+                        {ticket.ticketStatus === "Confirmed" && user?.role !== "contralor" && user?.role !== "auditoria" && !isPastTrip(ticket) && (
                           <Button
                             size="sm"
                             variant="outline"
