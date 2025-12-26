@@ -45,10 +45,10 @@ export default function ControllersPage() {
                   <Settings className="h-4 w-4" />
                   Centros de Costo
                 </TabsTrigger>
-                <TabsTrigger value="users" className="gap-2">
+                {/* <TabsTrigger value="users" className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
-                </TabsTrigger>
+                </TabsTrigger> */}
                 <TabsTrigger value="esp" className="gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
@@ -58,10 +58,10 @@ export default function ControllersPage() {
                   Tickets
                 </TabsTrigger>
 
-                <TabsTrigger value="passengers" className="gap-2">
+                {/* <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
                   Pasajeros
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -72,9 +72,9 @@ export default function ControllersPage() {
                 <SuperCostCenters />
               </TabsContent>
 
-              <TabsContent value="users" className="mt-6">
+              {/* <TabsContent value="users" className="mt-6">
                 <CompanyUsers />
-              </TabsContent>
+              </TabsContent> */}
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
               </TabsContent>
@@ -82,10 +82,10 @@ export default function ControllersPage() {
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
               </TabsContent>
-
+{/* 
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </main>

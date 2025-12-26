@@ -57,7 +57,7 @@ const formatPercent = (n: number) => {
 };
 
 export function SuperCompanies() {
-  const { token } = useAuth.getState();
+  const { token, user } = useAuth.getState();
   const [companies, setCompanies] = useState<Company[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -73,7 +73,7 @@ export function SuperCompanies() {
     current_account?: string;
     state: boolean;
     surchargePercentage?: number;
-    returnPercentage?: string;
+    returnPercentage?: number;
     billingDay: number;
     expirationDay: number;
     max: number;
@@ -206,7 +206,7 @@ export function SuperCompanies() {
         current_account: empresa.cuenta_corriente,
         state: empresa.estado,
         surchargePercentage: empresa.recargo || 0,
-        returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),  // Sin .toString()
         billingDay: empresa.dia_facturacion,
         expirationDay: empresa.dia_vencimiento,
         max: empresa.monto_maximo,
@@ -331,7 +331,6 @@ export function SuperCompanies() {
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
-          monto_acumulado: Number(formData.count)
         }),
       });
 
@@ -494,171 +493,178 @@ export function SuperCompanies() {
       )}
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Agregar Nueva Empresa</DialogTitle>
             <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre de la Empresa *</Label>
-              <Input
-                id="name"
-                placeholder="Ej: Empresa Ejemplo S.A."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            {/* Columna 1 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre de la Empresa *</Label>
+                <Input
+                  id="name"
+                  placeholder="Ej: Empresa Ejemplo S.A."
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <select
+                  name="estado"
+                  id="state"
+                  value={formData.state.toString()}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
+                <Input
+                  id="surcharge"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.surchargePercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      surchargePercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
+                <Input
+                  id="return"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.returnPercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      returnPercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rut">Rut Empresa</Label>
+                <Input
+                  id="rut"
+                  type="text"
+                  placeholder="123456789-0"
+                  required
+                  value={formData.rut}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      rut: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado</Label>
-              <select
-                name="estado"
-                id="state"
-                value={formData.state.toString()}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="true">Activa</option>
-                <option value="false">Inactiva</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
-              <Input
-                id="surcharge"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.surchargePercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    surchargePercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
-              <Input
-                id="return"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.returnPercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    returnPercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="billingDay">Dia de Facturación</Label>
-              <Input
-                id="billingDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="5"
-                required
-                value={formData.billingDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    billingDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expirationDay">Dia de Vencimiento</Label>
-              <Input
-                id="expirationDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="15"
-                required
-                value={formData.expirationDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    expirationDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max">Monto Máximo</Label>
-              <Input
-                id="max"
-                type="number"
-                min="0"
-                placeholder="100000"
-                required
-                value={formData.max}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    max: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="count">Monto Acumulado</Label>
-              <Input
-                id="count"
-                type="number"
-                min="0"
-                placeholder="0"
-                required
-                value={formData.count}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    count: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rut">Rut Empresa</Label>
-              <Input
-                id="rut"
-                type="text"
-                placeholder="123456789-0"
-                required
-                value={formData.rut}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    rut: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_account">Cuenta Corriente</Label>
-              <Input
-                id="current_account"
-                type="text"
-                placeholder="ABCD-0"
-                required
-                value={formData.current_account}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    current_account: e.target.value,
-                  });
-                }}
-              />
+
+            {/* Columna 2 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="billingDay">Día de Facturación</Label>
+                <Input
+                  id="billingDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="5"
+                  required
+                  value={formData.billingDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      billingDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expirationDay">Día de Vencimiento</Label>
+                <Input
+                  id="expirationDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="15"
+                  required
+                  value={formData.expirationDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      expirationDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max">Monto Máximo</Label>
+                <Input
+                  id="max"
+                  type="number"
+                  min="0"
+                  placeholder="100000"
+                  required
+                  value={formData.max}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      max: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="count">Monto Acumulado</Label>
+                <Input
+                  id="count"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  required
+                  value={formData.count}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      count: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current_account">Cuenta Corriente</Label>
+                <Input
+                  id="current_account"
+                  type="text"
+                  placeholder="ABCD-0"
+                  required
+                  value={formData.current_account}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      current_account: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -756,15 +762,17 @@ export function SuperCompanies() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => handleReset(company.id)}
-                  >
-                    <RefreshCcw className="h-3 w-3 mr-2" />
-                    Reestablecer
-                  </Button>
+                  {user?.role === "superuser" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                      onClick={() => handleReset(company.id)}
+                    >
+                      <RefreshCcw className="h-3 w-3 mr-2" />
+                      Reestablecer
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -852,14 +860,18 @@ export function SuperCompanies() {
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleReset(company.id)}
-                          className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
-                        >
-                          <RefreshCcw className="h-3 w-3" />
-                        </Button>
+                        {
+                          user?.role === "superuser" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReset(company.id)}
+                              className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
+                            >
+                              <RefreshCcw className="h-3 w-3" />
+                            </Button>
+                          )
+                        }
                       </div>
                     </TableCell>
                   </TableRow>
@@ -877,174 +889,180 @@ export function SuperCompanies() {
       )}
 
       {/* Edit Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Editar Empresa</DialogTitle>
             <DialogDescription>Modifique los datos de la empresa en convenio</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
-              <Input
-                id="edit-name"
-                placeholder="Ej: Empresa Ejemplo S.A."
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            {/* Columna 1 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="Ej: Empresa Ejemplo S.A."
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-state">Estado</Label>
+                <select
+                  name="estado"
+                  id="edit-state"
+                  value={formData.state.toString()}
+                  required
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
+                <Input
+                  id="edit-surcharge"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.surchargePercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      surchargePercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-return">Porcentaje de Devolución (%)</Label>
+                <Input
+                  id="edit-return"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.returnPercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      returnPercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rut">Rut Empresa</Label>
+                <Input
+                  id="rut"
+                  type="text"
+                  placeholder="123456789-0"
+                  required
+                  value={formData.rut}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      rut: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-state">Estado</Label>
-              <select
-                name="estado"
-                id="edit-state"
-                value={formData.state.toString()}
-                required
-                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="true">Activa</option>
-                <option value="false">Inactiva</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
-              <Input
-                id="edit-surcharge"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.surchargePercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    surchargePercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-return">Porcentaje de Devolución (%)</Label>
-              <Input
-                id="edit-return"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.returnPercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    returnPercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-billingDay">Dia de Facturación</Label>
-              <Input
-                id="edit-billingDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="5"
-                required
-                value={formData.billingDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    billingDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-expirationDay">Dia de Vencimiento</Label>
-              <Input
-                id="edit-expirationDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="15"
-                required
-                value={formData.expirationDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    expirationDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-max">Monto Máximo</Label>
-              <Input
-                id="edit-max"
-                type="number"
-                min="0"
-                placeholder="100000"
-                required
-                value={formData.max}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    max: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="count">Monto Acumulado</Label>
-              <Input
-                id="count"
-                type="number"
-                min="0"
-                placeholder="0"
-                required
-                value={formData.count}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    count: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rut">Rut Empresa</Label>
-              <Input
-                id="rut"
-                type="text"
-                placeholder="123456789-0"
-                required
-                value={formData.rut}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    rut: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_account">Cuenta Corriente</Label>
-              <Input
-                id="current_account"
-                type="text"
-                placeholder="ABCD-0"
-                required
-                value={formData.current_account}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    current_account: e.target.value,
-                  });
-                }}
-              />
+
+            {/* Columna 2 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-billingDay">Día de Facturación</Label>
+                <Input
+                  id="edit-billingDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="5"
+                  required
+                  value={formData.billingDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      billingDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-expirationDay">Día de Vencimiento</Label>
+                <Input
+                  id="edit-expirationDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="15"
+                  required
+                  value={formData.expirationDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      expirationDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-max">Monto Máximo</Label>
+                <Input
+                  id="edit-max"
+                  type="number"
+                  min="0"
+                  placeholder="100000"
+                  required
+                  value={formData.max}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      max: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="count">Monto Acumulado</Label>
+                <Input
+                  id="count"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  required
+                  value={formData.count}
+                  disabled  // Campo bloqueado
+                  className="bg-gray-100 cursor-not-allowed"
+                  readOnly
+                />
+                <p className="text-xs text-muted-foreground">Este campo no se puede editar</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current_account">Cuenta Corriente</Label>
+                <Input
+                  id="current_account"
+                  type="text"
+                  placeholder="ABCD-0"
+                  required
+                  value={formData.current_account}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      current_account: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

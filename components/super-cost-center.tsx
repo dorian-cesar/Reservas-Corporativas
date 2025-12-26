@@ -535,24 +535,17 @@ export function SuperCostCenters() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                                        onClick={() => openEditDialog(costCenter)}
-                                    >
-                                        <Pencil className="h-3 w-3 mr-2" />
-                                        Editar
-                                    </Button>
-                                    {/* <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                                        onClick={() => handleDelete(costCenter.id)}
-                                    >
-                                        <Trash2 className="h-3 w-3 mr-2" />
-                                        Eliminar
-                                    </Button> */}
+                                    {user?.role === "superuser" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                                            onClick={() => openEditDialog(costCenter)}
+                                        >
+                                            <Pencil className="h-3 w-3 mr-2" />
+                                            Editar
+                                        </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -571,7 +564,7 @@ export function SuperCostCenters() {
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Creado</TableHead>
                                     <TableHead>Actualizado</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    {user?.role === "superuser" && <TableHead className="text-right">Acciones</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -599,22 +592,16 @@ export function SuperCostCenters() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openEditDialog(costCenter)}
-                                                    className="h-8 px-3"
-                                                >
-                                                    <Pencil className="h-3 w-3" />
-                                                </Button>
-                                                {/* <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDelete(costCenter.id)}
-                                                    className="h-8 px-3 text-destructive hover:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </Button> */}
+                                                {user?.role === "superuser" && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => openEditDialog(costCenter)}
+                                                        className="h-8 px-3"
+                                                    >
+                                                        <Pencil className="h-3 w-3" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
