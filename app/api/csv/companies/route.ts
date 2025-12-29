@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         const backendFormData = new FormData();
         backendFormData.append("file", file);
 
-        const res = await fetch(`${API_BASE}/api/upload/empresas/csv`, {
+        const res = await fetch(`${API_BASE}/api/upload/csv?type=empresas`, {
             method: "POST",
             headers: {
                 Authorization: token,
