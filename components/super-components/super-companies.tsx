@@ -490,6 +490,7 @@ export function SuperCompanies() {
     if (filteredCompanies.length === 0) return;
 
     const headers = [
+      "id",
       "nombre_empresa",
       "estado",
       "porcentaje_recargo",
@@ -503,6 +504,7 @@ export function SuperCompanies() {
     ];
 
     const csvData = filteredCompanies.map(company => [
+      company.id,
       company.name,
       company.state ? "1" : "0",
       company.surchargePercentage || 0,
@@ -532,6 +534,7 @@ export function SuperCompanies() {
     if (filteredCompanies.length === 0) return;
 
     const data = filteredCompanies.map(company => ({
+      id: company.id,
       nombre_empresa: company.name,
       estado: company.state ? 1 : 0,
       porcentaje_recargo: company.surchargePercentage || 0,
