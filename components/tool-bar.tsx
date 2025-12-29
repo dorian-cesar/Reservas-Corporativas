@@ -41,7 +41,8 @@ interface ToolBarProps {
   // actions
   refreshAction?: () => void;
   primaryAction?: ActionButton;   // ej: Agregar
-  secondaryAction?: ActionButton; // ej: Exportar
+  secondaryActions?: ActionButton[]; // ← CAMBIO: Ahora es un array (plural)
+  secondaryAction?: ActionButton; // ← OPCIONAL: Mantén el singular para compatibilidad
 
   // layout tweaks
   className?: string;
@@ -66,10 +67,15 @@ export default function ToolBar({
 
   refreshAction,
   primaryAction,
+  secondaryActions = [],
   secondaryAction,
 
   className = "",
 }: ToolBarProps) {
+  const allSecondaryActions = secondaryAction
+    ? [...secondaryActions, secondaryAction]
+    : secondaryActions;
+
   return (
     <div className={`flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-4 ${className}`}>
       <div>
@@ -140,18 +146,24 @@ export default function ToolBar({
           </Button>
         )}
 
-        {/* Secondary / Primary */}
-        {secondaryAction && (
-          <Button
-            onClick={secondaryAction.onClick}
-            className={`${secondaryAction.className ?? "bg-accent hover:bg-accent/90"} h-8`}
-            disabled={secondaryAction.disabled}
-          >
-            {secondaryAction.icon && <span className="mr-2">{secondaryAction.icon}</span>}
-            {secondaryAction.label}
-          </Button>
+        {/* Secondary Actions (Múltiples) */}
+        {allSecondaryActions.length > 0 && (
+          <div className="flex gap-2">
+            {allSecondaryActions.map((action, index) => (
+              <Button
+                key={index}
+                onClick={action.onClick}
+                className={`${action.className ?? "bg-accent hover:bg-accent/90"} h-8`}
+                disabled={action.disabled}
+              >
+                {action.icon && <span className="mr-2">{action.icon}</span>}
+                {action.label}
+              </Button>
+            ))}
+          </div>
         )}
 
+        {/* Primary Action */}
         {primaryAction && (
           <Button
             onClick={primaryAction.onClick}

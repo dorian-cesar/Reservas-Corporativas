@@ -1,10 +1,11 @@
 "use client"
-import { Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import * as XLSX from "xlsx";
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -70,6 +71,7 @@ export function SuperCompanies() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   type Company = {
     id: string;
@@ -484,7 +486,74 @@ export function SuperCompanies() {
   };
 
 
+  const exportToCSV = () => {
+    if (filteredCompanies.length === 0) return;
 
+    const headers = [
+      "nombre_empresa",
+      "estado",
+      "porcentaje_recargo",
+      "porcentaje_devolucion",
+      "dia_facturacion",
+      "dia_vencimiento",
+      "monto_maximo",
+      "monto_acumulado",
+      "rut_empresa",
+      "cuenta_corriente"
+    ];
+
+    const csvData = filteredCompanies.map(company => [
+      company.name,
+      company.state ? "1" : "0",
+      company.surchargePercentage || 0,
+      percentToBackend(company.returnPercentage || 0).toFixed(2),
+      company.billingDay,
+      company.expirationDay,
+      company.max?.toString() || "0",
+      company.count?.toString() || "0",
+      company.rut || "-",
+      company.current_account || "-"
+    ]);
+
+    const csvContent = [headers.join(","), ...csvData.map(row => row.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    setIsExportDialogOpen(false);
+    toast({
+      title: "Exportación exitosa",
+      description: `Se exportaron ${filteredCompanies.length} empresas a CSV`
+    });
+  };
+
+  const exportToXLSX = () => {
+    if (filteredCompanies.length === 0) return;
+
+    const data = filteredCompanies.map(company => ({
+      nombre_empresa: company.name,
+      estado: company.state ? 1 : 0,
+      porcentaje_recargo: company.surchargePercentage || 0,
+      porcentaje_devolucion: parseFloat(percentToBackend(company.returnPercentage || 0).toFixed(2)),
+      dia_facturacion: company.billingDay,
+      dia_vencimiento: company.expirationDay,
+      monto_maximo: company.max || 0,
+      monto_acumulado: company.count || 0,
+      rut_empresa: company.rut || "-",
+      cuenta_corriente: company.current_account || "-"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
+    XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
+    setIsExportDialogOpen(false);
+    toast({
+      title: "Exportación exitosa",
+      description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`
+    });
+  };
 
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
@@ -541,15 +610,21 @@ export function SuperCompanies() {
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
         }}
-        secondaryAction={
-          user?.role === "superuser"
-            ? {
+        secondaryActions={[
+          ...(user?.role === "superuser"
+            ? [{
               label: "Subir CSV",
               icon: <Upload className="h-4 w-4" />,
               onClick: sendCSV,
-            }
-            : undefined
-        }
+            }]
+            : []),
+          {
+            label: "Exportar",
+            icon: <Download className="h-4 w-4" />,
+            onClick: () => setIsExportDialogOpen(true),
+            disabled: filteredCompanies.length === 0,
+          }
+        ]}
       />
 
       {/* Indicador de búsqueda */}
@@ -970,7 +1045,7 @@ export function SuperCompanies() {
         </Card>
       )}
 
-      {/* Edit Dialog */}
+
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
@@ -1242,6 +1317,41 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
                   Subir CSV
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Exportación */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar Empresas</DialogTitle>
+            <DialogDescription>
+              Exporte las empresas ({filteredCompanies.length} registros)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex gap-4">
+              <Button
+                onClick={exportToCSV}
+                className="flex-1 bg-accent hover:bg-accent/90"
+                disabled={filteredCompanies.length === 0}
+              >
+                CSV
+              </Button>
+              <Button
+                onClick={exportToXLSX}
+                className="flex-1 bg-accent hover:bg-accent/90"
+                disabled={filteredCompanies.length === 0}
+              >
+                XLSX
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
