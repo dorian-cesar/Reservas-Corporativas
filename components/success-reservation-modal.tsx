@@ -68,14 +68,6 @@ export function SuccessReservationModal({
       const departureBookings = storedBookings.filter(
         (booking: any) => booking.tripType === "departure"
       );
-
-      // También verifica si tenemos los datos necesarios
-      if (departureBookings.length > 0) {
-        console.log("Datos de ida encontrados:", departureBookings[0]);
-        console.log("Asientos de ida:", departureBookings[0]?.selectedSeats);
-        console.log("Pasajeros de ida:", departureBookings[0]?.passengers);
-      }
-
       setDepartureBookings(departureBookings);
     }
   }, [tripType]);

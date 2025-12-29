@@ -71,8 +71,6 @@ export function PassengerInfo({
   // Efecto para precargar el pasajero inicial
   useEffect(() => {
     if (initialPassenger && !initialPassengerLoaded) {
-      console.log("Precargando pasajero inicial:", initialPassenger);
-
       // Establecer modo buscar ya que tenemos un pasajero
       setModoPasajero("buscar");
 

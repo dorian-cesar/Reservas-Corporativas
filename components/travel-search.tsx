@@ -137,10 +137,6 @@ export function TravelSearch() {
   useEffect(() => {
     if (searchMode === "departure" && origin && destination) {
       originalCitiesRef.current = { origin, destination };
-      console.log("Ciudades originales guardadas:", {
-        origin: origin.name,
-        destination: destination.name,
-      });
     }
   }, [searchMode, origin, destination]);
 
@@ -155,25 +151,13 @@ export function TravelSearch() {
         originalCitiesRef.current.origin &&
         originalCitiesRef.current.destination
       ) {
-        console.log("Reserva de ida exitosa - preparando búsqueda de vuelta");
-
         // Intercambiar las ciudades para la vuelta usando las ciudades originales
         const { origin: originalOrigin, destination: originalDestination } =
           originalCitiesRef.current;
 
-        console.log("Ciudades originales de ida:", {
-          origen: originalOrigin.name,
-          destino: originalDestination.name,
-        });
-
         // Para la vuelta: destino de ida → origen de vuelta, origen de ida → destino de vuelta
         setOrigin(originalDestination);
         setDestination(originalOrigin);
-
-        console.log("Ciudades intercambiadas para vuelta:", {
-          nuevoOrigen: originalDestination.name,
-          nuevoDestino: originalOrigin.name,
-        });
 
         // Cambiar a modo vuelta y buscar inmediatamente
         setSearchMode("return");
@@ -182,12 +166,6 @@ export function TravelSearch() {
 
         // Buscar automáticamente la vuelta con las ciudades intercambiadas
         if (returnDateString) {
-          console.log("Buscando vuelta automáticamente con:", {
-            origen: originalDestination.name,
-            destino: originalOrigin.name,
-            fecha: returnDateString,
-          });
-
           // Llamar a búsqueda específica para vuelta
           handleReturnSearch(originalDestination, originalOrigin);
         } else {
@@ -216,11 +194,6 @@ export function TravelSearch() {
         const { origin: originalOrigin, destination: originalDestination } =
           originalCitiesRef.current;
 
-        console.log("Continuando a vuelta - intercambiando ciudades:", {
-          originalOrigin: originalOrigin.name,
-          originalDestination: originalDestination.name,
-        });
-
         setOrigin(originalDestination);
         setDestination(originalOrigin);
       }
@@ -238,7 +211,6 @@ export function TravelSearch() {
       ) {
         const { origin: originalOrigin, destination: originalDestination } =
           originalCitiesRef.current;
-        console.log("Buscando vuelta desde continueToReturn");
         handleReturnSearch(originalDestination, originalOrigin);
       }
     };
@@ -255,14 +227,7 @@ export function TravelSearch() {
     returnOrigin: City,
     returnDestination: City
   ) => {
-    console.log("handleReturnSearch llamado:", {
-      origen: returnOrigin.name,
-      destino: returnDestination.name,
-      fecha: returnDateString,
-    });
-
     if (!returnOrigin || !returnDestination || !returnDateString) {
-      console.log("Faltan datos para búsqueda de vuelta");
       setReturnServices([]);
       setHasSearched(true);
       return;
@@ -273,14 +238,6 @@ export function TravelSearch() {
     setSearchError(null);
 
     try {
-      console.log("Realizando búsqueda de vuelta en API:", {
-        origen: returnOrigin.name,
-        destino: returnDestination.name,
-        origenId: returnOrigin.id,
-        destinoId: returnDestination.id,
-        fecha: returnDateString,
-      });
-
       const params = new URLSearchParams({
         originId: returnOrigin.id.toString(),
         destinationId: returnDestination.id.toString(),
@@ -288,8 +245,6 @@ export function TravelSearch() {
       });
 
       const url = `/api/search?${params}`;
-      console.log("URL de búsqueda de vuelta:", url);
-
       const res = await fetch(url);
 
       if (!res.ok) {
@@ -310,7 +265,6 @@ export function TravelSearch() {
         }) ?? [];
 
       setReturnServices(mapped);
-      console.log("Servicios de vuelta encontrados:", mapped.length);
     } catch (error) {
       console.error("Error searching return services:", error);
       setSearchError(
@@ -362,8 +316,6 @@ export function TravelSearch() {
   }
 
   const handleSearch = async () => {
-    console.log("handleSearch llamado en modo:", searchMode);
-
     // Validaciones según el modo de búsqueda
     if (searchMode === "departure") {
       if (!origin || !destination || !departureDateString) {
@@ -401,15 +353,6 @@ export function TravelSearch() {
         throw new Error("Ciudades no definidas");
       }
 
-      console.log("Realizando búsqueda en API:", {
-        mode: searchMode,
-        origen: searchOrigin.name,
-        destino: searchDestination.name,
-        origenId: searchOrigin.id,
-        destinoId: searchDestination.id,
-        fecha: searchDate,
-      });
-
       // Solo establecer global cuando es búsqueda de ida
       if (searchMode === "departure") {
         setGlobalOrigin(searchOrigin.name);
@@ -423,8 +366,6 @@ export function TravelSearch() {
       });
 
       const url = `/api/search?${params}`;
-      console.log("URL de búsqueda:", url);
-
       const res = await fetch(url);
 
       if (!res.ok) {
@@ -444,14 +385,10 @@ export function TravelSearch() {
           };
         }) ?? [];
 
-      console.log("services:", mapped);
-
       if (searchMode === "departure") {
         setDepartureServices(mapped);
-        console.log("Servicios de ida encontrados:", mapped.length);
       } else {
         setReturnServices(mapped);
-        console.log("Servicios de vuelta encontrados:", mapped.length);
       }
     } catch (error) {
       console.error("Error searching services:", error);
@@ -712,7 +649,7 @@ export function TravelSearch() {
                 <div className="space-y-2 w-full">
                   <Label
                     htmlFor="departure-date"
-                    className="flex items-center gap-2 justify-center"
+                    className="flex items-center gap-2"
                   >
                     <Calendar className="h-4 w-4 text-secondary" />
                     Fecha Ida
@@ -731,10 +668,10 @@ export function TravelSearch() {
                 <div className="space-y-2 w-full">
                   <Label
                     htmlFor="return-date"
-                    className="flex items-center gap-2 justify-center"
+                    className="flex items-center gap-2"
                   >
                     <Calendar className="h-4 w-4 text-secondary" />
-                    Fecha Vuelta (opcional)
+                    Fecha Vuelta
                   </Label>
 
                   <div className="relative w-full">
@@ -742,7 +679,7 @@ export function TravelSearch() {
                       selected={selectedReturnDate}
                       onChange={handleReturnDateChange}
                       minDate={selectedDepartureDate || todayForMinDate}
-                      placeholderText="Seleccionar fecha vuelta"
+                      placeholderText="Opcional"
                       disabled={isLoading}
                       className="w-full pr-9"
                     />

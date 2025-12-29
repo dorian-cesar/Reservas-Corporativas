@@ -149,12 +149,6 @@ export function ServiceDetailDialog({
 
   // Efecto para actualizar las ciudades a mostrar
   useEffect(() => {
-    console.log("ServiceDetailDialog - Actualizando ciudades:", {
-      tripType,
-      origin,
-      destination,
-    });
-
     if (tripType === "departure") {
       // Para ida: mostrar origen → destino
       setDisplayOrigin(origin || "");
@@ -217,10 +211,6 @@ export function ServiceDetailDialog({
 
       if (departureBooking?.passengers?.length > 0) {
         setSavedPassengers(departureBooking.passengers);
-        console.log(
-          "Pasajeros guardados encontrados:",
-          departureBooking.passengers
-        );
       }
     }
   }, [open, tripType]);
@@ -814,7 +804,6 @@ export function ServiceDetailDialog({
       if (tripType === "departure" && !oldBookingsCleaned.current) {
         localStorage.removeItem("completedBookings");
         oldBookingsCleaned.current = true;
-        console.log("Reservas antiguas limpiadas al reservar la ida");
       }
 
       // Guardar en localStorage
