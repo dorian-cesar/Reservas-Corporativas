@@ -68,6 +68,14 @@ export function SuccessReservationModal({
       const departureBookings = storedBookings.filter(
         (booking: any) => booking.tripType === "departure"
       );
+
+      // También verifica si tenemos los datos necesarios
+      if (departureBookings.length > 0) {
+        console.log("Datos de ida encontrados:", departureBookings[0]);
+        console.log("Asientos de ida:", departureBookings[0]?.selectedSeats);
+        console.log("Pasajeros de ida:", departureBookings[0]?.passengers);
+      }
+
       setDepartureBookings(departureBookings);
     }
   }, [tripType]);
@@ -90,20 +98,26 @@ export function SuccessReservationModal({
         <div className="flex items-center gap-2 mb-3">
           <Badge
             variant="outline"
-            className="bg-green-100 text-green-800 border-green-300 text-xs"
+            className="bg-orange-100 text-orange-600 border-orange-300 text-xs"
           >
             Viaje de Ida
           </Badge>
           <div className="flex-1 h-px bg-linear-to-r from-green-200 to-transparent"></div>
         </div>
 
-        <div className="bg-white/90 rounded-lg p-4 mb-3 border border-green-100 backdrop-blur-sm">
+        <div className="bg-white/90 rounded-lg p-4 mb-3 border border-blue-100 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="text-left">
-              <div className="flex items-center gap-2 text-gray-700 mb-1">
-                <MapPin className="h-3 w-3 shrink-0" />
-                <span className="font-medium text-sm truncate">
-                  {departure.origin} → {departure.destination}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-gray-700 mb-1">
+                <MapPin className="h-3 w-3 shrink-0 mt-0.5 sm:mt-0" />
+                <span className="font-medium text-sm wrap-break-words whitespace-normal">
+                  <span className="block sm:inline wrap-break-words">
+                    {departure.origin}
+                  </span>
+                  <span className="hidden sm:inline mx-1">→</span>
+                  <span className="block sm:inline wrap-break-words">
+                    {departure.destination}
+                  </span>
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -115,9 +129,10 @@ export function SuccessReservationModal({
             </div>
             <Badge
               variant="outline"
-              className="bg-green-100 text-green-800 text-xs"
+              className="bg-orange-100 text-orange-600 border-orange-300 text-xs"
             >
-              {departure.seats?.length || 0} asiento(s)
+              {departure.selectedSeats?.length || departure.seats?.length || 0}{" "}
+              asiento(s)
             </Badge>
           </div>
 
@@ -172,10 +187,12 @@ export function SuccessReservationModal({
       <div className="bg-white/90 rounded-lg p-4 mb-3 border border-blue-100 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="text-left">
-            <div className="flex items-center gap-2 text-gray-700 mb-1">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="font-medium text-sm truncate">
-                {displayOrigin} → {displayDestination}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-gray-700 mb-1">
+              <MapPin className="h-3 w-3 shrink-0 mt-0.5 sm:mt-0" />
+              <span className="font-medium text-sm wrap-break-words whitespace-normal sm:truncate sm:whitespace-nowrap">
+                <span className="block sm:inline">{displayOrigin}</span>
+                <span className="hidden sm:inline mx-1">→</span>
+                <span className="block sm:inline">{displayDestination}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -189,7 +206,7 @@ export function SuccessReservationModal({
           </div>
           <Badge
             variant="outline"
-            className="bg-blue-100 text-blue-800 text-xs"
+            className="bg-blue-100 text-blue-800 border-blue-300 text-xs"
           >
             {selectedSeats.length} asiento(s)
           </Badge>
@@ -230,79 +247,76 @@ export function SuccessReservationModal({
     </div>
   );
 
-  const renderPassengersSection = () => (
-    <div className="mb-4">
-      <h4 className="font-bold text-blue-800 text-sm mb-3 pb-2 border-b border-blue-200">
-        Pasajeros ({bookingData.length})
-      </h4>
-      <div className="space-y-2">
-        {bookingData.map((booking: any, index: number) => {
-          // Buscar el pasajero correspondiente en las reservas de ida
-          const departurePassenger = departureBookings[0]?.passengers?.[index];
-
-          return (
-            <div
-              key={index}
-              className="bg-white/90 rounded p-3 border border-blue-100 text-left backdrop-blur-sm"
-            >
-              <div className="flex justify-between items-start mb-1">
-                <div className="flex-1 min-w-0">
-                  <h5 className="font-medium text-blue-800 truncate text-sm">
-                    {booking.passenger?.nombre || "Pasajero"}
-                  </h5>
-                  <div className="space-y-1 mt-1">
-                    <p className="text-xs text-gray-600 truncate">
-                      RUT:{" "}
-                      {booking.passenger?.rut
-                        ? formatRut(booking.passenger.rut)
-                        : "N/A"}
-                    </p>
-                    {/* Mostrar información del viaje de ida si existe */}
-                    {departurePassenger && tripType === "return" && (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="text-green-600 font-medium">Ida:</span>
-                        <span className="text-gray-500 truncate">
-                          {departureBookings[0]?.origin} →{" "}
-                          {departureBookings[0]?.destination}
-                        </span>
-                      </div>
-                    )}
+  const renderPassengersSection = () => {
+    return (
+      <div className="mb-4">
+        <h4 className="font-bold text-blue-800 text-sm mb-3 pb-2 border-b border-blue-200">
+          Pasajeros ({bookingData.length})
+        </h4>
+        <div className="space-y-2">
+          {bookingData.map((booking: any, index: number) => {
+            const departureBookingData =
+              departureBookings[0]?.bookingData?.[index];
+            let totalPasajero = booking.monto_boleto || 0;
+            if (tripType === "return" && departureBookingData) {
+              totalPasajero += departureBookingData.monto_boleto || 0;
+            }
+            return (
+              <div
+                key={index}
+                className="bg-white/90 rounded p-3 border border-blue-100 text-left backdrop-blur-sm"
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-medium text-blue-800 truncate text-sm">
+                      {booking.passenger?.nombre || "Pasajero"}
+                    </h5>
+                    <div className="space-y-1 mt-1">
+                      <p className="text-xs text-gray-600 truncate">
+                        RUT:{" "}
+                        {booking.passenger?.rut
+                          ? formatRut(booking.passenger.rut)
+                          : "N/A"}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col gap-1 ml-2 shrink-0 items-end">
-                  <div className="flex flex-col items-end gap-1">
-                    {tripType === "return" && departurePassenger && (
+                  <div className="flex flex-col gap-1 ml-2 shrink-0 items-end">
+                    <div className="flex flex-col items-end gap-1">
+                      {tripType === "return" &&
+                        departureBookings[0]?.passengers?.[index] && (
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-50 text-orange-600 border-orange-300 text-xs"
+                          >
+                            Ida: Asiento{" "}
+                            {departureBookings[0]?.selectedSeats?.[index] ||
+                              "N/A"}
+                          </Badge>
+                        )}
                       <Badge
                         variant="outline"
-                        className="bg-green-50 text-green-800 border-green-300 text-xs"
+                        className={
+                          tripType === "return"
+                            ? "bg-blue-50 text-blue-800 border-blue-300 text-xs"
+                            : "bg-orange-50 text-orange-800 border-orange-300 text-xs"
+                        }
                       >
-                        Ida: Asiento {departurePassenger?.seatNumber || "N/A"}
+                        {tripType === "return" ? "Vuelta" : "Ida"}: Asiento{" "}
+                        {booking.seat}
                       </Badge>
-                    )}
-                    <Badge
-                      variant="outline"
-                      className={
-                        tripType === "return"
-                          ? "bg-blue-50 text-blue-800 border-blue-300 text-xs"
-                          : "bg-orange-50 text-orange-800 border-orange-300 text-xs"
-                      }
-                    >
-                      {tripType === "return" ? "Vuelta" : "Ida"}: Asiento{" "}
-                      {booking.seat}
-                    </Badge>
+                    </div>
+                    <span className="font-medium text-blue-700 text-xs mt-1">
+                      Total: ${totalPasajero.toLocaleString("es-CL")}
+                    </span>
                   </div>
-                  <span className="font-medium text-blue-700 text-xs mt-1">
-                    Total: $
-                    {booking.monto_boleto?.toLocaleString("es-CL") || "0"}
-                  </span>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderTotalsSection = () => {
     const departureTotal = departureBookings[0]?.totalPrice || 0;
@@ -324,11 +338,11 @@ export function SuccessReservationModal({
     }
 
     return (
-      <div className="bg-linear-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
+      <div className="bg-linear-to-r bg-white rounded-lg p-4 border border-blue-200">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="text-left">
             <p className="text-gray-600 mb-1">Viaje de Ida:</p>
-            <p className="font-bold text-green-700">
+            <p className="font-bold text-orange-600">
               ${departureTotal.toLocaleString("es-CL")}
             </p>
           </div>
@@ -342,7 +356,7 @@ export function SuccessReservationModal({
         <div className="mt-3 pt-3 border-t border-blue-200">
           <div className="flex justify-between items-center">
             <span className="font-medium text-gray-700">Total general:</span>
-            <span className="text-lg font-bold text-purple-700">
+            <span className="text-lg font-bold text-orange-600">
               ${grandTotal.toLocaleString("es-CL")}
             </span>
           </div>
@@ -362,15 +376,18 @@ export function SuccessReservationModal({
         </Badge>
       </div>
 
-      <div className="bg-white/90 rounded-lg p-4 mb-4 border border-green-100 backdrop-blur-sm">
+      <div className="bg-white/90 rounded-lg p-4 mb-4 border border-blue-100 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="text-left">
-            <div className="flex items-center gap-2 text-gray-700 mb-1">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="font-medium text-sm truncate">
-                {displayOrigin} → {displayDestination}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-gray-700 mb-1">
+              <MapPin className="h-3 w-3 shrink-0 mt-0.5 sm:mt-0" />
+              <span className="font-medium text-sm wrap-break-words whitespace-normal sm:truncate sm:whitespace-nowrap">
+                <span className="block sm:inline">{displayOrigin}</span>
+                <span className="hidden sm:inline mx-1">→</span>
+                <span className="block sm:inline">{displayDestination}</span>
               </span>
             </div>
+
             <div className="flex items-center gap-2">
               <Calendar className="h-3 w-3 text-gray-500" />
               <span className="font-medium text-sm">
@@ -475,8 +492,8 @@ export function SuccessReservationModal({
               className="bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white inline-flex items-center shadow-md"
               size="sm"
             >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              {tripType === "return" ? "Finalizar Reservas" : "Finalizar"}
+              <CheckCircle2 className="h-4 w-4" />
+              {tripType === "return" ? "Finalizar" : "Finalizar"}
             </Button>
           </div>
         </div>

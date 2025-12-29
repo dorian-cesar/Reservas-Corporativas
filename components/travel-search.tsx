@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   ArrowRightLeft,
   CheckCircle2,
+  X,
 } from "lucide-react";
 import { BusServiceCard } from "@/components/bus-service-card";
 import { useTravel } from "@/components/context/travel-context";
@@ -94,7 +95,6 @@ export function TravelSearch() {
 
   const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
     useTravel();
-  const user = useUserStore((s) => s.user);
   const loadingUser = useUserStore((s) => s.loading);
 
   // Ref para trackear las ciudades originales de ida
@@ -507,61 +507,6 @@ export function TravelSearch() {
     }
   };
 
-  const handleSwitchToReturnSearch = () => {
-    console.log("Usuario clickeó 'Buscar Vuelta'");
-
-    // Intercambiar las ciudades para la vuelta usando las ciudades originales
-    if (
-      originalCitiesRef.current.origin &&
-      originalCitiesRef.current.destination
-    ) {
-      const { origin: originalOrigin, destination: originalDestination } =
-        originalCitiesRef.current;
-
-      console.log("Intercambiando ciudades para búsqueda manual de vuelta:", {
-        ida: `${originalOrigin.name} → ${originalDestination.name}`,
-        vuelta: `${originalDestination.name} → ${originalOrigin.name}`,
-      });
-
-      setOrigin(originalDestination);
-      setDestination(originalOrigin);
-    }
-
-    setSearchMode("return");
-    setReturnServices([]);
-    setHasSearched(false);
-
-    // Si hay fecha de vuelta, buscar automáticamente
-    if (
-      returnDateString &&
-      originalCitiesRef.current.origin &&
-      originalCitiesRef.current.destination
-    ) {
-      const { origin: originalOrigin, destination: originalDestination } =
-        originalCitiesRef.current;
-      console.log("Buscando vuelta manualmente");
-      handleReturnSearch(originalDestination, originalOrigin);
-    }
-  };
-
-  const handleSwitchToDepartureSearch = () => {
-    console.log("Volviendo a búsqueda de ida");
-
-    // Restaurar las ciudades originales
-    if (
-      originalCitiesRef.current.origin &&
-      originalCitiesRef.current.destination
-    ) {
-      setOrigin(originalCitiesRef.current.origin);
-      setDestination(originalCitiesRef.current.destination);
-    }
-
-    setSearchMode("departure");
-    setDepartureServices([]);
-    setHasSearched(false);
-    setDepartureBooked(false);
-  };
-
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
 
   const isSearchDisabled =
@@ -682,7 +627,7 @@ export function TravelSearch() {
           </CardHeader>
 
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr_1fr_1fr] items-end">
+            <div className="grid gap-4 md:gap-2 lg:gap-4 items-end grid-cols-1 md:grid-cols-[1fr_auto_1fr] lg:grid-cols-[1fr_auto_1fr_1fr_1fr]">
               {/* ORIGEN */}
               <div className="space-y-2">
                 <Label htmlFor="origin" className="flex items-center gap-2">
@@ -762,42 +707,58 @@ export function TravelSearch() {
                 />
               </div>
 
-              {/* FECHA IDA */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="departure-date"
-                  className="flex items-center gap-2"
-                >
-                  <Calendar className="h-4 w-4 text-secondary" />
-                  Fecha Ida
-                </Label>
-                <ModernDatePicker
-                  selected={selectedDepartureDate}
-                  onChange={handleDepartureDateChange}
-                  minDate={todayForMinDate}
-                  placeholderText="Seleccionar fecha ida"
-                  disabled={isLoading}
-                  className="w-full"
-                />
-              </div>
+              <div className="md:col-span-3 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 justify-center">
+                {/* FECHA IDA */}
+                <div className="space-y-2 w-full">
+                  <Label
+                    htmlFor="departure-date"
+                    className="flex items-center gap-2 justify-center"
+                  >
+                    <Calendar className="h-4 w-4 text-secondary" />
+                    Fecha Ida
+                  </Label>
+                  <ModernDatePicker
+                    selected={selectedDepartureDate}
+                    onChange={handleDepartureDateChange}
+                    minDate={todayForMinDate}
+                    placeholderText="Seleccionar fecha ida"
+                    disabled={isLoading}
+                    className="w-full"
+                  />
+                </div>
 
-              {/* FECHA VUELTA (OPCIONAL) */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="return-date"
-                  className="flex items-center gap-2"
-                >
-                  <Calendar className="h-4 w-4 text-secondary" />
-                  Fecha Vuelta (opcional)
-                </Label>
-                <ModernDatePicker
-                  selected={selectedReturnDate}
-                  onChange={handleReturnDateChange}
-                  minDate={selectedDepartureDate || todayForMinDate}
-                  placeholderText="Seleccionar fecha vuelta"
-                  disabled={isLoading}
-                  className="w-full"
-                />
+                {/* FECHA VUELTA */}
+                <div className="space-y-2 w-full">
+                  <Label
+                    htmlFor="return-date"
+                    className="flex items-center gap-2 justify-center"
+                  >
+                    <Calendar className="h-4 w-4 text-secondary" />
+                    Fecha Vuelta (opcional)
+                  </Label>
+
+                  <div className="relative w-full">
+                    <ModernDatePicker
+                      selected={selectedReturnDate}
+                      onChange={handleReturnDateChange}
+                      minDate={selectedDepartureDate || todayForMinDate}
+                      placeholderText="Seleccionar fecha vuelta"
+                      disabled={isLoading}
+                      className="w-full pr-9"
+                    />
+
+                    {selectedReturnDate && (
+                      <button
+                        type="button"
+                        onClick={() => handleReturnDateChange(null)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 transition"
+                        aria-label="Borrar fecha de vuelta"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -822,28 +783,6 @@ export function TravelSearch() {
                   </>
                 )}
               </Button>
-
-              {isRoundTrip && departureBooked && searchMode === "departure" && (
-                <Button
-                  onClick={handleSwitchToReturnSearch}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <ArrowRightLeft className="h-4 w-4" />
-                  Buscar Vuelta
-                </Button>
-              )}
-
-              {searchMode === "return" && (
-                <Button
-                  onClick={handleSwitchToDepartureSearch}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <ArrowRightLeft className="h-4 w-4 rotate-180" />
-                  Volver a Ida
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -938,31 +877,6 @@ export function TravelSearch() {
                 </Card>
               )}
             </div>
-
-            {/* Mensaje para continuar con la vuelta si es ida y vuelta */}
-            {isRoundTrip &&
-              searchMode === "departure" &&
-              departureServices.length > 0 &&
-              !departureBooked && (
-                <Card className="border-2 border-blue-200 bg-blue-50">
-                  <CardContent className="py-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-blue-800">
-                          ¿Listo para continuar?
-                        </h3>
-                        <p className="text-sm text-blue-600">
-                          Primero selecciona y reserva un servicio de ida, luego
-                          podrás buscar tu viaje de vuelta
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="bg-white">
-                        Paso 1 de 2
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
           </div>
         )}
       </div>

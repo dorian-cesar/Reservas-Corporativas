@@ -34,6 +34,7 @@ import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
 import Swal from "sweetalert2";
 import { SuccessReservationModal } from "./success-reservation-modal";
+import { useRouter } from "next/navigation";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -61,6 +62,7 @@ export function ServiceDetailDialog({
 }: ServiceDetailDialogProps) {
   const { user } = useUserStore();
   const { token } = useAuth();
+  const router = useRouter();
   const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(
     null
   );
@@ -797,6 +799,7 @@ export function ServiceDetailDialog({
         dep_time: serviceDetail.dep_time,
         arr_time: serviceDetail.arr_time,
         travel_name: serviceDetail.travels_name,
+        selectedSeats: selectedSeats,
         seats: selectedSeats,
         passengers: passengersData.map((p) => p.passenger),
         totalPrice: getTotalPrice(),
@@ -852,34 +855,22 @@ export function ServiceDetailDialog({
     }
   };
 
-  const handleContinueToReturn = () => {
-    setSuccess(false);
-    setSelectedSeats([]);
-    setBookingData([]);
-    setPassengersData([]);
-    setSavedPassengers([]);
-    setUsingSavedPassengers(false);
+  const handleClose = () => {
     onOpenChange(false);
-
-    // Disparar evento para continuar con la vuelta
-    window.dispatchEvent(new CustomEvent("continueToReturn"));
+    if (success) {
+      router.push("/");
+    }
   };
 
-  const handleClose = () => {
-    // Limpiar estados específicos de pasajeros guardados
-    setSavedPassengers([]);
-    setUsingSavedPassengers(false);
-
-    // Si es la vuelta y está en éxito, resetear el flag
-    if (tripType === "return" && success) {
-      oldBookingsCleaned.current = false;
+  const handleModalClose = (state: boolean) => {
+    if (!state && (loading || loadingDetail)) {
+      return;
     }
-
-    setSuccess(false);
-    setSelectedSeats([]);
-    setBookingData([]);
-    setPassengersData([]);
-    onOpenChange(false);
+    if (!state && success) {
+      handleClose();
+    } else {
+      onOpenChange(state);
+    }
   };
 
   const availableSeats = parseSeats();
@@ -913,19 +904,6 @@ export function ServiceDetailDialog({
     }
   };
 
-  const handleModalClose = (state: boolean) => {
-    if (!state && success) {
-      if (bookingTimeoutRef.current) {
-        clearTimeout(bookingTimeoutRef.current);
-      }
-      onOpenChange(false);
-      return;
-    }
-    if (!loading && !loadingDetail) {
-      onOpenChange(state);
-    }
-  };
-
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeats.length > 0 &&
@@ -939,7 +917,7 @@ export function ServiceDetailDialog({
           if (loading || loadingDetail) e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          if (loading || loadingDetail) e.preventDefault();
+          e.preventDefault();
         }}
       >
         {!success && (
@@ -1135,22 +1113,6 @@ export function ServiceDetailDialog({
                         Datos de los Pasajeros
                       </h3>
 
-                      {/* BOTÓN PARA USAR PASAJEROS GUARDADOS (solo en vuelta) */}
-                      {/* {tripType === "return" &&
-                        savedPassengers.length > 0 &&
-                        !usingSavedPassengers && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleUseSavedPassengers}
-                            className="bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Usar pasajeros de la ida ({savedPassengers.length})
-                          </Button>
-                        )} */}
-
                       {/* Indicador de pasajeros cargados automáticamente */}
                       {tripType === "return" && usingSavedPassengers && (
                         <Badge
@@ -1168,23 +1130,6 @@ export function ServiceDetailDialog({
                       {selectedSeats.length} completados
                     </Badge>
                   </div>
-
-                  {/* Mensaje informativo para la vuelta */}
-                  {/* {tripType === "return" &&
-                    savedPassengers.length > 0 &&
-                    !usingSavedPassengers && (
-                      <Alert className="bg-blue-50 border-blue-200">
-                        <AlertDescription className="text-sm text-blue-800">
-                          <strong>
-                            ✓ Tienes {savedPassengers.length} pasajero(s)
-                            guardado(s) del viaje de ida.
-                          </strong>
-                          <br />
-                          Haz clic en "Usar pasajeros de la ida" para cargarlos
-                          automáticamente.
-                        </AlertDescription>
-                      </Alert>
-                    )} */}
 
                   <div className="space-y-4">
                     {passengersData.map((passengerData) => (
@@ -1283,7 +1228,7 @@ export function ServiceDetailDialog({
                 disabled={loading}
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
+                <ArrowLeft className="h-4 w-4" />
                 Volver
               </Button>
               <Button
@@ -1297,12 +1242,12 @@ export function ServiceDetailDialog({
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Confirmando Reserva(s)...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <CheckCircle2 className="h-4 w-4" />
                     Confirmar {selectedSeats.length} asiento(s)
                   </>
                 )}
