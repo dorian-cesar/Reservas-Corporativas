@@ -522,6 +522,8 @@ export function CompanyUsers() {
         companies={companies}
         selectedCompany={selectedCompany}
         onCompanyChange={(id) => setSelectedCompany(id)}
+        companySelectMode="combobox"
+        companySelectPlaceholder="Selecciona una empresa..."
 
         refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={{

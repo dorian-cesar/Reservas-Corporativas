@@ -369,11 +369,12 @@ export function SuperCostCenters() {
                 viewMode={viewMode}
                 setViewMode={setViewMode}
 
-                // company select (usa tu estado companies / empresaId)
                 showCompanySelect
                 companies={companies}
                 selectedCompany={empresaId}
                 onCompanyChange={(id) => setEmpresaId(id)}
+                companySelectMode="combobox"
+                companySelectPlaceholder="Selecciona una empresa..."
 
                 refreshAction={() => handleSearch()}
 

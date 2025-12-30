@@ -42,7 +42,7 @@ export default function AdminPage() {
             </div>
             <AdminStats />
 
-            <Tabs defaultValue="cost-center" className="w-full">
+            <Tabs defaultValue="companies-crud" className="w-full">
               <TabsList className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap

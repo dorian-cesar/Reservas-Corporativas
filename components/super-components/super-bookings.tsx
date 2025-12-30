@@ -833,11 +833,13 @@ export function SuperAllBookings() {
         description="Visualice y exporte los tickets del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        // company select
         showCompanySelect
         companies={companies}
         selectedCompany={empresaId}
         onCompanyChange={(id) => setEmpresaId(id)}
+        companySelectMode="combobox"
+        companySelectPlaceholder="Selecciona una empresa..."
+
         refreshAction={() => empresaId && fetchTickets({
           targetEmpresaId: Number(empresaId),
           page: pagination.page,
