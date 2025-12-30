@@ -15,6 +15,11 @@ import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago
 import { TravelSearch } from "@/components/travel-search"
 import { UserProvider } from "@/components/providers/user-provider";
 import { AdminPassengers } from "@/components/admin-components/admin-passengers"
+import { SuperCompanies } from "@/components/super-components/super-companies"
+import { SuperCostCenters } from "@/components/super-cost-center"
+import { SuperAllBookings } from "@/components/super-components/super-bookings"
+import { CompanyPassengers } from "@/components/super-components/super-passengers"
+
 
 
 export default function AdminPage() {
@@ -44,6 +49,10 @@ export default function AdminPage() {
                   p-2 -mx-2 sm:mx-0
                   rounded-md
                 ">
+                <TabsTrigger value="companies-crud" className="gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Empresas
+                </TabsTrigger>
                 <TabsTrigger value="cost-center" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Centros de Costo
@@ -77,12 +86,17 @@ export default function AdminPage() {
               </TabsList>
 
 
+              <TabsContent value="companies-crud" className="mt-6">
+                <SuperCompanies />
+              </TabsContent>
               <TabsContent value="cost-center" className="mt-6">
-                <AdminCostCenters />
+                {/* <AdminCostCenters /> */}
+                <SuperCostCenters />
               </TabsContent>
 
               <TabsContent value="users" className="mt-6">
-                <AdminCompanyUsers />
+                {/* <AdminCompanyUsers /> */}
+                <CompanyUsers />
               </TabsContent>
               {/* <TabsContent value="esp" className="mt-6">
                 <AdminEstadoPago />
@@ -93,11 +107,13 @@ export default function AdminPage() {
               </TabsContent> */}
 
               <TabsContent value="tickets" className="mt-6">
-                <AdminBookings />
+                {/* <AdminBookings /> */}
+                <SuperAllBookings />
               </TabsContent>
 
               <TabsContent value="passengers" className="mt-6">
-                <AdminPassengers />
+                {/* <AdminPassengers /> */}
+                <CompanyPassengers />
               </TabsContent>
 
               <TabsContent value="bookings" className="mt-6">
