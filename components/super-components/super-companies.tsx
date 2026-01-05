@@ -695,11 +695,11 @@ export function SuperCompanies() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery })}
-        primaryAction={{
+        primaryAction={user?.role !== "admin" ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
-        }}
+        } : undefined}
         secondaryActions={[
           ...(user?.role === "superuser"
             ? [{
