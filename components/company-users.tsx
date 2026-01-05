@@ -99,6 +99,7 @@ export function CompanyUsers() {
   const { toast } = useToast()
 
   const [superUser, setSuperUser] = useState(false);
+  const currentUser = user;
 
   useEffect(() => { setSuperUser(user?.role === "superuser") }, []);
 
@@ -658,6 +659,15 @@ export function CompanyUsers() {
     company => assignedCompanies.includes(company.id)
   );
 
+  function canEditUser(editorRol: string, targetRol: string) {
+    if (editorRol === "admin") {
+      return targetRol === "subusuario";
+    }
+
+    return true;
+  }
+
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -852,11 +862,27 @@ export function CompanyUsers() {
                 onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="admin">Administrador</option>
-                <option value="empresa">Empresa</option>
+                {
+                  user?.role !== "admin" && (
+                    <option value="admin">Administrador</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="empresa">Empresa</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="auditoria">Auditoria</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="contralor">Contralor</option>
+                  )
+                }
                 <option value="subusuario">usuario</option>
-                <option value="auditoria">Auditoria</option>
-                <option value="contralor">Contralor</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -1151,30 +1177,32 @@ export function CompanyUsers() {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                        onClick={() => openEditDialog(user)}
-                      >
-                        <Pencil className="h-3 w-3 mr-2" />
-                        Editar
-                      </Button>
-
-
-                      {(superUser && user.rol === "admin") && (
+                    {canEditUser(currentUser?.role || "", user.rol) && (
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                          onClick={() => openAssignDialog(user)}
+                          onClick={() => openEditDialog(user)}
                         >
-                          <Plus className="h-3 w-3 mr-2" />
-                          Asignar empresas
+                          <Pencil className="h-3 w-3 mr-2" />
+                          Editar
                         </Button>
-                      )}
-                    </div>
+
+
+                        {(superUser && user.rol === "admin") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                            onClick={() => openAssignDialog(user)}
+                          >
+                            <Plus className="h-3 w-3 mr-2" />
+                            Asignar empresas
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -1252,39 +1280,41 @@ export function CompanyUsers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                          {canEditUser(currentUser?.role || "", user.rol) && (
+                            <div className="flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
 
-                              <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem
-                                  onClick={() => openEditDialog(user)}
-                                  className="cursor-pointer"
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Editar
-                                </DropdownMenuItem>
-
-                                {(superUser && user.rol === "admin") && (
+                                <DropdownMenuContent align="end" className="w-44">
                                   <DropdownMenuItem
-                                    onClick={() => openAssignDialog(user)}
+                                    onClick={() => openEditDialog(user)}
                                     className="cursor-pointer"
                                   >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Asignar empresas
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
                                   </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+
+                                  {(superUser && user.rol === "admin") && (
+                                    <DropdownMenuItem
+                                      onClick={() => openAssignDialog(user)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      Asignar empresas
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
                         </TableCell>
 
 
@@ -1365,11 +1395,27 @@ export function CompanyUsers() {
                 onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="admin">Administrador</option>
-                <option value="empresa">Empresa</option>
-                <option value="subusuario">Usuario</option>
-                <option value="auditoria">Auditoria</option>
-                <option value="contralor">Contralor</option>
+                {
+                  user?.role !== "admin" && (
+                    <option value="admin">Administrador</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="empresa">Empresa</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="auditoria">Auditoria</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="contralor">Contralor</option>
+                  )
+                }
+                <option value="subusuario">usuario</option>
               </select>
             </div>
             <div className="space-y-2">
