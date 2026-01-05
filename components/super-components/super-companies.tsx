@@ -1178,7 +1178,7 @@ export function SuperCompanies() {
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  {user?.role !== "admin" && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1234,14 +1234,18 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(company)}
-                          className="h-8 px-3"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
+                        {
+                          user?.role !== "admin" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(company)}
+                              className="h-8 px-3"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )
+                        }
                         {
                           user?.role === "superuser" && (
                             <Button
