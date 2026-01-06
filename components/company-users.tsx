@@ -32,7 +32,8 @@ import {
   MoreHorizontal,
   Check,
   X,
-  ChevronRight
+  ChevronRight,
+  ChevronsUpDown
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -41,6 +42,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table as UITable,
   TableBody,
@@ -72,6 +86,8 @@ export function CompanyUsers() {
   const [availableCompanies, setAvailableCompanies] = useState<{ id: string; nombre: string }[]>([]);
   const [assignedCompanies, setAssignedCompanies] = useState<string[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+  const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+  const [costCenterPopoverOpen, setCostCenterPopoverOpen] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -335,7 +351,11 @@ export function CompanyUsers() {
     setCostCenters([]);
   };
 
-  const handleAdd = async () => {
+  const handleAdd = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
     if (!formData.nombre || !formData.rut || !formData.email || !formData.password) {
       toast({
         title: "Error",
@@ -375,7 +395,10 @@ export function CompanyUsers() {
         title: "Usuario agregado",
         description: `${formData.nombre} ha sido agregado exitosamente`,
       });
-      fetchUsers();
+
+      if (selectedCompany) {
+        fetchUsers();
+      }
     } catch (err: any) {
       console.error(err);
       toast({
@@ -700,7 +723,212 @@ export function CompanyUsers() {
         }
       />
 
-      {/* Diálogo para Asignar Empresas */}
+      {isAddDialogOpen && (
+        <div className="space-y-4 p-4 border rounded-lg bg-card mb-6 animate-in fade-in slide-in-from-top-2">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Agregar Nuevo Usuario</h3> {/* Cambiado el título */}
+            <p className="text-sm text-muted-foreground">
+              Complete los datos del usuario
+            </p>
+          </div>
+
+          <form onSubmit={handleAdd} className="space-y-6">
+
+            {/* GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="space-y-2">
+                <Label htmlFor="nombre">Nombre Completo *</Label>
+                <Input
+                  id="nombre"
+                  placeholder="Ej: Juan Pérez"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rut">RUT *</Label>
+                <Input
+                  id="rut"
+                  placeholder="Ej: 12345678-9"
+                  value={formData.rut}
+                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Ej: usuario@empresa.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Ingrese la contraseña"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rol">Rol</Label>
+                <select
+                  id="rol"
+                  value={formData.rol}
+                  onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  {user?.role !== "admin" && <option value="admin">Administrador</option>}
+                  {user?.role !== "admin" && <option value="empresa">Empresa</option>}
+                  {user?.role !== "admin" && <option value="auditoria">Auditoría</option>}
+                  {user?.role !== "admin" && <option value="contralor">Contralor</option>}
+                  <option value="subusuario">Usuario</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="empresa_id">Empresa</Label>
+                <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between bg-white"
+                    >
+                      {formData.empresa_id
+                        ? `${companies.find(c => c.id === formData.empresa_id)?.id || ""} - ${companies.find(c => c.id === formData.empresa_id)?.nombre || ""}`
+                        : "Selecciona una empresa"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar empresa..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                        <CommandGroup>
+                          {companies.map((company) => (
+                            <CommandItem
+                              key={company.id}
+                              value={`${company.id} ${company.nombre}`}
+                              onSelect={() => {
+                                setFormData({ ...formData, empresa_id: company.id });
+                                setCompanyPopoverOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {company.id} - {company.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="centro_costo_id">Centro de Costo</Label>
+                <Popover
+                  open={costCenterPopoverOpen}
+                  onOpenChange={setCostCenterPopoverOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={!formData.empresa_id || isLoadingCostCenters}
+                      className="w-full justify-between bg-white"
+                    >
+                      {formData.centro_costo_id
+                        ? costCenters.find(cc => cc.id === formData.centro_costo_id)?.nombre
+                        : isLoadingCostCenters
+                          ? "Cargando centros de costo..."
+                          : "Selecciona un centro de costo"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar centro de costo..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró el centro de costo.</CommandEmpty>
+                        <CommandGroup>
+                          {costCenters.map((cc) => (
+                            <CommandItem
+                              key={cc.id}
+                              value={`${cc.id} ${cc.nombre}`}
+                              onSelect={() => {
+                                setFormData({ ...formData, centro_costo_id: cc.id });
+                                setCostCenterPopoverOpen(false);
+                              }}
+                            >
+                              {cc.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {!formData.empresa_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Selecciona una empresa primero
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="estado">Estado</Label>
+                <select
+                  id="estado"
+                  value={formData.estado.toString()}
+                  onChange={(e) =>
+                    setFormData({ ...formData, estado: e.target.value === "true" })
+                  }
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* BOTONES */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddDialogOpen(false);
+                  resetForm();
+                }}
+              >
+                Cancelar
+              </Button>
+
+              <Button type="submit" className="bg-accent hover:bg-accent/90">
+                Agregar
+              </Button>
+            </div>
+
+          </form>
+
+        </div>
+      )}
+
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -807,147 +1035,6 @@ export function CompanyUsers() {
       </Dialog>
 
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogTrigger asChild>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Agregar Nuevo Usuario</DialogTitle>
-            <DialogDescription>Complete los datos del usuario</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre Completo *</Label>
-              <Input
-                id="nombre"
-                placeholder="Ej: Juan Pérez"
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rut">RUT *</Label>
-              <Input
-                id="rut"
-                placeholder="Ej: 12345678-9"
-                value={formData.rut}
-                onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Ej: usuario@empresa.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña *</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Ingrese la contraseña"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rol">Rol</Label>
-              <select
-                id="rol"
-                value={formData.rol}
-                onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
-                className="w-full p-2 border rounded-md"
-              >
-                {
-                  user?.role !== "admin" && (
-                    <option value="admin">Administrador</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="empresa">Empresa</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="auditoria">Auditoria</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="contralor">Contralor</option>
-                  )
-                }
-                <option value="subusuario">usuario</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="empresa_id">Empresa</Label>
-              <select
-                id="empresa_id"
-                value={formData.empresa_id}
-                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">Selecciona una empresa</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.id} - {company.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="centro_costo_id">Centro de Costo</Label>
-              <select
-                id="centro_costo_id"
-                value={formData.centro_costo_id}
-                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
-                disabled={!formData.empresa_id || isLoadingCostCenters}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">Selecciona un centro de costo</option>
-                {isLoadingCostCenters ? (
-                  <option value="" disabled>Cargando centros de costo...</option>
-                ) : (
-                  costCenters.map((costCenter) => (
-                    <option key={costCenter.id} value={costCenter.id}>
-                      {costCenter.nombre}
-                    </option>
-                  ))
-                )}
-              </select>
-              {!formData.empresa_id && (
-                <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="estado">Estado</Label>
-              <select
-                id="estado"
-                value={formData.estado.toString()}
-                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="true">Activo</option>
-                <option value="false">Inactivo</option>
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-              Agregar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {selectedCompany ? (
         <>
