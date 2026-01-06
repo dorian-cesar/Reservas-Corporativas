@@ -79,10 +79,10 @@ export default function AdminPage() {
                   Pasajeros
                 </TabsTrigger>
 
-                {/* <TabsTrigger value="bookings" className="gap-2">
+                <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
-                </TabsTrigger> */}
+                </TabsTrigger>
               </TabsList>
 
 
@@ -116,10 +116,10 @@ export default function AdminPage() {
                 <CompanyPassengers />
               </TabsContent>
 
-              {/* <TabsContent value="bookings" className="mt-6">
+              <TabsContent value="bookings" className="mt-6">
                 <UserProvider />
                 <TravelSearch />
-              </TabsContent> */}
+              </TabsContent>
 
             </Tabs>
           </div>
