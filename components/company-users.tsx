@@ -28,9 +28,19 @@ import {
   LayoutGrid,
   Badge,
   FolderTree,
-  Upload
+  Upload,
+  MoreHorizontal,
+  Check,
+  X,
+  ChevronRight
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import {
   Table as UITable,
   TableBody,
@@ -56,6 +66,12 @@ export function CompanyUsers() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
+  // Nuevos estados para el diálogo de asignación de empresas
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [userToAssign, setUserToAssign] = useState<User | null>(null);
+  const [availableCompanies, setAvailableCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [assignedCompanies, setAssignedCompanies] = useState<string[]>([]);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -83,6 +99,7 @@ export function CompanyUsers() {
   const { toast } = useToast()
 
   const [superUser, setSuperUser] = useState(false);
+  const currentUser = user;
 
   useEffect(() => { setSuperUser(user?.role === "superuser") }, []);
 
@@ -141,6 +158,57 @@ export function CompanyUsers() {
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+    }
+  };
+
+  const fetchAllCompanies = async () => {
+    try {
+      setIsLoadingCompanies(true);
+      const res = await fetch("/api/companies", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Error fetching all companies");
+      const data = await res.json();
+      const mapped = data.map((c: any) => ({
+        id: c.id.toString(),
+        nombre: c.nombre,
+      }));
+      setAvailableCompanies(mapped);
+      return mapped;
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      return [];
+    } finally {
+      setIsLoadingCompanies(false);
+    }
+  };
+
+  const fetchUserEmpresas = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/assign?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          return [];
+        }
+        throw new Error("Error fetching user companies");
+      }
+
+      const data = await res.json();
+
+      if (data && Array.isArray(data.empresas)) {
+        return data.empresas.map((empresa: any) =>
+          empresa.id?.toString() || empresa.id
+        );
+      }
+
+      return [];
+    } catch (err) {
+      console.error("Error fetching user empresas:", err);
+      return [];
     }
   };
 
@@ -252,7 +320,6 @@ export function CompanyUsers() {
       });
     }
   };
-
 
   const resetForm = () => {
     setFormData({
@@ -381,6 +448,79 @@ export function CompanyUsers() {
     }
   };
 
+  // Función para abrir el diálogo de asignación de empresas
+  const openAssignDialog = async (user: User) => {
+    setUserToAssign(user);
+
+    // Cargar todas las empresas disponibles
+    const allCompanies = await fetchAllCompanies();
+
+    // Cargar empresas ya asignadas al usuario
+    const userAssignedCompanies = await fetchUserEmpresas(user.id.toString());
+
+    setAssignedCompanies(userAssignedCompanies);
+    setAvailableCompanies(allCompanies);
+    setAssignDialogOpen(true);
+  };
+
+  // Función para asignar/desasignar una empresa
+  const toggleCompanyAssignment = (companyId: string) => {
+    if (assignedCompanies.includes(companyId)) {
+      // Quitar empresa
+      setAssignedCompanies(prev => prev.filter(id => id !== companyId));
+    } else {
+      // Agregar empresa
+      setAssignedCompanies(prev => [...prev, companyId]);
+    }
+  };
+
+  // Función para guardar los cambios de asignación
+  const handleSaveAssignments = async () => {
+    if (!userToAssign) return;
+
+    try {
+      const payload = {
+        bulk: true,
+        user_id: userToAssign.id.toString(),
+        empresa_ids: assignedCompanies
+      };
+
+      const res = await fetch("/api/assign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al actualizar asignaciones");
+      }
+
+      setAssignDialogOpen(false);
+      setUserToAssign(null);
+
+      toast({
+        title: "Asignaciones actualizadas",
+        description: `Las empresas asignadas a ${userToAssign.nombre} han sido actualizadas`,
+      });
+
+      // Recargar usuarios si estamos viendo una empresa específica
+      if (selectedCompany) {
+        fetchUsers();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "No se pudieron guardar las asignaciones",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sendCSV = () => {
     resetCSVModal();
     setCsvModalOpen(true);
@@ -426,7 +566,6 @@ export function CompanyUsers() {
     setResult(null);
     setLoading(false);
   };
-
 
   const openEditDialog = async (user: User) => {
     setSelectedUser(user);
@@ -510,6 +649,25 @@ export function CompanyUsers() {
     );
   };
 
+  // Filtrar empresas disponibles (las que no están asignadas)
+  const unassignedCompanies = availableCompanies.filter(
+    company => !assignedCompanies.includes(company.id)
+  );
+
+  // Obtener empresas asignadas con su información completa
+  const assignedCompaniesFull = availableCompanies.filter(
+    company => assignedCompanies.includes(company.id)
+  );
+
+  function canEditUser(editorRol: string, targetRol: string) {
+    if (editorRol === "admin") {
+      return targetRol === "subusuario";
+    }
+
+    return true;
+  }
+
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -522,6 +680,8 @@ export function CompanyUsers() {
         companies={companies}
         selectedCompany={selectedCompany}
         onCompanyChange={(id) => setSelectedCompany(id)}
+        companySelectMode="combobox"
+        companySelectPlaceholder="Selecciona una empresa..."
 
         refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={{
@@ -539,6 +699,114 @@ export function CompanyUsers() {
             : undefined
         }
       />
+
+      {/* Diálogo para Asignar Empresas */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Asignar Empresas</DialogTitle>
+            <DialogDescription>Gestiona las empresas asignadas a {userToAssign?.nombre}</DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {isLoadingCompanies ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCcw className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Cargando empresas...</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Empresas Asignadas */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Empresas Asignadas ({assignedCompanies.length})</Label>
+                  <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                    {assignedCompanies.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">No hay empresas asignadas</div>
+                    ) : (
+                      assignedCompaniesFull.map((company) => (
+                        <div
+                          key={company.id}
+                          className="flex items-center justify-between p-3 hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{company.nombre}</p>
+                              <p className="text-xs text-muted-foreground">ID: {company.id}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleCompanyAssignment(company.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Empresas Disponibles */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Empresas Disponibles ({unassignedCompanies.length})</Label>
+                  <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                    {unassignedCompanies.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        Todas las empresas están asignadas
+                      </div>
+                    ) : (
+                      unassignedCompanies.map((company) => (
+                        <div
+                          key={company.id}
+                          className="flex items-center justify-between p-3 hover:bg-accent/50 transition-colors cursor-pointer"
+                          onClick={() => toggleCompanyAssignment(company.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{company.nombre}</p>
+                              <p className="text-xs text-muted-foreground">ID: {company.id}</p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleCompanyAssignment(company.id)
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveAssignments} className="bg-accent hover:bg-accent/90">
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
         </DialogTrigger>
@@ -594,11 +862,27 @@ export function CompanyUsers() {
                 onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="admin">Administrador</option>
-                <option value="empresa">Empresa</option>
+                {
+                  user?.role !== "admin" && (
+                    <option value="admin">Administrador</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="empresa">Empresa</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="auditoria">Auditoria</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="contralor">Contralor</option>
+                  )
+                }
                 <option value="subusuario">usuario</option>
-                <option value="auditoria">Auditoria</option>
-                <option value="contralor">Contralor</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -893,26 +1177,32 @@ export function CompanyUsers() {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                        onClick={() => openEditDialog(user)}
-                      >
-                        <Pencil className="h-3 w-3 mr-2" />
-                        Editar
-                      </Button>
-                      {/* <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => handleDelete(user.id)}
-                  >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    Eliminar
-                  </Button> */}
-                    </div>
+                    {canEditUser(currentUser?.role || "", user.rol) && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                          onClick={() => openEditDialog(user)}
+                        >
+                          <Pencil className="h-3 w-3 mr-2" />
+                          Editar
+                        </Button>
+
+
+                        {(superUser && user.rol === "admin") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                            onClick={() => openAssignDialog(user)}
+                          >
+                            <Plus className="h-3 w-3 mr-2" />
+                            Asignar empresas
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -990,25 +1280,44 @@ export function CompanyUsers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditDialog(user)}
-                              className="h-8 px-3"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            {/* <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(user.id)}
-                          className="h-8 px-3 text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button> */}
-                          </div>
+                          {canEditUser(currentUser?.role || "", user.rol) && (
+                            <div className="flex justify-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem
+                                    onClick={() => openEditDialog(user)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </DropdownMenuItem>
+
+                                  {(superUser && user.rol === "admin") && (
+                                    <DropdownMenuItem
+                                      onClick={() => openAssignDialog(user)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      Asignar empresas
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
                         </TableCell>
+
+
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1086,11 +1395,27 @@ export function CompanyUsers() {
                 onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="admin">Administrador</option>
-                <option value="empresa">Empresa</option>
-                <option value="subusuario">Usuario</option>
-                <option value="auditoria">Auditoria</option>
-                <option value="contralor">Contralor</option>
+                {
+                  user?.role !== "admin" && (
+                    <option value="admin">Administrador</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="empresa">Empresa</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="auditoria">Auditoria</option>
+                  )
+                }
+                {
+                  user?.role !== "admin" && (
+                    <option value="contralor">Contralor</option>
+                  )
+                }
+                <option value="subusuario">usuario</option>
               </select>
             </div>
             <div className="space-y-2">

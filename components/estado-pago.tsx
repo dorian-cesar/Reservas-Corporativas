@@ -299,6 +299,9 @@ export function EstadoPago() {
                 companies={companies}
                 selectedCompany={empresaId}
                 onCompanyChange={setEmpresaId}
+                companySelectMode="combobox"
+                companySelectPlaceholder="Selecciona una empresa..."
+
                 refreshAction={() => empresaId && fetchEstadosCuenta(Number(empresaId), { desde: dateDesde, hasta: dateHasta })}
                 secondaryAction={{
                     label: "Exportar",

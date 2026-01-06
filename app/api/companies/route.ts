@@ -1,3 +1,4 @@
+import { se } from "date-fns/locale";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.NEXT_PUBLIC_URL_BACKEND ?? "";
@@ -10,7 +11,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    const res = await fetch(`${API_BASE}/api/empresas`, {
+    const params = new URLSearchParams(req.nextUrl.searchParams as any);
+
+    const page = params.get("page");
+    const limit = params.get("limit");
+    const search = params.get("search");
+
+    if (page && limit) {
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+    }
+
+    if (search && search.trim() !== "") {
+      params.set("search", search);
+    } else {
+      params.delete("search");
+    }
+
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+
+    const res = await fetch(`${API_BASE}/api/empresas${queryString}`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: token,

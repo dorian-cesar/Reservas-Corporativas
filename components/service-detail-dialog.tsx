@@ -24,6 +24,7 @@ import {
   ArrowRight,
   X,
   Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { SeatSelector } from "@/components/seat-selector";
@@ -32,7 +33,8 @@ import type { ServiceDetail, Seat } from "@/types/service-detail";
 import { useTravel } from "@/components/context/travel-context";
 import { useUserStore } from "@/lib/user-store";
 import Swal from "sweetalert2";
-import { BUILD_ID_FILE } from "next/dist/shared/lib/constants";
+import { SuccessReservationModal } from "./success-reservation-modal";
+import { useRouter } from "next/navigation";
 
 interface ServiceDetailDialogProps {
   serviceId: number;
@@ -40,6 +42,7 @@ interface ServiceDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   terminalOrigen: string | null;
   terminalDestino: string | null;
+  tripType?: "departure" | "return";
 }
 
 interface PassengerData {
@@ -55,9 +58,11 @@ export function ServiceDetailDialog({
   onOpenChange,
   terminalOrigen,
   terminalDestino,
+  tripType = "departure",
 }: ServiceDetailDialogProps) {
   const { user } = useUserStore();
   const { token } = useAuth();
+  const router = useRouter();
   const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(
     null
   );
@@ -74,6 +79,17 @@ export function ServiceDetailDialog({
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
   const bookingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const MAX_SEATS = 5;
+
+  // Estados para guardar y usar pasajeros de la ida
+  const [savedPassengers, setSavedPassengers] = useState<any[]>([]);
+  const [usingSavedPassengers, setUsingSavedPassengers] = useState(false);
+
+  // Ref para trackear si ya se limpiaron las reservas antiguas
+  const oldBookingsCleaned = useRef(false);
+
+  // Estados para las ciudades a mostrar
+  const [displayOrigin, setDisplayOrigin] = useState<string>("");
+  const [displayDestination, setDisplayDestination] = useState<string>("");
 
   const swalConfig = {
     customClass: {
@@ -131,6 +147,20 @@ export function ServiceDetailDialog({
     },
   };
 
+  // Efecto para actualizar las ciudades a mostrar
+  useEffect(() => {
+    if (tripType === "departure") {
+      // Para ida: mostrar origen → destino
+      setDisplayOrigin(origin || "");
+      setDisplayDestination(destination || "");
+    } else {
+      // Para vuelta: mostrar las ciudades INTERCAMBIADAS
+      // El origen visual es el destino real, y viceversa
+      setDisplayOrigin(destination || "");
+      setDisplayDestination(origin || "");
+    }
+  }, [tripType, origin, destination]);
+
   const extractPrice = (costString: string): string => {
     if (!costString) return "0";
     const priceMatch = costString.match(/(\d+\.?\d*)/);
@@ -158,10 +188,51 @@ export function ServiceDetailDialog({
       setError(null);
       setDisponibilidadVerificada(false);
       setPassengersData([]);
+      setSuccess(false);
+      setBookingData([]);
+      setBookingError(null);
+      setSavedPassengers([]);
+      setUsingSavedPassengers(false);
     }
   }, [open, serviceId]);
 
+  // Cargar pasajeros guardados cuando se abre el modal de vuelta
   useEffect(() => {
+    if (open && tripType === "return") {
+      // Obtener las reservas de ida del localStorage
+      const storedBookings = JSON.parse(
+        localStorage.getItem("completedBookings") || "[]"
+      );
+
+      // Buscar la reserva de ida
+      const departureBooking = storedBookings.find(
+        (booking: any) => booking.tripType === "departure"
+      );
+
+      if (departureBooking?.passengers?.length > 0) {
+        setSavedPassengers(departureBooking.passengers);
+      }
+    }
+  }, [open, tripType]);
+
+  useEffect(() => {
+    // Validación: No puede seleccionar más asientos que pasajeros guardados (solo en vuelta)
+    if (
+      tripType === "return" &&
+      savedPassengers.length > 0 &&
+      selectedSeats.length > savedPassengers.length
+    ) {
+      setBookingError(
+        `Para el viaje de vuelta, solo puedes seleccionar hasta ${savedPassengers.length} asiento(s) 
+        (el mismo número de pasajeros del viaje de ida)`
+      );
+
+      // Remover asientos extras
+      const validSeats = selectedSeats.slice(0, savedPassengers.length);
+      setSelectedSeats(validSeats);
+      return;
+    }
+
     const newPassengersData: PassengerData[] = [];
 
     selectedSeats.forEach((seat) => {
@@ -169,17 +240,38 @@ export function ServiceDetailDialog({
       if (existingPassenger) {
         newPassengersData.push(existingPassenger);
       } else {
-        newPassengersData.push({
-          id: `passenger-${Date.now()}-${Math.random()}`,
-          seat,
-          passenger: null,
-          completed: false,
-        });
+        // PARA LA VUELTA: Intentar asignar pasajeros guardados en orden
+        if (tripType === "return" && savedPassengers.length > 0) {
+          const passengerIndex = newPassengersData.length;
+          const savedPassenger = savedPassengers[passengerIndex] || null;
+
+          if (savedPassenger) {
+            console.log(
+              `Asignando pasajero guardado al asiento ${seat}:`,
+              savedPassenger
+            );
+          }
+
+          newPassengersData.push({
+            id: `passenger-${Date.now()}-${Math.random()}`,
+            seat,
+            passenger: savedPassenger || null,
+            completed: !!savedPassenger,
+          });
+        } else {
+          // Para ida o si no hay pasajeros guardados
+          newPassengersData.push({
+            id: `passenger-${Date.now()}-${Math.random()}`,
+            seat,
+            passenger: null,
+            completed: false,
+          });
+        }
       }
     });
 
     setPassengersData(newPassengersData);
-  }, [selectedSeats]);
+  }, [selectedSeats, tripType, savedPassengers]);
 
   const loadServiceDetail = async () => {
     setLoadingDetail(true);
@@ -485,9 +577,38 @@ export function ServiceDetailDialog({
   };
 
   const allPassengersCompleted = (): boolean => {
+    // Si estamos usando pasajeros guardados y todos están completos
+    if (usingSavedPassengers) {
+      return passengersData.every((p) => p.completed && p.passenger);
+    }
+
+    // Validación normal
     return (
       passengersData.length > 0 && passengersData.every((p) => p.completed)
     );
+  };
+
+  const handleUseSavedPassengers = () => {
+    if (savedPassengers.length === 0) return;
+
+    // Asignar pasajeros guardados a los asientos seleccionados
+    const updatedPassengersData = passengersData.map((pData, index) => {
+      const savedPassenger = savedPassengers[index] || null;
+      if (savedPassenger) {
+        return {
+          ...pData,
+          passenger: savedPassenger,
+          completed: true,
+        };
+      }
+      return pData;
+    });
+
+    setPassengersData(updatedPassengersData);
+    setUsingSavedPassengers(true);
+
+    // Mostrar mensaje de éxito
+    setBookingError(null);
   };
 
   const handleBooking = async () => {
@@ -659,17 +780,58 @@ export function ServiceDetailDialog({
         });
       }
 
+      // Guardar esta reserva
+      const currentBooking = {
+        tripType,
+        origin: displayOrigin,
+        destination: displayDestination,
+        date: serviceDetail.travel_date,
+        dep_time: serviceDetail.dep_time,
+        arr_time: serviceDetail.arr_time,
+        travel_name: serviceDetail.travels_name,
+        selectedSeats: selectedSeats,
+        seats: selectedSeats,
+        passengers: passengersData.map((p) => p.passenger),
+        totalPrice: getTotalPrice(),
+        pnrNumbers: confirmations.map((c) => c.operatorPnr),
+        ticketNumbers: confirmations.map((c) => c.ticketNumber),
+        terminalOrigen,
+        terminalDestino,
+        bookingData: confirmations,
+      };
+
+      // IMPORTANTE: Limpiar reservas antiguas solo la primera vez que se reserva la IDA
+      if (tripType === "departure" && !oldBookingsCleaned.current) {
+        localStorage.removeItem("completedBookings");
+        oldBookingsCleaned.current = true;
+      }
+
+      // Guardar en localStorage
+      const storedBookings = JSON.parse(
+        localStorage.getItem("completedBookings") || "[]"
+      );
+      storedBookings.push(currentBooking);
+      localStorage.setItem("completedBookings", JSON.stringify(storedBookings));
+
+      // Disparar eventos según el tipo de viaje
+      if (tripType === "departure") {
+        // Evento para notificar que la ida fue reservada
+        window.dispatchEvent(new CustomEvent("departureBooked"));
+        // Evento para nueva reserva
+        window.dispatchEvent(new Event("newBooking"));
+      } else {
+        // Evento para nueva reserva (vuelta)
+        window.dispatchEvent(new Event("newBooking"));
+      }
+
       setBookingData(confirmations);
       markSeatsAsUnavailable(selectedSeats);
       setSuccess(true);
 
-      bookingTimeoutRef.current = setTimeout(() => {
-        setSuccess(false);
-        setSelectedSeats([]);
-        setBookingData([]);
-        setPassengersData([]);
-        onOpenChange(false);
-      }, 15000);
+      // No cerrar automáticamente
+      if (bookingTimeoutRef.current) {
+        clearTimeout(bookingTimeoutRef.current);
+      }
     } catch (err) {
       console.error("Error inesperado:", err);
       setBookingError(
@@ -682,13 +844,23 @@ export function ServiceDetailDialog({
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (bookingTimeoutRef.current) {
-        clearTimeout(bookingTimeoutRef.current);
-      }
-    };
-  }, []);
+  const handleClose = () => {
+    onOpenChange(false);
+    if (success) {
+      router.push("/");
+    }
+  };
+
+  const handleModalClose = (state: boolean) => {
+    if (!state && (loading || loadingDetail)) {
+      return;
+    }
+    if (!state && success) {
+      handleClose();
+    } else {
+      onOpenChange(state);
+    }
+  };
 
   const availableSeats = parseSeats();
   const occupiedSeats = getOccupiedSeats();
@@ -721,24 +893,6 @@ export function ServiceDetailDialog({
     }
   };
 
-  const handleModalClose = (state: boolean) => {
-    if (!state && success) {
-      if (bookingTimeoutRef.current) {
-        clearTimeout(bookingTimeoutRef.current);
-        setSuccess(false);
-        setSelectedSeats([]);
-        setBookingData([]);
-        setPassengersData([]);
-        bookingTimeoutRef.current = null;
-      }
-      onOpenChange(false);
-      return;
-    }
-    if (!loading && !loadingDetail) {
-      onOpenChange(state);
-    }
-  };
-
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeats.length > 0 &&
@@ -752,17 +906,21 @@ export function ServiceDetailDialog({
           if (loading || loadingDetail) e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          if (loading || loadingDetail) e.preventDefault();
+          e.preventDefault();
         }}
       >
         {!success && (
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">
+            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
               Detalles del Servicio
+              <Badge variant="outline">
+                {tripType === "departure" ? "Viaje de Ida" : "Viaje de Vuelta"}
+              </Badge>
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              Revisa los detalles completos y selecciona hasta {MAX_SEATS}{" "}
-              asientos
+              {tripType === "departure"
+                ? `Paso 1 de 2: Reserva tu viaje de ida`
+                : `Paso 2 de 2: Reserva tu viaje de vuelta`}
             </DialogDescription>
           </DialogHeader>
         )}
@@ -777,121 +935,19 @@ export function ServiceDetailDialog({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : success ? (
-          <div className="py-8 text-center animate-in fade-in zoom-in duration-300">
-            <div className="flex flex-col items-center justify-center space-y-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-orange-100 rounded-full animate-ping opacity-75"></div>
-                <CheckCircle2 className="h-20 w-20 text-orange-500 relative z-10" />
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-blue-600">
-                  Reservas Confirmadas
-                </h3>
-                <p className="text-muted-foreground text-lg">
-                  ¡{selectedSeats.length} asiento(s) han sido reservado(s)!
-                </p>
-              </div>
-
-              {bookingData.length > 0 && (
-                <div className="w-full max-w-2xl bg-linear-to-br from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-6 shadow-lg">
-                  <div className="text-center mb-4">
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-500 text-white border-blue-600 mb-2"
-                    >
-                      Confirmado ({bookingData.length})
-                    </Badge>
-                    <p className="text-sm text-blue-600">
-                      Reservas realizadas exitosamente
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    {bookingData.map((booking, index) => (
-                      <div
-                        key={index}
-                        className="p-4 bg-white rounded-lg border border-blue-100"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-bold text-blue-800">
-                              {booking.passenger?.nombre || "Pasajero"}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              RUT: {booking.passenger?.rut || "N/A"}
-                            </p>
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className="bg-green-100 text-green-800"
-                          >
-                            Asiento: {booking.seat}
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                          <div>
-                            <span className="text-muted-foreground">
-                              N° de PNR:
-                            </span>
-                            <p className="font-medium">{booking.operatorPnr}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">
-                              Precio:
-                            </span>
-                            <p className="font-bold text-blue-700">
-                              ${booking.monto_boleto.toLocaleString("es-CL")}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-blue-200">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Total reservas:
-                      </span>
-                      <span className="text-lg font-bold text-blue-700">
-                        {bookingData.length} asiento(s)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Monto total:
-                      </span>
-                      <span className="text-xl font-bold text-blue-700">
-                        $
-                        {bookingData
-                          .reduce(
-                            (total, booking) => total + booking.monto_boleto,
-                            0
-                          )
-                          .toLocaleString("es-CL")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 text-center">
-                      Los pasajeros recibirán un email de confirmación con los
-                      detalles de su reserva
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-600">
-                  Esta ventana se cerrará automáticamente en{" "}
-                  <span className="font-bold">15 segundos</span>
-                </p>
-              </div>
-            </div>
-          </div>
+          <SuccessReservationModal
+            tripType={tripType}
+            bookingData={bookingData}
+            serviceDetail={serviceDetail}
+            displayOrigin={displayOrigin}
+            displayDestination={displayDestination}
+            terminalOrigen={terminalOrigen}
+            terminalDestino={terminalDestino}
+            selectedSeats={selectedSeats}
+            passengersData={passengersData}
+            savedPassengers={savedPassengers}
+            onClose={handleClose}
+          />
         ) : serviceDetail ? (
           <>
             <div className="space-y-6">
@@ -924,9 +980,9 @@ export function ServiceDetailDialog({
                 <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium flex items-center gap-1 text-sm sm:text-base truncate">
-                    {origin}
+                    {displayOrigin}
                     <ArrowRight className="h-3 w-3 opacity-60 shrink-0" />
-                    {destination}
+                    {displayDestination}
                   </span>
                 </div>
 
@@ -936,7 +992,7 @@ export function ServiceDetailDialog({
                     <span>{formatTravelDate(serviceDetail.travel_date)}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-start gap-2 text-sm">
                       <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span>Salida: {serviceDetail.dep_time}</span>
                     </div>
@@ -947,7 +1003,7 @@ export function ServiceDetailDialog({
                     )}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-start gap-2 text-sm">
                       <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span>Llegada: {serviceDetail.arr_time}</span>
                     </div>
@@ -1041,9 +1097,23 @@ export function ServiceDetailDialog({
               {selectedSeats.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <h3 className="font-semibold text-lg">
-                      Datos de los Pasajeros
-                    </h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-lg">
+                        Datos de los Pasajeros
+                      </h3>
+
+                      {/* Indicador de pasajeros cargados automáticamente */}
+                      {tripType === "return" && usingSavedPassengers && (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-800 border-green-300"
+                        >
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Pasajeros cargados automáticamente
+                        </Badge>
+                      )}
+                    </div>
+
                     <Badge variant="outline" className="text-xs sm:text-sm">
                       {passengersData.filter((p) => p.completed).length} de{" "}
                       {selectedSeats.length} completados
@@ -1070,6 +1140,17 @@ export function ServiceDetailDialog({
                                 Completado
                               </Badge>
                             )}
+                            {/* Indicar si es pasajero cargado automáticamente */}
+                            {passengerData.passenger &&
+                              passengerData.completed &&
+                              usingSavedPassengers && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-100 text-blue-800 border-blue-300 text-xs"
+                                >
+                                  Cargado automáticamente
+                                </Badge>
+                              )}
                           </div>
                           <Button
                             variant="ghost"
@@ -1099,6 +1180,7 @@ export function ServiceDetailDialog({
                             }
                             initialMode="buscar"
                             requireCentroCosto={true}
+                            initialPassenger={passengerData.passenger}
                           />
                         </div>
                       </div>
@@ -1111,6 +1193,9 @@ export function ServiceDetailDialog({
                       pasajero antes de confirmar la reserva.
                       {selectedSeats.length > 1 &&
                         " Puede asignar diferentes pasajeros a cada asiento."}
+                      {tripType === "return" &&
+                        savedPassengers.length > 0 &&
+                        " También puedes usar los pasajeros guardados del viaje de ida."}
                     </p>
                   </div>
                 </div>
@@ -1128,11 +1213,12 @@ export function ServiceDetailDialog({
             <DialogFooter className="gap-2 flex-col sm:flex-row">
               <Button
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
                 disabled={loading}
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
-                Cancelar
+                <ArrowLeft className="h-4 w-4" />
+                Volver
               </Button>
               <Button
                 onClick={handleBooking}
@@ -1145,13 +1231,13 @@ export function ServiceDetailDialog({
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Confirmando Reserva(s)...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Confirmar {selectedSeats.length} Reserva(s)
+                    <CheckCircle2 className="h-4 w-4" />
+                    Confirmar {selectedSeats.length} asiento(s)
                   </>
                 )}
               </Button>

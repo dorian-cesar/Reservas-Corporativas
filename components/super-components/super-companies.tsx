@@ -21,7 +21,8 @@ import {
   Pencil,
   Trash2,
   Percent,
-  RefreshCcw
+  RefreshCcw,
+  Search
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -36,7 +37,6 @@ import {
 import Swal from "sweetalert2";
 
 import ToolBar from "../tool-bar";
-import { count } from "console";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -64,14 +64,24 @@ export function SuperCompanies() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"cards" | "table">("table")
-  const [empresaId, setEmpresaId] = useState("")
-  const [searchMode, setSearchMode] = useState<"all" | "single">("all")
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   type Company = {
     id: string;
@@ -130,41 +140,75 @@ export function SuperCompanies() {
   })
 
   useEffect(() => {
-    fetchCompanies();
+    fetchCompanies({ page: 1, limit: pagination.limit });
   }, []);
 
-  useEffect(() => {
-    setFilteredCompanies(companies);
-  }, [companies]);
-
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
     try {
-      const res = await fetch("/api/companies", {
+      setIsSearching(true);
+      const page = opts?.page ?? pagination.page;
+      const limit = opts?.limit ?? pagination.limit;
+      const search = opts?.search ?? searchQuery;
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+
+      if (search && search.trim() !== "") {
+        params.set("search", search.trim());
+      }
+
+      const res = await fetch(`/api/companies?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const empresas = await res.json();
 
-      if (empresas) {
-        const companiesMapped = empresas.map((empresa: any) => {
-          const raw = empresa.porcentaje_devolucion;
-          const percent = backendToPercent(raw);
-          return {
-            id: empresa.id.toString(),
-            rut: empresa.rut || "-",
-            name: empresa.nombre,
-            current_account: empresa.cuenta_corriente || "-",
-            state: empresa.estado,
-            surchargePercentage: empresa.recargo || 0,
-            returnPercentage: percent,
-            billingDay: empresa.dia_facturacion,
-            expirationDay: empresa.dia_vencimiento,
-            max: empresa.monto_maximo,
-            count: empresa.monto_acumulado
-          };
+      if (!res.ok) {
+        throw new Error("Error fetching companies");
+      }
+
+      const body = await res.json();
+
+      // El backend ahora siempre devuelve formato paginado cuando hay page y limit
+      if (page && limit) {
+        const empresasArray = Array.isArray(body.data) ? body.data : [];
+        const pag = body.pagination || {
+          page,
+          limit,
+          total: empresasArray.length,
+          totalPages: Math.ceil((empresasArray.length || 0) / limit),
+          hasNextPage: false,
+          hasPrevPage: page > 1,
+        };
+
+        const empresas = empresasArray.map((empresa: any) => ({
+          id: empresa.id.toString(),
+          rut: empresa.rut || "-",
+          name: empresa.nombre,
+          current_account: empresa.cuenta_corriente || "-",
+          state: empresa.estado,
+          surchargePercentage: empresa.recargo || 0,
+          returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+          billingDay: empresa.dia_facturacion,
+          expirationDay: empresa.dia_vencimiento,
+          max: empresa.monto_maximo,
+          count: empresa.monto_acumulado
+        }));
+
+        setCompanies(empresas);
+        setFilteredCompanies(empresas);
+        setPagination({
+          page: pag.page ?? page,
+          limit: pag.limit ?? limit,
+          total: pag.total ?? empresas.length,
+          totalPages: pag.totalPages ?? Math.ceil((pag.total ?? empresas.length) / (pag.limit ?? limit)),
+          hasNextPage: Boolean(pag.hasNextPage),
+          hasPrevPage: Boolean(pag.hasPrevPage),
         });
-
-        setCompanies(companiesMapped);
-        setSearchMode("all");
       }
     } catch (err) {
       console.error("Error fetching companies:", err);
@@ -173,75 +217,32 @@ export function SuperCompanies() {
         description: "No se pudieron cargar las empresas",
         variant: "destructive",
       });
-    }
-  }
-
-  const handleSearch = async () => {
-    if (!empresaId.trim()) {
-      // Si el campo está vacío, mostrar todas las empresas
-      setFilteredCompanies(companies);
-      setSearchMode("all");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/companies/${empresaId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        if (res.status === 404) {
-          toast({
-            title: "No encontrado",
-            description: "No se encontró ninguna empresa con ese ID",
-            variant: "destructive",
-          });
-        } else {
-          throw new Error("Error al buscar empresa");
-        }
-        return;
-      }
-
-      const empresa = await res.json();
-
-      const companyMapped = {
-        id: empresa.id.toString(),
-        rut: empresa.rut,
-        name: empresa.nombre,
-        current_account: empresa.cuenta_corriente,
-        state: empresa.estado,
-        surchargePercentage: empresa.recargo || 0,
-        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),  // Sin .toString()
-        billingDay: empresa.dia_facturacion,
-        expirationDay: empresa.dia_vencimiento,
-        max: empresa.monto_maximo,
-        count: empresa.monto_acumulado
-      };
-
-      setFilteredCompanies([companyMapped]);
-      setSearchMode("single");
-
-      toast({
-        title: "Búsqueda exitosa",
-        description: `Empresa "${empresa.nombre}" encontrada`,
-      });
-
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudo realizar la búsqueda",
-        variant: "destructive",
-      });
+    } finally {
+      setIsSearching(false);
     }
   };
 
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchCompanies({ page: 1, limit: pagination.limit, search: searchQuery });
+  };
+
   const handleClearSearch = () => {
-    setEmpresaId("");
-    setFilteredCompanies(companies);
-    setSearchMode("all");
+    setSearchQuery("");
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchCompanies({ page: 1, limit: pagination.limit });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage === pagination.page || newPage > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchCompanies({ page: newPage, limit: pagination.limit, search: searchQuery });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    if (newLimit === pagination.limit) return;
+    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    fetchCompanies({ page: 1, limit: newLimit, search: searchQuery });
   };
 
   const resetForm = () => {
@@ -298,7 +299,7 @@ export function SuperCompanies() {
         title: "Empresa agregada",
         description: `${formData.name} ha sido agregada exitosamente`,
       });
-      fetchCompanies();
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
     } catch (err) {
       console.error(err);
       toast({
@@ -347,12 +348,7 @@ export function SuperCompanies() {
       setSelectedCompany(null);
       resetForm();
 
-      // Recargar los datos según el modo actual
-      if (searchMode === "single" && empresaId) {
-        handleSearch();
-      } else {
-        fetchCompanies();
-      }
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
 
       toast({
         title: "Empresa actualizada",
@@ -403,8 +399,7 @@ export function SuperCompanies() {
 
       if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      setSearchMode("all");
-      fetchCompanies();
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
 
       toast({
         title: "Monto Reestablecido",
@@ -464,8 +459,7 @@ export function SuperCompanies() {
         description: `Se procesaron ${data.result?.success || 0} empresas exitosamente`,
       });
 
-      // Recargar la lista de empresas
-      fetchCompanies();
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
 
     } catch (err: any) {
       toast({
@@ -485,79 +479,177 @@ export function SuperCompanies() {
     setLoading(false);
   };
 
+  const exportToCSV = async () => {
+    try {
+      const res = await fetch(`/api/companies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-  const exportToCSV = () => {
-    if (filteredCompanies.length === 0) return;
+      if (!res.ok) {
+        throw new Error("Error al obtener empresas para exportar");
+      }
 
-    const headers = [
-      "id",
-      "nombre_empresa",
-      "estado",
-      "porcentaje_recargo",
-      "porcentaje_devolucion",
-      "dia_facturacion",
-      "dia_vencimiento",
-      "monto_maximo",
-      "monto_acumulado",
-      "rut_empresa",
-      "cuenta_corriente"
-    ];
+      const response = await res.json();
 
-    const csvData = filteredCompanies.map(company => [
-      company.id,
-      company.name,
-      company.state ? "1" : "0",
-      company.surchargePercentage || 0,
-      percentToBackend(company.returnPercentage || 0).toFixed(2),
-      company.billingDay,
-      company.expirationDay,
-      company.max?.toString() || "0",
-      company.count?.toString() || "0",
-      company.rut || "-",
-      company.current_account || "-"
-    ]);
+      let empresasArray;
+      if (Array.isArray(response)) {
+        empresasArray = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        empresasArray = response.data;
+      } else {
+        empresasArray = [];
+      }
 
-    const csvContent = [headers.join(","), ...csvData.map(row => row.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    setIsExportDialogOpen(false);
-    toast({
-      title: "Exportación exitosa",
-      description: `Se exportaron ${filteredCompanies.length} empresas a CSV`
-    });
+      if (empresasArray.length === 0) {
+        toast({
+          title: "No hay datos",
+          description: "No hay empresas para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const companiesForExport = empresasArray.map((empresa: any) => ({
+        id: empresa.id.toString(),
+        name: empresa.nombre,
+        state: empresa.estado,
+        surchargePercentage: empresa.recargo || 0,
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+        billingDay: empresa.dia_facturacion,
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado,
+        rut: empresa.rut || "-",
+        current_account: empresa.cuenta_corriente || "-"
+      }));
+
+      const headers = [
+        "id",
+        "nombre_empresa",
+        "estado",
+        "porcentaje_recargo",
+        "porcentaje_devolucion",
+        "dia_facturacion",
+        "dia_vencimiento",
+        "monto_maximo",
+        "monto_acumulado",
+        "rut_empresa",
+        "cuenta_corriente"
+      ];
+
+      const csvData = companiesForExport.map((company: Company) => [
+        company.id,
+        company.name,
+        company.state ? "1" : "0",
+        company.surchargePercentage || 0,
+        percentToBackend(company.returnPercentage || 0).toFixed(2),
+        company.billingDay,
+        company.expirationDay,
+        company.max?.toString() || "0",
+        company.count?.toString() || "0",
+        company.rut || "-",
+        company.current_account || "-"
+      ]);
+
+      const csvContent = [headers.join(","), ...csvData.map((row: any[]) => row.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${companiesForExport.length} empresas a CSV`
+      });
+
+    } catch (err) {
+      console.error("Error en exportación CSV:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar las empresas",
+        variant: "destructive",
+      });
+    }
   };
 
-  const exportToXLSX = () => {
-    if (filteredCompanies.length === 0) return;
+  const exportToXLSX = async () => {
 
-    const data = filteredCompanies.map(company => ({
-      id: company.id,
-      nombre_empresa: company.name,
-      estado: company.state ? 1 : 0,
-      porcentaje_recargo: company.surchargePercentage || 0,
-      porcentaje_devolucion: parseFloat(percentToBackend(company.returnPercentage || 0).toFixed(2)),
-      dia_facturacion: company.billingDay,
-      dia_vencimiento: company.expirationDay,
-      monto_maximo: company.max || 0,
-      monto_acumulado: company.count || 0,
-      rut_empresa: company.rut || "-",
-      cuenta_corriente: company.current_account || "-"
-    }));
+    try {
+      const res = await fetch(`/api/companies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
-    XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
-    setIsExportDialogOpen(false);
-    toast({
-      title: "Exportación exitosa",
-      description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`
-    });
+      if (!res.ok) {
+        throw new Error("Error al obtener empresas para exportar");
+      }
+
+      const response = await res.json();
+
+      let empresasArray;
+      if (Array.isArray(response)) {
+        empresasArray = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        empresasArray = response.data;
+      } else {
+        empresasArray = [];
+      }
+
+      if (empresasArray.length === 0) {
+        toast({
+          title: "No hay datos",
+          description: "No hay empresas para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const companiesForExport = empresasArray.map((empresa: any) => ({
+        id: empresa.id.toString(),
+        name: empresa.nombre,
+        state: empresa.estado,
+        surchargePercentage: empresa.recargo || 0,
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+        billingDay: empresa.dia_facturacion,
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado,
+        rut: empresa.rut || "-",
+        current_account: empresa.cuenta_corriente || "-"
+      }));
+
+      const data = companiesForExport.map((company: Company) => ({
+        id: company.id,
+        nombre_empresa: company.name,
+        estado: company.state ? 1 : 0,
+        porcentaje_recargo: company.surchargePercentage || 0,
+        porcentaje_devolucion: parseFloat(percentToBackend(company.returnPercentage || 0).toFixed(2)),
+        dia_facturacion: company.billingDay,
+        dia_vencimiento: company.expirationDay,
+        monto_maximo: company.max || 0,
+        monto_acumulado: company.count || 0,
+        rut_empresa: company.rut || "-",
+        cuenta_corriente: company.current_account || "-"
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
+      XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`
+      });
+    } catch (err) {
+      console.error("Error en exportación XLSX:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar las empresas",
+        variant: "destructive",
+      });
+    }
   };
-
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
     setFormData({
@@ -602,17 +694,12 @@ export function SuperCompanies() {
         description="Gestione las empresas y sus porcentajes de recargo"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        refreshAction={fetchCompanies}
-        showSearch
-        searchValue={empresaId}
-        onSearchChange={setEmpresaId}
-        onSearch={handleSearch}
-        searchPlaceholder="ID de empresa..."
-        primaryAction={{
+        refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery })}
+        primaryAction={user?.role !== "admin" ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
-        }}
+        } : undefined}
         secondaryActions={[
           ...(user?.role === "superuser"
             ? [{
@@ -630,27 +717,163 @@ export function SuperCompanies() {
         ]}
       />
 
-      {/* Indicador de búsqueda */}
-      {searchMode === "single" && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">Viendo empresa específica</p>
-                  <p className="text-sm text-blue-700">
-                    Mostrando 1 de {companies.length} empresas
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleClearSearch}>
-                Ver todas las empresas
+      {/* Barra de búsqueda */}
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="search">Buscar empresa (nombre o cuenta corriente)</Label>
+              <Input
+                id="search"
+                placeholder="Ej: ABCD-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+                disabled={isSearching}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSearch}
+                className="bg-accent hover:bg-accent/90"
+                disabled={isSearching}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                {isSearching ? "Buscando..." : "Buscar"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleClearSearch}
+                disabled={isSearching}
+              >
+                Limpiar
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contador y controles de paginación */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          {pagination.total > 0 ? (
+            <>
+              Mostrando{" "}
+              <strong>
+                {(pagination.page - 1) * pagination.limit + 1}
+                {" - "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}
+              </strong>{" "}
+              de <strong>{pagination.total}</strong> empresas
+            </>
+          ) : (
+            <>No hay empresas para mostrar</>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Limit selector */}
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-muted-foreground">Resultados:</label>
+            <select
+              value={pagination.limit}
+              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+              className="p-2 border rounded-md bg-background"
+              disabled={isSearching}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          {/* Page controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={!pagination.hasPrevPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              «
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              ‹
+            </Button>
+
+            {/* páginas numeradas (máx 5 visibles) */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                let pageNum;
+                const totalPages = pagination.totalPages || 1;
+
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+
+                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pagination.page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={isSearching}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              ›
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={!pagination.hasNextPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              »
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* pequeño separador */}
+      <div className="my-4 border-t" />
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
@@ -838,7 +1061,6 @@ export function SuperCompanies() {
         </DialogContent>
       </Dialog>
 
-      {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCompanies.map((company, index) => (
@@ -956,7 +1178,7 @@ export function SuperCompanies() {
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  {user?.role !== "admin" && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1012,14 +1234,18 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(company)}
-                          className="h-8 px-3"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
+                        {
+                          user?.role !== "admin" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(company)}
+                              className="h-8 px-3"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )
+                        }
                         {
                           user?.role === "superuser" && (
                             <Button
@@ -1331,7 +1557,7 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
           <DialogHeader>
             <DialogTitle>Exportar Empresas</DialogTitle>
             <DialogDescription>
-              Exporte las empresas ({filteredCompanies.length} registros)
+              Exporte las empresas del sistema
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

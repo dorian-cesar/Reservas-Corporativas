@@ -25,7 +25,8 @@ import {
     LayoutGrid,
     FolderTree,
     Search,
-    Upload
+    Upload,
+    ChevronsUpDown
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -37,6 +38,21 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import ToolBar from "./tool-bar";
+
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+
 
 export function SuperCostCenters() {
     const { user, token } = useAuth.getState();
@@ -51,7 +67,7 @@ export function SuperCostCenters() {
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
-
+    const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
 
     type CostCenter = {
         id: string;
@@ -187,11 +203,17 @@ export function SuperCostCenters() {
         });
     };
 
-    const handleAdd = async () => {
+    const handleAdd = async (e?: React.FormEvent) => {
+        if (e) {
+            e.preventDefault();
+        }
+
         if (!formData.nombre || !formData.empresa_id) {
             toast({ title: "Error", description: "Complete todos los campos", variant: "destructive" });
             return;
         }
+
+        setIsLoading(true);
 
         try {
             const res = await fetch("/api/centros-costo", {
@@ -213,12 +235,13 @@ export function SuperCostCenters() {
             resetForm();
             toast({ title: "Centro de costo agregado", description: `${formData.nombre} agregado exitosamente` });
 
-            // Recargar los centros si estamos viendo la misma empresa
             if (empresaId && empresaId === formData.empresa_id) {
                 fetchCostCenters(empresaId);
             }
         } catch (err: any) {
             toast({ title: "Error", description: err.message || "No se pudo agregar", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -369,11 +392,12 @@ export function SuperCostCenters() {
                 viewMode={viewMode}
                 setViewMode={setViewMode}
 
-                // company select (usa tu estado companies / empresaId)
                 showCompanySelect
                 companies={companies}
                 selectedCompany={empresaId}
                 onCompanyChange={(id) => setEmpresaId(id)}
+                companySelectMode="combobox"
+                companySelectPlaceholder="Selecciona una empresa..."
 
                 refreshAction={() => handleSearch()}
 
@@ -395,64 +419,105 @@ export function SuperCostCenters() {
                         : undefined
                 }
             />
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Agregar Nuevo Centro de Costo</DialogTitle>
-                        <DialogDescription>Complete los datos del centro de costo</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="nombre">Nombre del Centro de Costo *</Label>
-                            <Input
-                                id="nombre"
-                                placeholder="Ej: Departamento de Ventas"
-                                value={formData.nombre}
-                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="empresa_id">Empresa *</Label>
-                            <select
-                                id="empresa_id"
-                                value={formData.empresa_id}
-                                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                                className="w-full p-2 border rounded-md"
-                            >
-                                <option value="">Selecciona una empresa</option>
-                                {companies.map((company) => (
-                                    <option key={company.id} value={company.id}>
-                                        {company.id} - {company.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="estado">Estado</Label>
-                            <select
-                                id="estado"
-                                value={formData.estado.toString()}
-                                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
-                                className="w-full p-2 border rounded-md"
-                            >
-                                <option value="true">Activo</option>
-                                <option value="false">Inactivo</option>
-                            </select>
-                        </div>
+
+            <div className={`space-y-4 p-4 border rounded-lg bg-card ${isAddDialogOpen ? '' : 'hidden'
+                }`}>
+                <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Agregar Nuevo Centro de Costo</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Complete los datos del centro de costo
+                    </p>
+                </div>
+
+                <form onSubmit={handleAdd} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="nombre">Nombre del Centro de Costo *</Label>
+                        <Input
+                            id="nombre"
+                            placeholder="Ej: Departamento de Ventas"
+                            value={formData.nombre}
+                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            disabled={isLoading}
+                        />
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="empresa_id">Empresa *</Label>
+
+                        <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={companyPopoverOpen}
+                                    className="w-full justify-between bg-white"
+                                >
+                                    {formData.empresa_id
+                                        ? `${companies.find(c => c.id === formData.empresa_id)?.id || ''} - ${companies.find(c => c.id === formData.empresa_id)?.nombre || ''}`
+                                        : "Selecciona una empresa"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar empresa..." />
+                                    <CommandList>
+                                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                                        <CommandGroup>
+                                            {companies.map((company) => (
+                                                <CommandItem
+                                                    key={company.id}
+                                                    value={`${company.id} ${company.nombre}`}
+                                                    onSelect={() => {
+                                                        setFormData({ ...formData, empresa_id: company.id });
+                                                        setCompanyPopoverOpen(false);
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    {company.id} - {company.nombre}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="estado">Estado</Label>
+                        <select
+                            id="estado"
+                            value={formData.estado.toString()}
+                            onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                            className="w-full p-2 border rounded-md"
+                            disabled={isLoading}
+                        >
+                            <option value="true">Activo</option>
+                            <option value="false">Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => { setIsAddDialogOpen(false) }}
+                            disabled={isLoading}
+                        >
                             Cancelar
                         </Button>
-                        <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                            Agregar
+                        <Button
+                            type="submit"
+                            className="bg-accent hover:bg-accent/90"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Agregando..." : "Agregar"}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            {/* Estado de carga */}
+                    </div>
+                </form>
+            </div>
+
             {isLoading && (
                 <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -637,7 +702,8 @@ export function SuperCostCenters() {
                                 id="edit-empresa_id"
                                 value={formData.empresa_id}
                                 onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                                className="w-full p-2 border rounded-md"
+                                disabled
+                                className="w-full p-2 border rounded-md cursor-not-allowed"
                             >
                                 <option value="">Selecciona una empresa</option>
                                 {companies.map((company) => (

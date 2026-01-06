@@ -94,7 +94,7 @@ export function SeatSelector({
       </div>
     `,
       showConfirmButton: false,
-      timer: 5000,
+      timer: 3000,
       timerProgressBar: true,
       background: "#f9fafb",
       customClass: {

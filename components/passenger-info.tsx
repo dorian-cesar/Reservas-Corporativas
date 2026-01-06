@@ -27,6 +27,7 @@ interface PassengerInfoProps {
   onPassengerCreated: (passenger: any) => void;
   initialMode?: "buscar" | "crear";
   requireCentroCosto?: boolean;
+  initialPassenger?: any;
 }
 
 export function PassengerInfo({
@@ -37,6 +38,7 @@ export function PassengerInfo({
   onPassengerCreated,
   initialMode = "buscar",
   requireCentroCosto = true,
+  initialPassenger,
 }: PassengerInfoProps) {
   const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
     initialMode
@@ -62,6 +64,46 @@ export function PassengerInfo({
   const [cargandoCentros, setCargandoCentros] = useState(false);
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<boolean>(false);
+
+  // Nuevo estado para trackear si ya se precargó el pasajero inicial
+  const [initialPassengerLoaded, setInitialPassengerLoaded] = useState(false);
+
+  // Efecto para precargar el pasajero inicial
+  useEffect(() => {
+    if (initialPassenger && !initialPassengerLoaded) {
+      // Establecer modo buscar ya que tenemos un pasajero
+      setModoPasajero("buscar");
+
+      // Precargar los datos del pasajero
+      setPasajeroEncontrado(initialPassenger);
+      setPasajeroSeleccionado(true);
+
+      // Llenar los campos del formulario
+      setPassengerName(initialPassenger.nombre || "");
+      setPassengerRut(initialPassenger.rut || "");
+      setPassengerEmail(initialPassenger.correo || "");
+      setPassengerPhone(initialPassenger.telefono || "");
+
+      // Llenar RUT de búsqueda para mostrar
+      if (initialPassenger.rut) {
+        setRutBusqueda(formatearRutParaMostrar(initialPassenger.rut));
+      }
+
+      // Configurar centro de costo si existe
+      if (initialPassenger.id_centro_costo) {
+        setCentroCostoSeleccionado({
+          id: initialPassenger.id_centro_costo,
+          nombre: initialPassenger.centroCosto?.nombre || "Centro de costo",
+        });
+      }
+
+      // Notificar que el pasajero fue seleccionado
+      onPassengerSelected(initialPassenger);
+
+      // Marcar como cargado
+      setInitialPassengerLoaded(true);
+    }
+  }, [initialPassenger, initialPassengerLoaded, onPassengerSelected]);
 
   const formatRutInput = (value: string): string => {
     const clean = value.replace(/[^0-9kK]/g, "");
@@ -116,7 +158,6 @@ export function PassengerInfo({
 
     setBuscandoPasajero(true);
     setErrorPasajero(null);
-    setPasajeroEncontrado(null);
     setPasajeroSeleccionado(false);
 
     try {
@@ -212,7 +253,7 @@ export function PassengerInfo({
       Swal.fire({
         icon: "warning",
         title: "Error de conexión",
-        text: "No se pudo conectar con el servidor. Puede crear el pasajero manualmente.",
+        text: "No se pudo conectar con el servidor",
         confirmButtonColor: "#3085d6",
         ...swalConfig,
       });
@@ -436,6 +477,13 @@ export function PassengerInfo({
     }
   }, [modoPasajero]);
 
+  // Efecto para resetear el estado cuando cambia initialPassenger
+  useEffect(() => {
+    if (initialPassenger) {
+      setInitialPassengerLoaded(false);
+    }
+  }, [initialPassenger]);
+
   return (
     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
       <div className="flex items-center justify-between">
@@ -559,59 +607,71 @@ export function PassengerInfo({
           )}
 
           {pasajeroEncontrado && modoPasajero === "buscar" && (
-            <div className="p-3 bg-orange-50/50 border border-orange-200 rounded-md space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="p-3 bg-orange-50/50 border border-orange-200 rounded-md space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <span className="font-medium text-green-800">
-                    Pasajero encontrado ✓
+                    Pasajero encontrado
                   </span>
                 </div>
-                <Badge variant="outline" className="text-xs">
+                <Badge
+                  variant="outline"
+                  className="text-xs self-start sm:self-auto whitespace-nowrap"
+                >
                   RUT: {formatearRutParaMostrar(pasajeroEncontrado.rut)}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-gray-600">Nombre:</span>
-                  <p className="font-medium">{pasajeroEncontrado.nombre}</p>
+                  <p className="font-medium wrap-break-words">
+                    {pasajeroEncontrado.nombre}
+                  </p>
                 </div>
                 {pasajeroEncontrado.correo && (
                   <div>
                     <span className="text-gray-600">Email:</span>
-                    <p className="font-medium">{pasajeroEncontrado.correo}</p>
+                    <p className="font-medium break-all">
+                      {pasajeroEncontrado.correo}
+                    </p>
                   </div>
                 )}
                 {pasajeroEncontrado.telefono && (
                   <div>
                     <span className="text-gray-600">Teléfono:</span>
-                    <p className="font-medium">{pasajeroEncontrado.telefono}</p>
+                    <p className="font-medium wrap-break-words">
+                      {pasajeroEncontrado.telefono}
+                    </p>
                   </div>
                 )}
                 {pasajeroEncontrado.empresa && (
                   <div>
                     <span className="text-gray-600">Empresa:</span>
-                    <p className="font-medium">
+                    <p className="font-medium wrap-break-words whitespace-normal">
                       {pasajeroEncontrado.empresa.nombre}
                     </p>
                   </div>
                 )}
                 {pasajeroEncontrado.centroCosto && (
                   <div>
-                    <span className="text-gray-600">Centro costo:</span>
-                    <p className="font-medium">
+                    <span className="text-gray-600">Centro de costo:</span>
+                    <p className="font-medium wrap-break-words">
                       {pasajeroEncontrado.centroCosto.nombre}
                     </p>
                   </div>
                 )}
               </div>
-
-              <div className="p-2 flex justify-center">
+              <div className="flex justify-center">
                 <Badge
                   variant="outline"
-                  className="bg-orange-100 text-orange-700 rounded-lg border-orange-300 hover:bg-orange-100"
+                  className="bg-orange-100 text-orange-700 rounded-lg border-orange-300
+                    text-center px-3 py-1
+                    whitespace-normal wrap-break-words max-w-full"
                 >
-                  El pasajero ha sido asignado para este asiento
+                  {initialPassenger
+                    ? "Pasajero asignado automáticamente ✓"
+                    : "El pasajero ha sido asignado para este asiento"}
                 </Badge>
               </div>
             </div>
@@ -619,7 +679,7 @@ export function PassengerInfo({
         </div>
       )}
 
-      {/* Modo Crear/Editar Pasajero */}
+      {/* Modo Crear Pasajero */}
       {modoPasajero === "crear" && (
         <div className="space-y-3">
           {errorPasajero &&

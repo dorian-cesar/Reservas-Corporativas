@@ -526,6 +526,9 @@ export function CompanyPassengers() {
                 companies={companies}
                 selectedCompany={selectedCompany}
                 onCompanyChange={(id) => setSelectedCompany(id)}
+                companySelectMode="combobox"
+                companySelectPlaceholder="Selecciona una empresa..."
+
                 refreshAction={() => selectedCompany && fetchPassengers()}
                 primaryAction={{
                     label: "Nuevo Pasajero",
