@@ -402,7 +402,7 @@ export function SuperCostCenters() {
                 refreshAction={() => handleSearch()}
 
                 primaryAction={
-                    user?.role === "superuser" ? {
+                    (user?.role === "superuser" || user?.role === "admin") ? {
                         label: "Agregar Centro",
                         icon: <Plus className="h-4 w-4" />,
                         onClick: openAddDialog,
@@ -659,7 +659,7 @@ export function SuperCostCenters() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex justify-end gap-2">
-                                                {user?.role === "superuser" && (
+                                                {(user?.role === "superuser" || user?.role === "admin") && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -702,8 +702,7 @@ export function SuperCostCenters() {
                                 id="edit-empresa_id"
                                 value={formData.empresa_id}
                                 onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
-                                disabled
-                                className="w-full p-2 border rounded-md cursor-not-allowed"
+                                className="w-full p-2 border rounded-md"
                             >
                                 <option value="">Selecciona una empresa</option>
                                 {companies.map((company) => (

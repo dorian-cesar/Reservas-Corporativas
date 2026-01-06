@@ -19,14 +19,22 @@ import { SuperCompanies } from "@/components/super-components/super-companies"
 import { SuperCostCenters } from "@/components/super-cost-center"
 import { SuperAllBookings } from "@/components/super-components/super-bookings"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
-
-
+import Reserve from "@/components/admin-components/reserve"
+import { usePersistedTab } from "@/hooks/usePersistedTab" // Importa el hook
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
 
+  const { activeTab, handleTabChange } = usePersistedTab(
+    "companies-crud",
+    "admin-page-active-tab"
+  )
+
   const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("admin-page-active-tab")
+    }
     logout()
     router.push("/login")
   }
@@ -42,7 +50,11 @@ export default function AdminPage() {
             </div>
             <AdminStats />
 
-            <Tabs defaultValue="companies-crud" className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={handleTabChange}
+              className="w-full"
+            >
               <TabsList className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap
@@ -61,66 +73,38 @@ export default function AdminPage() {
                   <Users className="h-4 w-4" />
                   Usuarios
                 </TabsTrigger>
-                {/* <TabsTrigger value="esp" className="gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Estado de pago
-                </TabsTrigger> */}
-                {/* <TabsTrigger value="cuenta-corriente" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Cuenta corriente
-                </TabsTrigger> */}
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Tickets
                 </TabsTrigger>
-
                 <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
                   Pasajeros
                 </TabsTrigger>
-
                 <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
                 </TabsTrigger>
               </TabsList>
 
-
               <TabsContent value="companies-crud" className="mt-6">
                 <SuperCompanies />
               </TabsContent>
               <TabsContent value="cost-center" className="mt-6">
-                {/* <AdminCostCenters /> */}
                 <SuperCostCenters />
               </TabsContent>
-
               <TabsContent value="users" className="mt-6">
-                {/* <AdminCompanyUsers /> */}
                 <CompanyUsers />
               </TabsContent>
-              {/* <TabsContent value="esp" className="mt-6">
-                <AdminEstadoPago />
-              </TabsContent> */}
-
-              {/* <TabsContent value="cuenta-corriente" className="mt-6">
-                <AdminCurrentAccounts />
-              </TabsContent> */}
-
               <TabsContent value="tickets" className="mt-6">
-                {/* <AdminBookings /> */}
                 <SuperAllBookings />
               </TabsContent>
-
               <TabsContent value="passengers" className="mt-6">
-                {/* <AdminPassengers /> */}
                 <CompanyPassengers />
               </TabsContent>
-
               <TabsContent value="bookings" className="mt-6">
-                <UserProvider />
-                <TravelSearch />
+                <Reserve />
               </TabsContent>
-
             </Tabs>
           </div>
         </main>
