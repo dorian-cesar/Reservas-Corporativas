@@ -17,6 +17,7 @@ import { SuperCostCenters } from "@/components/super-cost-center"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
 import { UserProvider } from "@/components/providers/user-provider"
 import { TravelSearch } from "@/components/travel-search"
+import { SuperCompanies } from "@/components/super-components/super-companies"
 
 export default function AuditoriaPage() {
   const { user, logout } = useAuth()
@@ -34,7 +35,7 @@ export default function AuditoriaPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-xl font-bold">Panel de Administración</h1>
-              <p className="text-sm text-muted-foreground">Super Usuario</p>
+              <p className="text-sm text-muted-foreground">Admin CC</p>
             </div>
             {/* <AdminStats /> */}
 
@@ -82,7 +83,8 @@ export default function AuditoriaPage() {
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
-                <AuditoriaCompanies />
+                {/* <AuditoriaCompanies /> */}
+                <SuperCompanies />
               </TabsContent>
               <TabsContent value="users" className="mt-6">
                 <CompanyUsers />

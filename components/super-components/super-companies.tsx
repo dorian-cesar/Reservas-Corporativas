@@ -1,10 +1,11 @@
 "use client"
-
+import { Download, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import * as XLSX from "xlsx";
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -20,7 +21,8 @@ import {
   Pencil,
   Trash2,
   Percent,
-  RefreshCcw
+  RefreshCcw,
+  Search
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -35,7 +37,6 @@ import {
 import Swal from "sweetalert2";
 
 import ToolBar from "../tool-bar";
-import { count } from "console";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -57,14 +58,30 @@ const formatPercent = (n: number) => {
 };
 
 export function SuperCompanies() {
-  const { token } = useAuth.getState();
+  const { token, user } = useAuth.getState();
   const [companies, setCompanies] = useState<Company[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"cards" | "table">("table")
-  const [empresaId, setEmpresaId] = useState("")
-  const [searchMode, setSearchMode] = useState<"all" | "single">("all")
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   type Company = {
     id: string;
@@ -73,7 +90,7 @@ export function SuperCompanies() {
     current_account?: string;
     state: boolean;
     surchargePercentage?: number;
-    returnPercentage?: string;
+    returnPercentage?: number;
     billingDay: number;
     expirationDay: number;
     max: number;
@@ -123,41 +140,75 @@ export function SuperCompanies() {
   })
 
   useEffect(() => {
-    fetchCompanies();
+    fetchCompanies({ page: 1, limit: pagination.limit });
   }, []);
 
-  useEffect(() => {
-    setFilteredCompanies(companies);
-  }, [companies]);
-
-  const fetchCompanies = async () => {
+  const fetchCompanies = async (opts?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) => {
     try {
-      const res = await fetch("/api/companies", {
+      setIsSearching(true);
+      const page = opts?.page ?? pagination.page;
+      const limit = opts?.limit ?? pagination.limit;
+      const search = opts?.search ?? searchQuery;
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+
+      if (search && search.trim() !== "") {
+        params.set("search", search.trim());
+      }
+
+      const res = await fetch(`/api/companies?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const empresas = await res.json();
 
-      if (empresas) {
-        const companiesMapped = empresas.map((empresa: any) => {
-          const raw = empresa.porcentaje_devolucion;
-          const percent = backendToPercent(raw);
-          return {
-            id: empresa.id.toString(),
-            rut: empresa.rut || "-",
-            name: empresa.nombre,
-            current_account: empresa.cuenta_corriente || "-",
-            state: empresa.estado,
-            surchargePercentage: empresa.recargo || 0,
-            returnPercentage: percent,
-            billingDay: empresa.dia_facturacion,
-            expirationDay: empresa.dia_vencimiento,
-            max: empresa.monto_maximo,
-            count: empresa.monto_acumulado
-          };
+      if (!res.ok) {
+        throw new Error("Error fetching companies");
+      }
+
+      const body = await res.json();
+
+      // El backend ahora siempre devuelve formato paginado cuando hay page y limit
+      if (page && limit) {
+        const empresasArray = Array.isArray(body.data) ? body.data : [];
+        const pag = body.pagination || {
+          page,
+          limit,
+          total: empresasArray.length,
+          totalPages: Math.ceil((empresasArray.length || 0) / limit),
+          hasNextPage: false,
+          hasPrevPage: page > 1,
+        };
+
+        const empresas = empresasArray.map((empresa: any) => ({
+          id: empresa.id.toString(),
+          rut: empresa.rut || "-",
+          name: empresa.nombre,
+          current_account: empresa.cuenta_corriente || "-",
+          state: empresa.estado,
+          surchargePercentage: empresa.recargo || 0,
+          returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+          billingDay: empresa.dia_facturacion,
+          expirationDay: empresa.dia_vencimiento,
+          max: empresa.monto_maximo,
+          count: empresa.monto_acumulado
+        }));
+
+        setCompanies(empresas);
+        setFilteredCompanies(empresas);
+        setPagination({
+          page: pag.page ?? page,
+          limit: pag.limit ?? limit,
+          total: pag.total ?? empresas.length,
+          totalPages: pag.totalPages ?? Math.ceil((pag.total ?? empresas.length) / (pag.limit ?? limit)),
+          hasNextPage: Boolean(pag.hasNextPage),
+          hasPrevPage: Boolean(pag.hasPrevPage),
         });
-
-        setCompanies(companiesMapped);
-        setSearchMode("all");
       }
     } catch (err) {
       console.error("Error fetching companies:", err);
@@ -166,75 +217,32 @@ export function SuperCompanies() {
         description: "No se pudieron cargar las empresas",
         variant: "destructive",
       });
-    }
-  }
-
-  const handleSearch = async () => {
-    if (!empresaId.trim()) {
-      // Si el campo está vacío, mostrar todas las empresas
-      setFilteredCompanies(companies);
-      setSearchMode("all");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/companies/${empresaId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        if (res.status === 404) {
-          toast({
-            title: "No encontrado",
-            description: "No se encontró ninguna empresa con ese ID",
-            variant: "destructive",
-          });
-        } else {
-          throw new Error("Error al buscar empresa");
-        }
-        return;
-      }
-
-      const empresa = await res.json();
-
-      const companyMapped = {
-        id: empresa.id.toString(),
-        rut: empresa.rut,
-        name: empresa.nombre,
-        current_account: empresa.cuenta_corriente,
-        state: empresa.estado,
-        surchargePercentage: empresa.recargo || 0,
-        returnPercentage: backendToPercent(empresa.porcentaje_devolucion).toString(),
-        billingDay: empresa.dia_facturacion,
-        expirationDay: empresa.dia_vencimiento,
-        max: empresa.monto_maximo,
-        count: empresa.monto_acumulado
-      };
-
-      setFilteredCompanies([companyMapped]);
-      setSearchMode("single");
-
-      toast({
-        title: "Búsqueda exitosa",
-        description: `Empresa "${empresa.nombre}" encontrada`,
-      });
-
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudo realizar la búsqueda",
-        variant: "destructive",
-      });
+    } finally {
+      setIsSearching(false);
     }
   };
 
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchCompanies({ page: 1, limit: pagination.limit, search: searchQuery });
+  };
+
   const handleClearSearch = () => {
-    setEmpresaId("");
-    setFilteredCompanies(companies);
-    setSearchMode("all");
+    setSearchQuery("");
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchCompanies({ page: 1, limit: pagination.limit });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage === pagination.page || newPage > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchCompanies({ page: newPage, limit: pagination.limit, search: searchQuery });
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    if (newLimit === pagination.limit) return;
+    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    fetchCompanies({ page: 1, limit: newLimit, search: searchQuery });
   };
 
   const resetForm = () => {
@@ -291,7 +299,7 @@ export function SuperCompanies() {
         title: "Empresa agregada",
         description: `${formData.name} ha sido agregada exitosamente`,
       });
-      fetchCompanies();
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
     } catch (err) {
       console.error(err);
       toast({
@@ -331,7 +339,6 @@ export function SuperCompanies() {
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
-          monto_acumulado: Number(formData.count)
         }),
       });
 
@@ -341,12 +348,7 @@ export function SuperCompanies() {
       setSelectedCompany(null);
       resetForm();
 
-      // Recargar los datos según el modo actual
-      if (searchMode === "single" && empresaId) {
-        handleSearch();
-      } else {
-        fetchCompanies();
-      }
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
 
       toast({
         title: "Empresa actualizada",
@@ -397,8 +399,7 @@ export function SuperCompanies() {
 
       if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      setSearchMode("all");
-      fetchCompanies();
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
 
       toast({
         title: "Monto Reestablecido",
@@ -414,6 +415,241 @@ export function SuperCompanies() {
     }
   };
 
+  const sendCSV = () => {
+    resetCSVModal();
+    setCsvModalOpen(true);
+  };
+
+  const handleUploadCSV = async () => {
+    if (!csvFile) {
+      toast({
+        title: "Error",
+        description: "Selecciona un archivo CSV",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", csvFile);
+
+      const response = await fetch("/api/csv/companies", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al subir el CSV");
+      }
+
+      const data = await response.json();
+      setResult(data);
+      console.log("Resultado CSV:", data);
+
+      toast({
+        title: "CSV procesado",
+        description: `Se procesaron ${data.result?.success || 0} empresas exitosamente`,
+      });
+
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
+
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Error inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setUploading(false);
+    }
+  };
+
+  const resetCSVModal = () => {
+    setCsvFile(null);
+    setResult(null);
+    setLoading(false);
+  };
+
+  const exportToCSV = async () => {
+    try {
+      const res = await fetch(`/api/companies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al obtener empresas para exportar");
+      }
+
+      const response = await res.json();
+
+      let empresasArray;
+      if (Array.isArray(response)) {
+        empresasArray = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        empresasArray = response.data;
+      } else {
+        empresasArray = [];
+      }
+
+      if (empresasArray.length === 0) {
+        toast({
+          title: "No hay datos",
+          description: "No hay empresas para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const companiesForExport = empresasArray.map((empresa: any) => ({
+        id: empresa.id.toString(),
+        name: empresa.nombre,
+        state: empresa.estado,
+        surchargePercentage: empresa.recargo || 0,
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+        billingDay: empresa.dia_facturacion,
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado,
+        rut: empresa.rut || "-",
+        current_account: empresa.cuenta_corriente || "-"
+      }));
+
+      const headers = [
+        "id",
+        "nombre_empresa",
+        "estado",
+        "porcentaje_recargo",
+        "porcentaje_devolucion",
+        "dia_facturacion",
+        "dia_vencimiento",
+        "monto_maximo",
+        "monto_acumulado",
+        "rut_empresa",
+        "cuenta_corriente"
+      ];
+
+      const csvData = companiesForExport.map((company: Company) => [
+        company.id,
+        company.name,
+        company.state ? "1" : "0",
+        company.surchargePercentage || 0,
+        percentToBackend(company.returnPercentage || 0).toFixed(2),
+        company.billingDay,
+        company.expirationDay,
+        company.max?.toString() || "0",
+        company.count?.toString() || "0",
+        company.rut || "-",
+        company.current_account || "-"
+      ]);
+
+      const csvContent = [headers.join(","), ...csvData.map((row: any[]) => row.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${companiesForExport.length} empresas a CSV`
+      });
+
+    } catch (err) {
+      console.error("Error en exportación CSV:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar las empresas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportToXLSX = async () => {
+
+    try {
+      const res = await fetch(`/api/companies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al obtener empresas para exportar");
+      }
+
+      const response = await res.json();
+
+      let empresasArray;
+      if (Array.isArray(response)) {
+        empresasArray = response;
+      } else if (response.data && Array.isArray(response.data)) {
+        empresasArray = response.data;
+      } else {
+        empresasArray = [];
+      }
+
+      if (empresasArray.length === 0) {
+        toast({
+          title: "No hay datos",
+          description: "No hay empresas para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const companiesForExport = empresasArray.map((empresa: any) => ({
+        id: empresa.id.toString(),
+        name: empresa.nombre,
+        state: empresa.estado,
+        surchargePercentage: empresa.recargo || 0,
+        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
+        billingDay: empresa.dia_facturacion,
+        expirationDay: empresa.dia_vencimiento,
+        max: empresa.monto_maximo,
+        count: empresa.monto_acumulado,
+        rut: empresa.rut || "-",
+        current_account: empresa.cuenta_corriente || "-"
+      }));
+
+      const data = companiesForExport.map((company: Company) => ({
+        id: company.id,
+        nombre_empresa: company.name,
+        estado: company.state ? 1 : 0,
+        porcentaje_recargo: company.surchargePercentage || 0,
+        porcentaje_devolucion: parseFloat(percentToBackend(company.returnPercentage || 0).toFixed(2)),
+        dia_facturacion: company.billingDay,
+        dia_vencimiento: company.expirationDay,
+        monto_maximo: company.max || 0,
+        monto_acumulado: company.count || 0,
+        rut_empresa: company.rut || "-",
+        cuenta_corriente: company.current_account || "-"
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
+      XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`
+      });
+    } catch (err) {
+      console.error("Error en exportación XLSX:", err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar las empresas",
+        variant: "destructive",
+      });
+    }
+  };
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
     setFormData({
@@ -458,207 +694,360 @@ export function SuperCompanies() {
         description="Gestione las empresas y sus porcentajes de recargo"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        refreshAction={fetchCompanies}
-        showSearch
-        searchValue={empresaId}
-        onSearchChange={setEmpresaId}
-        onSearch={handleSearch}
-        searchPlaceholder="ID de empresa..."
-        primaryAction={{
+        refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery })}
+        primaryAction={user?.role !== "admin" ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
-        }}
+        } : undefined}
+        secondaryActions={[
+          ...(user?.role === "superuser"
+            ? [{
+              label: "Subir CSV",
+              icon: <Upload className="h-4 w-4" />,
+              onClick: sendCSV,
+            }]
+            : []),
+          {
+            label: "Exportar",
+            icon: <Download className="h-4 w-4" />,
+            onClick: () => setIsExportDialogOpen(true),
+            disabled: filteredCompanies.length === 0,
+          }
+        ]}
       />
 
-      {/* Indicador de búsqueda */}
-      {searchMode === "single" && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">Viendo empresa específica</p>
-                  <p className="text-sm text-blue-700">
-                    Mostrando 1 de {companies.length} empresas
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleClearSearch}>
-                Ver todas las empresas
+      {/* Barra de búsqueda */}
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="search">Buscar empresa (nombre o cuenta corriente)</Label>
+              <Input
+                id="search"
+                placeholder="Ej: ABCD-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+                disabled={isSearching}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSearch}
+                className="bg-accent hover:bg-accent/90"
+                disabled={isSearching}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                {isSearching ? "Buscando..." : "Buscar"}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleClearSearch}
+                disabled={isSearching}
+              >
+                Limpiar
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contador y controles de paginación */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="text-sm text-muted-foreground">
+          {pagination.total > 0 ? (
+            <>
+              Mostrando{" "}
+              <strong>
+                {(pagination.page - 1) * pagination.limit + 1}
+                {" - "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}
+              </strong>{" "}
+              de <strong>{pagination.total}</strong> empresas
+            </>
+          ) : (
+            <>No hay empresas para mostrar</>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Limit selector */}
+          <div className="flex items-center gap-2 text-sm">
+            <label className="text-muted-foreground">Resultados:</label>
+            <select
+              value={pagination.limit}
+              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+              className="p-2 border rounded-md bg-background"
+              disabled={isSearching}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          {/* Page controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={!pagination.hasPrevPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              «
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              ‹
+            </Button>
+
+            {/* páginas numeradas (máx 5 visibles) */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                let pageNum;
+                const totalPages = pagination.totalPages || 1;
+
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.page <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.page - 2 + i;
+                }
+
+                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pagination.page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(pageNum)}
+                    disabled={isSearching}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNextPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              ›
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={!pagination.hasNextPage || isSearching}
+              className="h-8 w-8 p-0"
+            >
+              »
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* pequeño separador */}
+      <div className="my-4 border-t" />
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Agregar Nueva Empresa</DialogTitle>
             <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre de la Empresa *</Label>
-              <Input
-                id="name"
-                placeholder="Ej: Empresa Ejemplo S.A."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            {/* Columna 1 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre de la Empresa *</Label>
+                <Input
+                  id="name"
+                  placeholder="Ej: Empresa Ejemplo S.A."
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <select
+                  name="estado"
+                  id="state"
+                  value={formData.state.toString()}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
+                <Input
+                  id="surcharge"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.surchargePercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      surchargePercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
+                <Input
+                  id="return"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.returnPercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      returnPercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rut">Rut Empresa</Label>
+                <Input
+                  id="rut"
+                  type="text"
+                  placeholder="123456789-0"
+                  required
+                  value={formData.rut}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      rut: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">Estado</Label>
-              <select
-                name="estado"
-                id="state"
-                value={formData.state.toString()}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="true">Activa</option>
-                <option value="false">Inactiva</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
-              <Input
-                id="surcharge"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.surchargePercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    surchargePercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
-              <Input
-                id="return"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.returnPercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    returnPercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="billingDay">Dia de Facturación</Label>
-              <Input
-                id="billingDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="5"
-                required
-                value={formData.billingDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    billingDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="expirationDay">Dia de Vencimiento</Label>
-              <Input
-                id="expirationDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="15"
-                required
-                value={formData.expirationDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    expirationDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max">Monto Máximo</Label>
-              <Input
-                id="max"
-                type="number"
-                min="0"
-                placeholder="100000"
-                required
-                value={formData.max}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    max: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="count">Monto Acumulado</Label>
-              <Input
-                id="count"
-                type="number"
-                min="0"
-                placeholder="0"
-                required
-                value={formData.count}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    count: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rut">Rut Empresa</Label>
-              <Input
-                id="rut"
-                type="text"
-                placeholder="123456789-0"
-                required
-                value={formData.rut}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    rut: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_account">Cuenta Corriente</Label>
-              <Input
-                id="current_account"
-                type="text"
-                placeholder="ABCD-0"
-                required
-                value={formData.current_account}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    current_account: e.target.value,
-                  });
-                }}
-              />
+
+            {/* Columna 2 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="billingDay">Día de Facturación</Label>
+                <Input
+                  id="billingDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="5"
+                  required
+                  value={formData.billingDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      billingDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="expirationDay">Día de Vencimiento</Label>
+                <Input
+                  id="expirationDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="15"
+                  required
+                  value={formData.expirationDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      expirationDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max">Monto Máximo</Label>
+                <Input
+                  id="max"
+                  type="number"
+                  min="0"
+                  placeholder="100000"
+                  required
+                  value={formData.max}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      max: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="count">Monto Acumulado</Label>
+                <Input
+                  id="count"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  required
+                  value={formData.count}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      count: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current_account">Cuenta Corriente</Label>
+                <Input
+                  id="current_account"
+                  type="text"
+                  placeholder="ABCD-0"
+                  required
+                  value={formData.current_account}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      current_account: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -672,7 +1061,6 @@ export function SuperCompanies() {
         </DialogContent>
       </Dialog>
 
-      {/* Vista de Tarjetas */}
       {viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCompanies.map((company, index) => (
@@ -756,15 +1144,17 @@ export function SuperCompanies() {
                     <Pencil className="h-3 w-3 mr-2" />
                     Editar
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => handleReset(company.id)}
-                  >
-                    <RefreshCcw className="h-3 w-3 mr-2" />
-                    Reestablecer
-                  </Button>
+                  {user?.role === "superuser" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                      onClick={() => handleReset(company.id)}
+                    >
+                      <RefreshCcw className="h-3 w-3 mr-2" />
+                      Reestablecer
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -788,7 +1178,7 @@ export function SuperCompanies() {
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  {user?.role !== "admin" && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -844,22 +1234,30 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(company)}
-                          className="h-8 px-3"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleReset(company.id)}
-                          className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
-                        >
-                          <RefreshCcw className="h-3 w-3" />
-                        </Button>
+                        {
+                          user?.role !== "admin" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(company)}
+                              className="h-8 px-3"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )
+                        }
+                        {
+                          user?.role === "superuser" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReset(company.id)}
+                              className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
+                            >
+                              <RefreshCcw className="h-3 w-3" />
+                            </Button>
+                          )
+                        }
                       </div>
                     </TableCell>
                   </TableRow>
@@ -876,175 +1274,181 @@ export function SuperCompanies() {
         </Card>
       )}
 
+
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Editar Empresa</DialogTitle>
             <DialogDescription>Modifique los datos de la empresa en convenio</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
-              <Input
-                id="edit-name"
-                placeholder="Ej: Empresa Ejemplo S.A."
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            {/* Columna 1 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="Ej: Empresa Ejemplo S.A."
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-state">Estado</Label>
+                <select
+                  name="estado"
+                  id="edit-state"
+                  value={formData.state.toString()}
+                  required
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="true">Activa</option>
+                  <option value="false">Inactiva</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
+                <Input
+                  id="edit-surcharge"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.surchargePercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      surchargePercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-return">Porcentaje de Devolución (%)</Label>
+                <Input
+                  id="edit-return"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  required
+                  value={formData.returnPercentage}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      returnPercentage: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rut">Rut Empresa</Label>
+                <Input
+                  id="rut"
+                  type="text"
+                  placeholder="123456789-0"
+                  required
+                  value={formData.rut}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      rut: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-state">Estado</Label>
-              <select
-                name="estado"
-                id="edit-state"
-                value={formData.state.toString()}
-                required
-                onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="true">Activa</option>
-                <option value="false">Inactiva</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
-              <Input
-                id="edit-surcharge"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.surchargePercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    surchargePercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-return">Porcentaje de Devolución (%)</Label>
-              <Input
-                id="edit-return"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0"
-                required
-                value={formData.returnPercentage}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    returnPercentage: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-billingDay">Dia de Facturación</Label>
-              <Input
-                id="edit-billingDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="5"
-                required
-                value={formData.billingDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    billingDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-expirationDay">Dia de Vencimiento</Label>
-              <Input
-                id="edit-expirationDay"
-                type="number"
-                min="0"
-                max="31"
-                placeholder="15"
-                required
-                value={formData.expirationDay}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    expirationDay: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-max">Monto Máximo</Label>
-              <Input
-                id="edit-max"
-                type="number"
-                min="0"
-                placeholder="100000"
-                required
-                value={formData.max}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    max: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="count">Monto Acumulado</Label>
-              <Input
-                id="count"
-                type="number"
-                min="0"
-                placeholder="0"
-                required
-                value={formData.count}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    count: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rut">Rut Empresa</Label>
-              <Input
-                id="rut"
-                type="text"
-                placeholder="123456789-0"
-                required
-                value={formData.rut}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    rut: e.target.value,
-                  });
-                }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="current_account">Cuenta Corriente</Label>
-              <Input
-                id="current_account"
-                type="text"
-                placeholder="ABCD-0"
-                required
-                value={formData.current_account}
-                onChange={(e) => {
-                  setFormData({
-                    ...formData,
-                    current_account: e.target.value,
-                  });
-                }}
-              />
+
+            {/* Columna 2 */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-billingDay">Día de Facturación</Label>
+                <Input
+                  id="edit-billingDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="5"
+                  required
+                  value={formData.billingDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      billingDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-expirationDay">Día de Vencimiento</Label>
+                <Input
+                  id="edit-expirationDay"
+                  type="number"
+                  min="0"
+                  max="31"
+                  placeholder="15"
+                  required
+                  value={formData.expirationDay}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      expirationDay: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-max">Monto Máximo</Label>
+                <Input
+                  id="edit-max"
+                  type="number"
+                  min="0"
+                  placeholder="100000"
+                  required
+                  value={formData.max}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      max: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="count">Monto Acumulado</Label>
+                <Input
+                  id="count"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  required
+                  value={formData.count}
+                  disabled  // Campo bloqueado
+                  className="bg-gray-100 cursor-not-allowed"
+                  readOnly
+                />
+                <p className="text-xs text-muted-foreground">Este campo no se puede editar</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="current_account">Cuenta Corriente</Label>
+                <Input
+                  id="current_account"
+                  type="text"
+                  placeholder="ABCD-0"
+                  required
+                  value={formData.current_account}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      current_account: e.target.value,
+                    });
+                  }}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -1053,6 +1457,130 @@ export function SuperCompanies() {
             </Button>
             <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
               Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={csvModalOpen}
+        onOpenChange={(open) => {
+          setCsvModalOpen(open);
+          if (!open) {
+            resetCSVModal();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar empresas desde CSV</DialogTitle>
+            <DialogDescription>
+              Sube un archivo CSV con las columnas indicadas abajo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium mr-5">Archivo CSV</label>
+            <input
+              key={csvModalOpen ? "open" : "closed"}
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+              className="border border-gray-300 rounded-lg py-2 px-2 cursor-pointer"
+            />
+          </div>
+
+          <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+            <p className="font-medium mb-2">Ejemplo de CSV:</p>
+            <pre className="text-xs overflow-x-auto">
+              {`nombre_empresa,estado,porcentaje_recargo,
+porcentaje_devolucion,dia_facturacion,dia_vencimiento,
+monto_maximo,monto_acumulado,rut,cuenta_corriente`}
+            </pre>
+          </div>
+
+          {result && (
+            <div className="mt-4 rounded-md bg-muted p-3 text-sm">
+              <p>
+                <strong>Procesamiento completado:</strong>
+              </p>
+              <p>✅ Éxitos: {result.result?.success}</p>
+              <p>❌ Errores: {result.result?.errors?.length || 0}</p>
+              <p>📊 Total filas: {result.result?.totalRows || 0}</p>
+
+              {result.result?.errors?.length > 0 && (
+                <>
+                  <p className="mt-2 font-medium text-red-600">
+                    Detalle de errores:
+                  </p>
+                  <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
+                    {result.result.errors.map((e: string, i: number) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setCsvModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUploadCSV}
+              disabled={loading || !csvFile}
+              className="bg-accent hover:bg-accent/90"
+            >
+              {uploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir CSV
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Exportación */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Exportar Empresas</DialogTitle>
+            <DialogDescription>
+              Exporte las empresas del sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex gap-4">
+              <Button
+                onClick={exportToCSV}
+                className="flex-1 bg-accent hover:bg-accent/90"
+                disabled={filteredCompanies.length === 0}
+              >
+                CSV
+              </Button>
+              <Button
+                onClick={exportToXLSX}
+                className="flex-1 bg-accent hover:bg-accent/90"
+                disabled={filteredCompanies.length === 0}
+              >
+                XLSX
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>

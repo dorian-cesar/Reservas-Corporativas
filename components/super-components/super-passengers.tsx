@@ -35,8 +35,23 @@ import {
     FolderTree,
     Phone,
     Search,
-    Upload
+    Upload,
+    ChevronsUpDown
 } from "lucide-react"
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+
 import { useToast } from "@/hooks/use-toast"
 import {
     Table as UITable,
@@ -64,10 +79,13 @@ export function CompanyPassengers() {
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+    const [costCenterPopoverOpen, setCostCenterPopoverOpen] = useState(false);
 
     // Estados para búsqueda y paginación
     const [emailSearch, setEmailSearch] = useState("");
     const [rutSearch, setRutSearch] = useState("");
+    const [loadingCompanies, setLoadingCompanies] = useState(false);
 
     const [pagination, setPagination] = useState({
         page: 1,
@@ -144,8 +162,19 @@ export function CompanyPassengers() {
         }
     }, [selectedCompany]);
 
+    useEffect(() => {
+        if (formData.id_empresa) {
+            fetchCostCenters(formData.id_empresa);
+        } else {
+            setCostCenters([]);
+            setFormData(prev => ({ ...prev, id_centro_costo: "" }));
+        }
+    }, [formData.id_empresa]);
+
+
     const fetchCompanies = async () => {
         try {
+            setLoadingCompanies(true)
             const res = await fetch("/api/companies", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -156,14 +185,21 @@ export function CompanyPassengers() {
                 nombre: c.nombre,
             }));
             setCompanies(mapped);
+            setLoadingCompanies(false)
         } catch (err) {
             console.error(err);
             toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+            setLoadingCompanies(false)
+        } finally {
+            setLoadingCompanies(false)
         }
     };
 
     const fetchCostCenters = async (empresaId: string) => {
-        if (!empresaId) return;
+        if (!empresaId) {
+            setCostCenters([]);
+            return;
+        }
 
         try {
             const res = await fetch(`/api/centros-costo/empresa/${empresaId}`, {
@@ -190,7 +226,6 @@ export function CompanyPassengers() {
             setCostCenters([]);
         }
     };
-
     const fetchPassengers = async (opts?: {
         page?: number;
         limit?: number;
@@ -310,7 +345,11 @@ export function CompanyPassengers() {
         });
     };
 
-    const handleAdd = async () => {
+    const handleAdd = async (e?: React.FormEvent) => {
+        if (e) {
+            e.preventDefault();
+        }
+
         if (!formData.nombre || !formData.rut || !formData.correo || !formData.telefono || !formData.id_empresa || !formData.id_centro_costo) {
             toast({
                 title: "Error",
@@ -337,7 +376,10 @@ export function CompanyPassengers() {
                 }),
             });
 
-            if (!res.ok) throw new Error("Error al crear pasajero");
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Error al crear pasajero");
+            }
 
             setIsAddDialogOpen(false);
             resetForm();
@@ -352,11 +394,11 @@ export function CompanyPassengers() {
                 page: pagination.page,
                 limit: pagination.limit
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
             toast({
                 title: "Error",
-                description: "No se pudo agregar el pasajero",
+                description: err.message || "No se pudo agregar el pasajero",
                 variant: "destructive",
             });
         }
@@ -526,12 +568,15 @@ export function CompanyPassengers() {
                 companies={companies}
                 selectedCompany={selectedCompany}
                 onCompanyChange={(id) => setSelectedCompany(id)}
+                companySelectMode="combobox"
+                companySelectPlaceholder="Selecciona una empresa..."
+                loadingCompanies={loadingCompanies}
+
                 refreshAction={() => selectedCompany && fetchPassengers()}
                 primaryAction={{
                     label: "Nuevo Pasajero",
                     icon: <Plus className="h-4 w-4" />,
                     onClick: openAddDialog,
-                    disabled: !selectedCompany,
                 }}
                 secondaryAction={
                     user?.role === "superuser"
@@ -543,8 +588,182 @@ export function CompanyPassengers() {
                         : undefined
                 }
             />
+            {isAddDialogOpen && (
+                <div className="space-y-4 p-4 border rounded-lg bg-card mb-6 animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">Agregar Nuevo Pasajero</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Registre un nuevo pasajero en la empresa
+                        </p>
+                    </div>
 
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <form onSubmit={(e) => handleAdd(e)} className="space-y-6">
+
+                        {/* GRID */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                            <div className="space-y-2">
+                                <Label htmlFor="nombre">Nombre Completo *</Label>
+                                <Input
+                                    id="nombre"
+                                    placeholder="Ej: Juan Pérez"
+                                    value={formData.nombre}
+                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="rut">RUT *</Label>
+                                <Input
+                                    id="rut"
+                                    placeholder="Ej: 12345678-9"
+                                    value={formData.rut}
+                                    onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="correo">Correo *</Label>
+                                <Input
+                                    id="correo"
+                                    type="email"
+                                    placeholder="usuario@empresa.com"
+                                    value={formData.correo}
+                                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="telefono">Teléfono *</Label>
+                                <Input
+                                    id="telefono"
+                                    type="text"
+                                    placeholder="+56 9 8122 6760"
+                                    value={formData.telefono}
+                                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="empresa_id">Empresa</Label>
+                                <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between bg-white"
+                                        >
+                                            {formData.id_empresa
+                                                ? `${companies.find(c => c.id === formData.id_empresa)?.id || ""} - ${companies.find(c => c.id === formData.id_empresa)?.nombre || ""}`
+                                                : "Selecciona una empresa"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar empresa..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {companies.map((company) => (
+                                                        <CommandItem
+                                                            key={company.id}
+                                                            value={`${company.id} ${company.nombre}`}
+                                                            onSelect={() => {
+                                                                setFormData({ ...formData, id_empresa: company.id });
+                                                                setCompanyPopoverOpen(false);
+                                                                fetchCostCenters(company.id);
+                                                            }}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            {company.id} - {company.nombre}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="centro_costo_id">Centro de Costo</Label>
+                                <Popover
+                                    open={costCenterPopoverOpen}
+                                    onOpenChange={setCostCenterPopoverOpen}
+                                >
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            disabled={!formData.id_empresa || costCenters.length === 0}
+                                            className="w-full justify-between bg-white"
+                                        >
+                                            {formData.id_centro_costo
+                                                ? costCenters.find((cc: CostCenter) => cc.id.toString() === formData.id_centro_costo)?.nombre
+                                                : costCenters.length === 0
+                                                    ? "No hay centros de costo disponibles"
+                                                    : "Selecciona un centro de costo"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Buscar centro de costo..." />
+                                            <CommandList>
+                                                <CommandEmpty>No se encontró el centro de costo.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {costCenters.map((cc) => (
+                                                        <CommandItem
+                                                            key={cc.id}
+                                                            value={`${cc.id} ${cc.nombre}`}
+                                                            onSelect={() => {
+                                                                setFormData({ ...formData, id_centro_costo: cc.id.toString() });
+                                                                setCostCenterPopoverOpen(false);
+                                                            }}
+                                                        >
+                                                            {cc.nombre}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+
+                                {!formData.id_empresa && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Selecciona una empresa primero
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* BOTONES */}
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setIsAddDialogOpen(false);
+                                    resetForm();
+                                }}
+                            >
+                                Cancelar
+                            </Button>
+
+                            <Button type="submit" className="bg-accent hover:bg-accent/90">
+                                Agregar
+                            </Button>
+                        </div>
+
+                    </form>
+
+                </div>
+            )}
+
+            {/* <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle>Agregar Nuevo Pasajero</DialogTitle>
@@ -645,7 +864,7 @@ export function CompanyPassengers() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </Dialog> */}
 
             {/* Modal para Editar Pasajero */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

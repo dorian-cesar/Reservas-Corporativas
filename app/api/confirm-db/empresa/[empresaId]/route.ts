@@ -29,16 +29,22 @@ export async function GET(
     const url = new URL(req.url);
     const incoming = new URLSearchParams(url.search);
 
+    const exportAll = incoming.get("exportAll") === "true";
+
     // Normalizar page/limit
     const rawPage = incoming.get("page");
     const rawLimit = incoming.get("limit");
     const page = Math.max(1, parseInt(rawPage ?? "1", 10) || 1);
     const limit = Math.max(1, parseInt(rawLimit ?? "10", 10) || 10);
 
-    // Construir params para backend (solo incluir si vienen y no vacíos)
     const backendParams = new URLSearchParams();
-    backendParams.set("page", String(page));
-    backendParams.set("limit", String(limit));
+
+    if (exportAll) {
+      backendParams.set("exportAll", "true");
+    } else {
+      backendParams.set("page", String(page));
+      backendParams.set("limit", String(limit));
+    }
 
     const travelDateDesde = incoming.get("travelDate_desde");
     const travelDateHasta = incoming.get("travelDate_hasta");

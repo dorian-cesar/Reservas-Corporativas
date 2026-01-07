@@ -71,6 +71,15 @@ export interface AuthState {
 
   logout: () => void;
   getToken: () => string | null;
+
+  changeCompany: (nuevaEmpresaId: string) => Promise<{
+    success: boolean;
+    message?: string;
+    user?: User;
+    token?: string;
+    empresa?: any;
+    centroCosto?: any;
+  }>;
 }
 
 export interface TokenPayload {
@@ -319,6 +328,78 @@ export const useAuth = create<AuthState>()(
           pendingUserEmail: null,
           verificationEmailSent: false,
         });
+      },
+
+      changeCompany: async (nuevaEmpresaId: string) => {
+        const { token, user } = get();
+
+        if (!token || !user) {
+          return {
+            success: false,
+            message: "Usuario no autenticado"
+          };
+        }
+
+        try {
+          const res = await fetch("/api/users/cambiar-empresa", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ nueva_empresa_id: parseInt(nuevaEmpresaId) }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            return {
+              success: false,
+              message: data.message || "Error al cambiar empresa"
+            };
+          }
+
+          // Verificar si recibimos un nuevo token
+          if (!data.token) {
+            return {
+              success: false,
+              message: "No se recibió un token válido del servidor"
+            };
+          }
+
+          // Crear objeto de usuario actualizado
+          const updatedUser: User = {
+            ...user,
+            companyId: nuevaEmpresaId,
+            companyName: data.empresa?.nombre || user.companyName,
+            companyEstado: data.empresa?.estado || user.companyEstado,
+            companyRecargo: data.empresa?.recargo || user.companyRecargo,
+            companyPorcentajeDevolucion: data.empresa?.porcentaje_devolucion || user.companyPorcentajeDevolucion,
+            centroCostoId: data.centroCosto ? String(data.centroCosto.id) : user.centroCostoId,
+            centroCostoName: data.centroCosto?.nombre || user.centroCostoName,
+            centroCostoEstado: data.centroCosto?.estado || user.centroCostoEstado,
+          };
+
+          set({
+            token: data.token, // Nuevo token
+            user: updatedUser,
+          });
+
+          return {
+            success: true,
+            message: data.message || "Empresa cambiada exitosamente",
+            user: updatedUser,
+            token: data.token,
+            empresa: data.empresa,
+            centroCosto: data.centroCosto
+          };
+        } catch (err) {
+          console.error("Error al cambiar empresa:", err);
+          return {
+            success: false,
+            message: "Error al conectar con el servidor"
+          };
+        }
       },
 
       getToken: () => get().token,

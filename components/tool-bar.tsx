@@ -1,8 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Table, RefreshCcw } from "lucide-react";
+import { LayoutGrid, Table, RefreshCcw, Search, ChevronsUpDown } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type ViewMode = "cards" | "table";
+type CompanySelectMode = "select" | "combobox"; // Nuevo tipo
 
 export interface CompanyOption {
   id: string;
@@ -30,6 +44,9 @@ interface ToolBarProps {
   companies?: CompanyOption[];            // opciones a mostrar
   selectedCompany?: string;               // id seleccionado
   onCompanyChange?: (id: string) => void; // callback al cambiar
+  companySelectMode?: CompanySelectMode;  // NUEVO: modo de selección
+  companySelectPlaceholder?: string;      // NUEVO: placeholder personalizado
+  loadingCompanies?: boolean;
 
   // optional search input
   showSearch?: boolean;
@@ -41,7 +58,8 @@ interface ToolBarProps {
   // actions
   refreshAction?: () => void;
   primaryAction?: ActionButton;   // ej: Agregar
-  secondaryAction?: ActionButton; // ej: Exportar
+  secondaryActions?: ActionButton[]; // ← CAMBIO: Ahora es un array (plural)
+  secondaryAction?: ActionButton; // ← OPCIONAL: Mantén el singular para compatibilidad
 
   // layout tweaks
   className?: string;
@@ -57,6 +75,9 @@ export default function ToolBar({
   companies = [],
   selectedCompany,
   onCompanyChange,
+  companySelectMode = "select",
+  companySelectPlaceholder = "Selecciona una empresa",
+  loadingCompanies,
 
   showSearch = false,
   searchValue = "",
@@ -66,10 +87,19 @@ export default function ToolBar({
 
   refreshAction,
   primaryAction,
+  secondaryActions = [],
   secondaryAction,
 
   className = "",
 }: ToolBarProps) {
+  const allSecondaryActions = secondaryAction
+    ? [...secondaryActions, secondaryAction]
+    : secondaryActions;
+
+  const [open, setOpen] = useState(false);
+
+  const selectedCompanyData = companies.find(c => c.id === selectedCompany);
+
   return (
     <div className={`flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-4 ${className}`}>
       <div>
@@ -78,25 +108,75 @@ export default function ToolBar({
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-        {/* Optional company select */}
         {showCompanySelect && (
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedCompany ?? ""}
-              onChange={(e) => onCompanyChange && onCompanyChange(e.target.value)}
-              className="p-2 border rounded-md bg-white"
-            >
-              <option value="">Selecciona una empresa</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.id} - {c.nombre}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2 min-w-[400px]">
+            {companySelectMode === "combobox" ? (
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    disabled={loadingCompanies}
+                    className="w-full justify-between bg-white"
+                  >
+                    {loadingCompanies
+                      ? "Cargando empresas..."
+                      : selectedCompanyData
+                        ? `${selectedCompanyData.id} - ${selectedCompanyData.nombre}`
+                        : companySelectPlaceholder}
+
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandInput placeholder="Buscar empresa..." />
+                    <CommandList>
+                      {loadingCompanies ? (
+                        <CommandItem disabled>
+                          Cargando empresas...
+                        </CommandItem>
+                      ) : companies.length === 0 ? (
+                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {companies.map((company) => (
+                            <CommandItem
+                              key={company.id}
+                              value={`${company.id} ${company.nombre}`}
+                              onSelect={() => {
+                                onCompanyChange?.(company.id);
+                                setOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {company.id} - {company.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <select
+                value={selectedCompany ?? ""}
+                onChange={(e) => onCompanyChange && onCompanyChange(e.target.value)}
+                className="p-2 border rounded-md bg-white w-full"
+              >
+                <option value="">{companySelectPlaceholder}</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.id} - {c.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
 
-        {/* Optional search */}
         {showSearch && (
           <div className="flex items-center gap-2">
             <input
@@ -140,16 +220,20 @@ export default function ToolBar({
           </Button>
         )}
 
-        {/* Secondary / Primary */}
-        {secondaryAction && (
-          <Button
-            onClick={secondaryAction.onClick}
-            className={`${secondaryAction.className ?? "bg-accent hover:bg-accent/90"} h-8`}
-            disabled={secondaryAction.disabled}
-          >
-            {secondaryAction.icon && <span className="mr-2">{secondaryAction.icon}</span>}
-            {secondaryAction.label}
-          </Button>
+        {allSecondaryActions.length > 0 && (
+          <div className="flex gap-2">
+            {allSecondaryActions.map((action, index) => (
+              <Button
+                key={index}
+                onClick={action.onClick}
+                className={`${action.className ?? "bg-accent hover:bg-accent/90"} h-8`}
+                disabled={action.disabled}
+              >
+                {action.icon && <span className="mr-2">{action.icon}</span>}
+                {action.label}
+              </Button>
+            ))}
+          </div>
         )}
 
         {primaryAction && (

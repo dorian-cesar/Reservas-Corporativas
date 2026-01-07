@@ -55,6 +55,7 @@ export function SuperAllBookings() {
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -162,6 +163,7 @@ export function SuperAllBookings() {
 
   const fetchCompanies = async () => {
     try {
+      setLoadingCompanies(true)
       const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -172,9 +174,13 @@ export function SuperAllBookings() {
         nombre: c.nombre,
       }));
       setCompanies(mapped);
+      setLoadingCompanies(false)
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      setLoadingCompanies(false)
+    } finally {
+      setLoadingCompanies(false)
     }
   };
 
@@ -284,6 +290,44 @@ export function SuperAllBookings() {
     }
   };
 
+  const fetchAllTicketsForExport = async (targetEmpresaId: number): Promise<Ticket[]> => {
+    try {
+      const params = new URLSearchParams();
+      params.set("exportAll", "true");
+
+      if (dateDesde) params.set("travelDate_desde", dateDesde);
+      if (dateHasta) params.set("travelDate_hasta", dateHasta);
+
+      const queryString = params.toString();
+      const url = `/api/confirm-db/empresa/${targetEmpresaId}${queryString ? `?${queryString}` : ""}`;
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
+
+      const responseData = await res.json();
+
+      if (Array.isArray(responseData)) {
+        return responseData as Ticket[];
+      }
+
+      // Por compatibilidad, también manejar respuesta antigua
+      if (responseData && Array.isArray(responseData.tickets)) {
+        return responseData.tickets as Ticket[];
+      }
+
+      return [];
+    } catch (err) {
+      console.error("Error fetching all tickets for export:", err);
+      throw err;
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -303,7 +347,7 @@ export function SuperAllBookings() {
     if (!dateString) return "—";
     return new Date(dateString).toLocaleDateString("es-CL");
   };
-  
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -341,107 +385,164 @@ export function SuperAllBookings() {
     }
   };
 
-  // Exports usan tickets (ya filtrados en servidor)
-  const exportToCSV = () => {
-    const ticketsToExport = Array.isArray(tickets) ? tickets : [];
-    if (ticketsToExport.length === 0) return;
+  const exportToCSV = async () => {
+    if (!empresaId) return;
 
-    const headers = [
-      "Número de Ticket",
-      "Nombre Usuario",
-      "RUT Usuario",
-      "Correo Usuario",
-      "Centro Costo",
-      "Estado",
-      "Origen",
-      "Destino",
-      "Fecha de Viaje",
-      "Hora de Salida",
-      "Asiento",
-      "Valor Asiento",
-      "Monto Boleto",
-      "Confirmado En",
-      "ID Usuario",
-      "Creado En",
-      "Actualizado En"
-    ];
+    setIsLoading(true);
+    try {
+      // Obtener TODOS los tickets (sin paginación)
+      const allTickets = await fetchAllTicketsForExport(Number(empresaId)) as Ticket[];
 
-    const csvData = ticketsToExport.map(ticket => [
-      ticket.ticketNumber,
-      ticket.user?.nombre,
-      ticket.user?.rut,
-      ticket.user?.email,
-      ticket.user?.centroCosto?.nombre,
-      ticket.ticketStatus,
-      ticket.origin,
-      ticket.destination,
-      ticket.travelDate,
-      ticket.departureTime,
-      ticket.seatNumbers,
-      ticket.fare,
-      ticket.monto_boleto,
-      ticket.confirmedAt,
-      ticket.id_User,
-      ticket.created_at,
-      ticket.updated_at
-    ]);
+      if (!allTickets || allTickets.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No hay tickets para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    const csvContent = [
-      headers.join(","),
-      ...csvData.map(row => row.map(field => `"${field ?? ""}"`).join(","))
-    ].join("\n");
+      const headers = [
+        "Número de Ticket",
+        "PNR",
+        "Estado",
+        "Nombre Usuario",
+        "RUT Usuario",
+        "Correo Usuario",
+        "Centro Costo",
+        "Nombre Pasajero",
+        "RUT Pasajero",
+        "Origen",
+        "Destino",
+        "Fecha de Viaje",
+        "Hora de Salida",
+        "Asiento",
+        "Valor Asiento",
+        "Monto Boleto",
+        "Monto Devolución",
+        "Confirmado En",
+        "ID Usuario",
+        "Creado En",
+        "Actualizado En"
+      ];
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `tickets_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const csvData = allTickets.map(ticket => [
+        ticket.ticketNumber || "",
+        ticket.pnrNumber || "",
+        ticket.ticketStatus || "",
+        ticket.user?.nombre || "",
+        ticket.user?.rut || "",
+        ticket.user?.email || "",
+        ticket.user?.centroCosto?.nombre || "",
+        ticket.pasajero?.nombre || "",
+        ticket.pasajero?.rut || "",
+        ticket.origin || "",
+        ticket.destination || "",
+        ticket.travelDate || "",
+        ticket.departureTime || "",
+        ticket.seatNumbers || "",
+        ticket.fare || 0,
+        ticket.monto_boleto || 0,
+        ticket.monto_devolucion || 0,
+        ticket.confirmedAt || "",
+        ticket.id_User || "",
+        ticket.created_at || "",
+        ticket.updated_at || ""
+      ]);
 
-    setIsExportDialogOpen(false);
-    toast({
-      title: "Exportación exitosa",
-      description: `Se exportaron ${ticketsToExport.length} tickets a CSV`,
-    });
+      const csvContent = [
+        headers.join(","),
+        ...csvData.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `tickets_empresa_${empresaId}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${allTickets.length} tickets a CSV`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar los tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const exportToXLSX = () => {
-    const ticketsToExport = Array.isArray(tickets) ? tickets : [];
-    if (ticketsToExport.length === 0) return;
+  const exportToXLSX = async () => {
+    if (!empresaId) return;
 
-    const data = ticketsToExport.map(ticket => ({
-      "Número de Ticket": ticket.ticketNumber,
-      "Nombre Usuario": ticket.user?.nombre ?? "",
-      "RUT Usuario": ticket.user?.rut ?? "",
-      "Correo Usuario": ticket.user?.email ?? "",
-      "Centro Costo": ticket.user?.centroCosto?.nombre ?? "",
-      "Estado": ticket.ticketStatus,
-      "Origen": ticket.origin,
-      "Destino": ticket.destination,
-      "Fecha de Viaje": ticket.travelDate,
-      "Hora de Salida": ticket.departureTime,
-      "Asiento": ticket.seatNumbers,
-      "Valor Asiento": ticket.fare,
-      "Monto Boleto": ticket.monto_boleto,
-      "Confirmado En": ticket.confirmedAt,
-      "ID Usuario": ticket.id_User,
-      "Creado En": ticket.created_at,
-      "Actualizado En": ticket.updated_at
-    }));
+    setIsLoading(true);
+    try {
+      // Obtener TODOS los tickets (sin paginación)
+      const allTickets = await fetchAllTicketsForExport(Number(empresaId)) as Ticket[];
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
-    XLSX.writeFile(workbook, `tickets_${new Date().toISOString().split('T')[0]}.xlsx`);
+      if (!allTickets || allTickets.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No hay tickets para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    setIsExportDialogOpen(false);
-    toast({
-      title: "Exportación exitosa",
-      description: `Se exportaron ${ticketsToExport.length} tickets a XLSX`,
-    });
+      const data = allTickets.map(ticket => ({
+        "Número de Ticket": ticket.ticketNumber || "",
+        "PNR": ticket.pnrNumber || "",
+        "Estado": ticket.ticketStatus || "",
+        "Nombre Usuario": ticket.user?.nombre || "",
+        "RUT Usuario": ticket.user?.rut || "",
+        "Correo Usuario": ticket.user?.email || "",
+        "Centro Costo": ticket.user?.centroCosto?.nombre || "",
+        "Nombre Pasajero": ticket.pasajero?.nombre || "",
+        "RUT Pasajero": ticket.pasajero?.rut || "",
+        "Origen": ticket.origin || "",
+        "Destino": ticket.destination || "",
+        "Fecha de Viaje": ticket.travelDate || "",
+        "Hora de Salida": ticket.departureTime || "",
+        "Asiento": ticket.seatNumbers || "",
+        "Valor Asiento": ticket.fare || 0,
+        "Monto Boleto": ticket.monto_boleto || 0,
+        "Monto Devolución": ticket.monto_devolucion || 0,
+        "Confirmado En": ticket.confirmedAt || "",
+        "ID Usuario": ticket.id_User || "",
+        "Creado En": ticket.created_at || "",
+        "Actualizado En": ticket.updated_at || ""
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+      XLSX.writeFile(workbook, `tickets_empresa_${empresaId}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      setIsExportDialogOpen(false);
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${allTickets.length} tickets a XLSX`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "No se pudieron exportar los tickets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const calculateRefundAmount = (monto_boleto: number): number => {
@@ -738,11 +839,14 @@ export function SuperAllBookings() {
         description="Visualice y exporte los tickets del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        // company select
         showCompanySelect
         companies={companies}
         selectedCompany={empresaId}
         onCompanyChange={(id) => setEmpresaId(id)}
+        companySelectMode="combobox"
+        companySelectPlaceholder="Selecciona una empresa..."
+        loadingCompanies={loadingCompanies}
+
         refreshAction={() => empresaId && fetchTickets({
           targetEmpresaId: Number(empresaId),
           page: pagination.page,
@@ -880,20 +984,49 @@ export function SuperAllBookings() {
           <DialogHeader>
             <DialogTitle>Exportar Tickets</DialogTitle>
             <DialogDescription>
-              Exporte los tickets cargados ({tickets.length} registros)
+              {isLoading ? (
+                "Cargando todos los tickets para exportar..."
+              ) : (
+                `Exporte todos los tickets de la empresa (sin límite de paginación)`
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Formato de exportación</Label>
-              <div className="flex gap-4">
-                <Button onClick={exportToCSV} className="flex-1 bg-accent hover:bg-accent/90">CSV</Button>
-                <Button onClick={exportToXLSX} className="flex-1 bg-accent hover:bg-accent/90">XLSX</Button>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground mt-2 ml-2">Cargando todos los tickets...</p>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Formato de exportación</Label>
+                <div className="flex gap-4">
+                  <Button
+                    onClick={exportToCSV}
+                    className="flex-1 bg-accent hover:bg-accent/90"
+                    disabled={isLoading}
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    onClick={exportToXLSX}
+                    className="flex-1 bg-accent hover:bg-accent/90"
+                    disabled={isLoading}
+                  >
+                    XLSX
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -901,87 +1034,126 @@ export function SuperAllBookings() {
       {/* Render usamos tickets (respuesta del servidor) */}
       {!isLoading && tickets.length > 0 && viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {tickets.map((ticket, index) => (
-            <Card key={ticket.id} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in" style={{ animationDelay: `${index * 100}ms` }}>
-              <CardHeader>
-                <div className="flex flex-col gap-5 justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
-                    <div>
-                      <CardTitle className="text-lg">{ticket.pnrNumber ?? "-"}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
+          {tickets.map((ticket, index) => {
+            const isCanceling = cancelingId === String(ticket.id);
+            return (
+              <Card key={ticket.id} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in" style={{ animationDelay: `${index * 100}ms` }}>
+                <CardHeader>
+                  <div className="flex flex-col gap-5 justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
+                      <div>
+                        <CardTitle className="text-lg">{ticket.pnrNumber ?? "-"}</CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
+                      </div>
                     </div>
+                    {ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
                   </div>
-                  {ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
-                </div>
-              </CardHeader>
+                </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="p-3 bg-muted/10 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Usuario</p>
-                      <p className="font-medium">{ticket.user?.nombre || "—"}</p>
+                <CardContent className="space-y-4">
+                  {/* Información del usuario y pasajero */}
+                  <div className="p-3 bg-muted/10 rounded-md space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Usuario</p>
+                        <p className="text-sm font-medium">{ticket.user?.nombre || "—"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">RUT Usuario</p>
+                        <p className="text-sm font-medium">{ticket.user?.rut || "—"}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">RUT</p>
-                      <p className="font-medium">{ticket.user?.rut || "—"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-5">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Pasajero</p>
-                      <p className="font-medium">{ticket.pasajero?.nombre || "—"}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">RUT</p>
-                      <p className="font-medium">{ticket.pasajero?.rut || "—"}</p>
-                    </div>
-                  </div>
 
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Pasajero</p>
+                        <p className="text-sm font-medium">{ticket.pasajero?.nombre || "—"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">RUT Pasajero</p>
+                        <p className="text-sm font-medium">{ticket.pasajero?.rut || "—"}</p>
+                      </div>
+                    </div>
+
                     <div>
                       <p className="text-xs text-muted-foreground">Centro de Costo</p>
                       <p className="text-sm">{ticket.user?.centroCosto?.nombre || "—"}</p>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{ticket.origin || "—"}</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-medium">{ticket.destination || "—"}</span>
+                  {/* Información del viaje */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{ticket.origin || "—"}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-medium">{ticket.destination || "—"}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDateOnly(ticket.travelDate)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{ticket.departureTime}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>Asiento: {ticket.seatNumbers}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDateOnly(ticket.travelDate)}</span></div>
-                    <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> <span>{ticket.departureTime}</span></div>
-                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>Asiento: {ticket.seatNumbers}</span></div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                  {/* Monto */}
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Valor Asiento</div>
-                    <p className="text-lg font-bold">{formatCurrency(ticket.fare)}</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Monto</div>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="h-3 w-3" />
+                      Monto
+                    </div>
                     <p className="text-lg font-bold">{formatCurrency(ticket.monto_boleto)}</p>
                   </div>
-                </div>
 
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div><p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></div>
-                    <div className="text-right"><p>ID Usuario: {ticket.id_User ?? "—"}</p></div>
+                  {/* Información de confirmación */}
+                  <div className="pt-2 border-t">
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                      <div>
+                        <p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p>
+                      </div>
+                      <div>
+                        <p>ID Usuario: {ticket.id_User ?? "—"}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                  {/* Botón de anular */}
+                  {ticket.ticketStatus === "Confirmed" && user?.role !== "contralor" && user?.role !== "auditoria" && !isPastTrip(ticket) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
+                      onClick={() => handleCancelBooking(ticket)}
+                      disabled={isCanceling}
+                    >
+                      {isCanceling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Anulando...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4" />
+                          Anular Reserva
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -1033,7 +1205,7 @@ export function SuperAllBookings() {
                       <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
                       <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></TableCell>
                       <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
-                        {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
+                        {ticket.ticketStatus === "Confirmed" && user?.role !== "contralor" && user?.role !== "auditoria" && !isPastTrip(ticket) && (
                           <Button
                             size="sm"
                             variant="outline"
