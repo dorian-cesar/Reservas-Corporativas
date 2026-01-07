@@ -751,7 +751,7 @@ export function ServiceDetailDialog({
           id_centro_costo: booking.passenger.id_centro_costo || null,
           terminal_origen: terminalOrigen,
           terminal_destino: terminalDestino,
-          // id_empresa: user?.companyId || null,
+          id_empresa: user?.companyId || null,
         };
 
         try {

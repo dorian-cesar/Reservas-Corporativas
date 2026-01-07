@@ -15,12 +15,22 @@ import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
 import { UserProvider } from "@/components/providers/user-provider"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
+import { usePersistedTab } from "@/hooks/usePersistedTab"
 
 export default function SuperUserPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
 
+  const { activeTab, handleTabChange } = usePersistedTab(
+    "companies-crud",
+    "superuser-page-active-tab"
+  )
+
+
   const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("superuser-page-active-tab")
+    }
     logout()
     router.push("/login")
   }
@@ -36,7 +46,11 @@ export default function SuperUserPage() {
             </div>
             <AdminStats />
 
-            <Tabs defaultValue="companies-crud" className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={handleTabChange}
+              className="w-full"
+            >
               <TabsList className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap
@@ -92,7 +106,7 @@ export default function SuperUserPage() {
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
               </TabsContent>
-{/* 
+              {/* 
               <TabsContent value="cuenta-corriente" className="mt-6">
                 <CurrentAccounts />
               </TabsContent> */}
