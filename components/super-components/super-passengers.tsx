@@ -68,6 +68,7 @@ export function CompanyPassengers() {
     // Estados para búsqueda y paginación
     const [emailSearch, setEmailSearch] = useState("");
     const [rutSearch, setRutSearch] = useState("");
+    const [loadingCompanies, setLoadingCompanies] = useState(false);
 
     const [pagination, setPagination] = useState({
         page: 1,
@@ -146,6 +147,7 @@ export function CompanyPassengers() {
 
     const fetchCompanies = async () => {
         try {
+            setLoadingCompanies(true)
             const res = await fetch("/api/companies", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -156,9 +158,13 @@ export function CompanyPassengers() {
                 nombre: c.nombre,
             }));
             setCompanies(mapped);
+            setLoadingCompanies(false)
         } catch (err) {
             console.error(err);
             toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+            setLoadingCompanies(false)
+        } finally {
+            setLoadingCompanies(false)
         }
     };
 
@@ -528,6 +534,7 @@ export function CompanyPassengers() {
                 onCompanyChange={(id) => setSelectedCompany(id)}
                 companySelectMode="combobox"
                 companySelectPlaceholder="Selecciona una empresa..."
+                loadingCompanies={loadingCompanies}
 
                 refreshAction={() => selectedCompany && fetchPassengers()}
                 primaryAction={{

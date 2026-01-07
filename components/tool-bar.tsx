@@ -46,6 +46,7 @@ interface ToolBarProps {
   onCompanyChange?: (id: string) => void; // callback al cambiar
   companySelectMode?: CompanySelectMode;  // NUEVO: modo de selección
   companySelectPlaceholder?: string;      // NUEVO: placeholder personalizado
+  loadingCompanies?: boolean;
 
   // optional search input
   showSearch?: boolean;
@@ -76,6 +77,7 @@ export default function ToolBar({
   onCompanyChange,
   companySelectMode = "select",
   companySelectPlaceholder = "Selecciona una empresa",
+  loadingCompanies,
 
   showSearch = false,
   searchValue = "",
@@ -115,11 +117,15 @@ export default function ToolBar({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    disabled={loadingCompanies}
                     className="w-full justify-between bg-white"
                   >
-                    {selectedCompanyData
-                      ? `${selectedCompanyData.id} - ${selectedCompanyData.nombre}`
-                      : companySelectPlaceholder}
+                    {loadingCompanies
+                      ? "Cargando empresas..."
+                      : selectedCompanyData
+                        ? `${selectedCompanyData.id} - ${selectedCompanyData.nombre}`
+                        : companySelectPlaceholder}
+
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -127,24 +133,29 @@ export default function ToolBar({
                   <Command>
                     <CommandInput placeholder="Buscar empresa..." />
                     <CommandList>
-                      <CommandEmpty>No se encontró la empresa.</CommandEmpty>
-                      <CommandGroup>
-                        {companies.map((company) => (
-                          <CommandItem
-                            key={company.id}
-                            value={`${company.id} ${company.nombre}`}
-                            onSelect={() => {
-                              if (onCompanyChange) {
-                                onCompanyChange(company.id);
-                              }
-                              setOpen(false);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            {company.id} - {company.nombre}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      {loadingCompanies ? (
+                        <CommandItem disabled>
+                          Cargando empresas...
+                        </CommandItem>
+                      ) : companies.length === 0 ? (
+                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                      ) : (
+                        <CommandGroup>
+                          {companies.map((company) => (
+                            <CommandItem
+                              key={company.id}
+                              value={`${company.id} ${company.nombre}`}
+                              onSelect={() => {
+                                onCompanyChange?.(company.id);
+                                setOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {company.id} - {company.nombre}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>

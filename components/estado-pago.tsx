@@ -68,6 +68,7 @@ export function EstadoPago() {
     const [selectedCuenta, setSelectedCuenta] = useState<EstadoCuentaType | null>(null);
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+    const [loadingCompanies, setLoadingCompanies] = useState(false);
 
     const { toast } = useToast();
 
@@ -93,11 +94,16 @@ export function EstadoPago() {
 
     const fetchCompanies = async () => {
         try {
+            setLoadingCompanies(true)
             const res = await fetch("/api/companies", { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
             setCompanies(data.map((c: any) => ({ id: c.id.toString(), nombre: c.nombre })));
+            setLoadingCompanies(false)
         } catch {
             toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+            setLoadingCompanies(false)
+        } finally {
+            setLoadingCompanies(false)
         }
     };
 
@@ -270,7 +276,7 @@ export function EstadoPago() {
             "Estado": ticket.ticketStatus,
             "Origen": ticket.terminal_origen || "",
             "Destino": ticket.terminal_destino || "",
-            "RUT Pasajero" : ticket?.pasajero.rut || "", 
+            "RUT Pasajero": ticket?.pasajero.rut || "",
             "Nombre Pasajero": ticket?.pasajero.nombre || "",
             "Fecha Viaje": formatDate(ticket.travelDate),
             "Hora Salida": ticket.departureTime,
@@ -301,6 +307,7 @@ export function EstadoPago() {
                 onCompanyChange={setEmpresaId}
                 companySelectMode="combobox"
                 companySelectPlaceholder="Selecciona una empresa..."
+                loadingCompanies={loadingCompanies}
 
                 refreshAction={() => empresaId && fetchEstadosCuenta(Number(empresaId), { desde: dateDesde, hasta: dateHasta })}
                 secondaryAction={{

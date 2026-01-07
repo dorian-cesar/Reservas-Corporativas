@@ -55,6 +55,7 @@ export function SuperAllBookings() {
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -162,6 +163,7 @@ export function SuperAllBookings() {
 
   const fetchCompanies = async () => {
     try {
+      setLoadingCompanies(true)
       const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -172,9 +174,13 @@ export function SuperAllBookings() {
         nombre: c.nombre,
       }));
       setCompanies(mapped);
+      setLoadingCompanies(false)
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      setLoadingCompanies(false)
+    } finally {
+      setLoadingCompanies(false)
     }
   };
 
@@ -839,6 +845,7 @@ export function SuperAllBookings() {
         onCompanyChange={(id) => setEmpresaId(id)}
         companySelectMode="combobox"
         companySelectPlaceholder="Selecciona una empresa..."
+        loadingCompanies={loadingCompanies}
 
         refreshAction={() => empresaId && fetchTickets({
           targetEmpresaId: Number(empresaId),

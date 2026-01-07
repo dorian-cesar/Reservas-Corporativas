@@ -88,6 +88,8 @@ export function CompanyUsers() {
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
   const [costCenterPopoverOpen, setCostCenterPopoverOpen] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -161,6 +163,7 @@ export function CompanyUsers() {
 
   const fetchCompanies = async () => {
     try {
+      setLoadingCompanies(true)
       const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -171,9 +174,13 @@ export function CompanyUsers() {
         nombre: c.nombre,
       }));
       setCompanies(mapped);
+      setLoadingCompanies(false)
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      setLoadingCompanies(false)
+    } finally {
+      setLoadingCompanies(false)
     }
   };
 
@@ -705,6 +712,7 @@ export function CompanyUsers() {
         onCompanyChange={(id) => setSelectedCompany(id)}
         companySelectMode="combobox"
         companySelectPlaceholder="Selecciona una empresa..."
+        loadingCompanies={loadingCompanies}
 
         refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={{

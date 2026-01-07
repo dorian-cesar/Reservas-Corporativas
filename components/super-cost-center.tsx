@@ -68,6 +68,7 @@ export function SuperCostCenters() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+    const [loadingCompanies, setLoadingCompanies] = useState(false);
 
     type CostCenter = {
         id: string;
@@ -103,6 +104,7 @@ export function SuperCostCenters() {
 
     const fetchCompanies = async () => {
         try {
+            setLoadingCompanies(true)
             const res = await fetch("/api/companies", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -113,9 +115,13 @@ export function SuperCostCenters() {
                 nombre: c.nombre,
             }));
             setCompanies(mapped);
+            setLoadingCompanies(false)
         } catch (err) {
             console.error(err);
             toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+            setLoadingCompanies(false)
+        } finally {
+            setLoadingCompanies(false)
         }
     };
 
@@ -398,6 +404,7 @@ export function SuperCostCenters() {
                 onCompanyChange={(id) => setEmpresaId(id)}
                 companySelectMode="combobox"
                 companySelectPlaceholder="Selecciona una empresa..."
+                loadingCompanies={loadingCompanies}
 
                 refreshAction={() => handleSearch()}
 
