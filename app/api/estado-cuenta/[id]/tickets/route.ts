@@ -18,11 +18,14 @@ export async function GET(
 
     const { id } = await params;
 
+    const searchParams = req.nextUrl.searchParams;
+    const page = searchParams.get("page");
+    const limit = searchParams.get("limit");
+
     const url = new URL(`${BACKEND_URL}/api/estado-cuenta/${id}/tickets`);
 
-    req.nextUrl.searchParams.forEach((value, key) => {
-      url.searchParams.append(key, value);
-    });
+    if (page) url.searchParams.append("page", page);
+    if (limit) url.searchParams.append("limit", limit);
 
     const res = await fetch(url.toString(), {
       headers: {

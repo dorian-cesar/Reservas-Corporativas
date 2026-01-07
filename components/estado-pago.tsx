@@ -70,6 +70,16 @@ export function EstadoPago() {
     const [isLoadingTickets, setIsLoadingTickets] = useState(false);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
 
+    const [ticketsPagination, setTicketsPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+    });
+
+
     const { toast } = useToast();
 
     const fetchTimeoutRef = useRef<number | null>(null);
@@ -125,18 +135,44 @@ export function EstadoPago() {
         } finally { setIsLoading(false); }
     };
 
-    const fetchTicketsDeEstadoCuenta = async (estadoCuentaId: number) => {
+    const fetchTicketsDeEstadoCuenta = async (estadoCuentaId: number, page?: number, limit?: number) => {
         setIsLoadingTickets(true);
         try {
-            const res = await fetch(`/api/estado-cuenta/${estadoCuentaId}/tickets`, {
+            const pageToUse = page ?? ticketsPagination.page;
+            const limitToUse = limit ?? ticketsPagination.limit;
+
+            const res = await fetch(`/api/estado-cuenta/${estadoCuentaId}/tickets?page=${pageToUse}&limit=${limitToUse}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (!res.ok) throw new Error("Error al obtener tickets");
 
-            const data = await res.json();
-            setTickets(data);
-            return data;
+            const response = await res.json();
+
+            if (response.pagination) {
+                setTickets(response.data || []);
+                setTicketsPagination(prev => ({
+                    ...prev,
+                    page: response.pagination.page,
+                    limit: response.pagination.limit,
+                    total: response.pagination.total,
+                    totalPages: response.pagination.totalPages,
+                    hasNextPage: response.pagination.page < response.pagination.totalPages,
+                    hasPrevPage: response.pagination.page > 1,
+                }));
+            } else {
+                setTickets(response || []);
+                setTicketsPagination(prev => ({
+                    ...prev,
+                    page: 1,
+                    total: response.length,
+                    totalPages: Math.ceil(response.length / prev.limit),
+                    hasNextPage: false,
+                    hasPrevPage: false,
+                }));
+            }
+
+            return response;
         } catch (err) {
             toast({
                 title: "Error",
@@ -148,7 +184,7 @@ export function EstadoPago() {
         } finally {
             setIsLoadingTickets(false);
         }
-    }
+    };
 
     const openDetailDialog = async (cuentaId: number) => {
         const cuentaSeleccionada = estadosCuenta.find(ec => ec.id === cuentaId);
@@ -157,7 +193,36 @@ export function EstadoPago() {
         setSelectedCuenta(cuentaSeleccionada);
         setIsDetailDialogOpen(true);
 
-        await fetchTicketsDeEstadoCuenta(cuentaId);
+        setTicketsPagination(prev => ({
+            ...prev,
+            page: 1,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+        }));
+
+        await fetchTicketsDeEstadoCuenta(cuentaId, 1, ticketsPagination.limit);
+    };
+
+    const handleTicketsPageChange = (newPage: number) => {
+        if (!selectedCuenta) return;
+        if (newPage < 1 || newPage > ticketsPagination.totalPages) return;
+
+        setTicketsPagination(prev => ({ ...prev, page: newPage }));
+        fetchTicketsDeEstadoCuenta(selectedCuenta.id, newPage, ticketsPagination.limit);
+    };
+
+    const handleTicketsLimitChange = (newLimit: number) => {
+        if (!selectedCuenta) return;
+        if (newLimit === ticketsPagination.limit) return;
+
+        setTicketsPagination(prev => ({
+            ...prev,
+            page: 1,
+            limit: newLimit
+        }));
+        fetchTicketsDeEstadoCuenta(selectedCuenta.id, 1, newLimit);
     };
 
     const formatCurrency = (amount: string | number) =>
@@ -242,17 +307,21 @@ export function EstadoPago() {
     const exportTicketsToCSV = (ticketsData: any[], cuenta: EstadoCuentaType | null) => {
         if (ticketsData.length === 0) return;
 
-        const headers = ["Ticket #", "Estado", "Origen", "Destino", "RUT Pasajero", "Nombre Pasajero", "Fecha Viaje", "Hora Salida", "Monto"];
+        const headers = ["Ticket #", "Fecha Compra", "Estado", "Origen", "Destino", "Fecha Viaje", "RUT Pasajero", "Nombre Pasajero", "Monto", "Centro De Costo", "Cta. Cte", "RUT Comprador", "Nombre Comprador"];
         const csvData = ticketsData.map(ticket => [
             ticket.pnrNumber || "",
+            formatDate(ticket.confirmedAt) || "-",
             ticket.ticketStatus,
             ticket.terminal_origen || "",
             ticket.terminal_destino || "",
+            `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
             ticket?.pasajero.rut || "",
             ticket?.pasajero.nombre || "",
-            formatDate(ticket.travelDate),
-            ticket.departureTime,
-            `$${ticket.monto_boleto.toLocaleString('es-CL')}`
+            `$${ticket.monto_boleto.toLocaleString('es-CL')}`,
+            ticket?.pasajero.id_centro_costo || "",
+            ticket?.empresa.cuenta_corriente || "",
+            ticket?.user.rut || "",
+            ticket?.user.nombre || ""
         ]);
 
         const csvContent = [headers.join(","), ...csvData.map(row => row.map(f => `"${f}"`).join(","))].join("\n");
@@ -273,14 +342,18 @@ export function EstadoPago() {
 
         const data = ticketsData.map(ticket => ({
             "Ticket #": ticket.pnrNumber || "",
+            "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
             "Estado": ticket.ticketStatus,
             "Origen": ticket.terminal_origen || "",
             "Destino": ticket.terminal_destino || "",
+            "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
             "RUT Pasajero": ticket?.pasajero.rut || "",
             "Nombre Pasajero": ticket?.pasajero.nombre || "",
-            "Fecha Viaje": formatDate(ticket.travelDate),
-            "Hora Salida": ticket.departureTime,
-            "Monto": `$${ticket.monto_boleto.toLocaleString('es-CL')}`
+            "Monto": `$${ticket.monto_boleto.toLocaleString('es-CL')}`,
+            "Centro De Costo": ticket?.pasajero.id_centro_costo || "",
+            "Cta. Cte": ticket?.empresa.cuenta_corriente || "",
+            "RUT Comprador": ticket?.user.rut || "",
+            "Nombre Comprador": ticket?.user.nombre || "",
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(data);
@@ -292,6 +365,123 @@ export function EstadoPago() {
             title: "Exportación exitosa",
             description: `Se exportaron ${ticketsData.length} tickets a XLSX`
         });
+    };
+
+    const exportAllTicketsToCSV = async (cuenta: EstadoCuentaType | null) => {
+        if (!cuenta) return;
+
+        try {
+            // Obtener todos los tickets sin paginación
+            const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error("Error al obtener tickets para exportación");
+
+            const response = await res.json();
+            const allTickets = response.data || response || [];
+
+            if (allTickets.length === 0) {
+                toast({
+                    title: "Sin datos",
+                    description: "No hay tickets para exportar",
+                    variant: "destructive"
+                });
+                return;
+            }
+
+            const headers = ["Ticket #", "Fecha Compra", "Estado", "Origen", "Destino", "Fecha Viaje", "RUT Pasajero", "Nombre Pasajero", "Monto", "Centro De Costo", "Cta. Cte", "RUT Comprador", "Nombre Comprador"];
+            const csvData = allTickets.map((ticket: any) => [
+                ticket.pnrNumber || "",
+                formatDate(ticket.confirmedAt) || "-",
+                ticket.ticketStatus,
+                ticket.terminal_origen || "",
+                ticket.terminal_destino || "",
+                `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
+                ticket?.pasajero?.rut || "",
+                ticket?.pasajero?.nombre || "",
+                `$${ticket.monto_boleto?.toLocaleString('es-CL') || '0'}`,
+                ticket?.pasajero?.id_centro_costo || "",
+                ticket?.empresa?.cuenta_corriente || "",
+                ticket?.user?.rut || "",
+                ticket?.user?.nombre || ""
+            ]);
+
+            const csvContent = [headers.join(","), ...csvData.map((row: any[]) => row.map(f => `"${f}"`).join(","))].join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `tickets_estado_cuenta_${cuenta.periodo || 'sin_periodo'}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+
+            toast({
+                title: "Exportación exitosa",
+                description: `Se exportaron ${allTickets.length} tickets a CSV`
+            });
+        } catch (err) {
+            toast({
+                title: "Error",
+                description: (err as Error).message,
+                variant: "destructive"
+            });
+        }
+    };
+
+    const exportAllTicketsToXLSX = async (cuenta: EstadoCuentaType | null) => {
+        if (!cuenta) return;
+
+        try {
+            // Obtener todos los tickets sin paginación
+            const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) throw new Error("Error al obtener tickets para exportación");
+
+            const response = await res.json();
+            const allTickets = response.data || response || [];
+
+            if (allTickets.length === 0) {
+                toast({
+                    title: "Sin datos",
+                    description: "No hay tickets para exportar",
+                    variant: "destructive"
+                });
+                return;
+            }
+
+            const data = allTickets.map((ticket: any) => ({
+                "Ticket #": ticket.pnrNumber || "",
+                "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
+                "Estado": ticket.ticketStatus,
+                "Origen": ticket.terminal_origen || "",
+                "Destino": ticket.terminal_destino || "",
+                "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
+                "RUT Pasajero": ticket?.pasajero?.rut || "",
+                "Nombre Pasajero": ticket?.pasajero?.nombre || "",
+                "Monto": `$${ticket.monto_boleto?.toLocaleString('es-CL') || '0'}`,
+                "Centro De Costo": ticket?.pasajero?.id_centro_costo || "",
+                "Cta. Cte": ticket?.empresa?.cuenta_corriente || "",
+                "RUT Comprador": ticket?.user?.rut || "",
+                "Nombre Comprador": ticket?.user?.nombre || "",
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+            XLSX.writeFile(workbook, `tickets_estado_cuenta_${cuenta.periodo || 'sin_periodo'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            toast({
+                title: "Exportación exitosa",
+                description: `Se exportaron ${allTickets.length} tickets a XLSX`
+            });
+        } catch (err) {
+            toast({
+                title: "Error",
+                description: (err as Error).message,
+                variant: "destructive"
+            });
+        }
     };
 
     return (
@@ -507,20 +697,25 @@ export function EstadoPago() {
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>Ticket #</TableHead>
+                                                <TableHead>Fecha Compra</TableHead>
                                                 <TableHead>Estado</TableHead>
                                                 <TableHead>Origen</TableHead>
                                                 <TableHead>Destino</TableHead>
+                                                <TableHead>Fecha Viaje</TableHead>
                                                 <TableHead>RUT Pasajero</TableHead>
                                                 <TableHead>Nombre Pasajero</TableHead>
-                                                <TableHead>Fecha Viaje</TableHead>
-                                                <TableHead>Hora Salida</TableHead>
                                                 <TableHead>Monto</TableHead>
+                                                <TableHead>Centro De Costo</TableHead>
+                                                <TableHead>Cta. Cte</TableHead>
+                                                <TableHead>RUT Comprador</TableHead>
+                                                <TableHead>Nombre Comprador</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {tickets.map((ticket) => ( // CORREGIDO: usar 'ticket' no 'ec'
+                                            {tickets.map((ticket) => (
                                                 <TableRow key={ticket.id}>
                                                     <TableCell>{ticket.pnrNumber ?? "-"}</TableCell>
+                                                    <TableCell>{formatDate(ticket.confirmedAt ?? "-")}</TableCell>
                                                     <TableCell>
                                                         <span className={`px-2 py-1 rounded text-xs ${ticket.ticketStatus === 'Confirmed'
                                                             ? 'bg-green-100 text-green-800'
@@ -531,15 +726,16 @@ export function EstadoPago() {
                                                     </TableCell>
                                                     <TableCell>{ticket.terminal_origen ?? "-"}</TableCell>
                                                     <TableCell>{ticket.terminal_destino ?? "-"}</TableCell>
+                                                    <TableCell>{formatDate(ticket.travelDate)} {ticket.departureTime}</TableCell>
                                                     <TableCell>{ticket?.pasajero.rut ?? "-"}</TableCell>
                                                     <TableCell>{ticket?.pasajero.nombre ?? "-"}</TableCell>
                                                     <TableCell>
-                                                        {formatDate(ticket.travelDate)}
-                                                    </TableCell>
-                                                    <TableCell>{ticket.departureTime}</TableCell>
-                                                    <TableCell>
                                                         ${ticket.monto_boleto ? ticket.monto_boleto.toLocaleString('es-CL') : '0'}
                                                     </TableCell>
+                                                    <TableCell>{ticket?.pasajero.id_centro_costo ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.empresa.cuenta_corriente ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.user.rut ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.user.nombre ?? "-"}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -550,28 +746,126 @@ export function EstadoPago() {
                     </div>
 
                     <DialogFooter className="gap-2 flex items-center justify-between w-full">
-                        <div className="text-sm text-muted-foreground">
-                            Mostrando {tickets.length} tickets
+                        <div className="flex gap-2 items-center">
+                            <div className="text-sm text-muted-foreground">
+                                Mostrando {tickets.length} de {ticketsPagination.total} tickets
+                            </div>
+
+                            {ticketsPagination.totalPages > 0 && (
+                                <div className="flex items-center gap-3">
+                                    {/* Limit selector */}
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <select
+                                            value={ticketsPagination.limit}
+                                            onChange={(e) => handleTicketsLimitChange(parseInt(e.target.value))}
+                                            className="p-2 border rounded-md bg-background text-sm"
+                                            disabled={isLoadingTickets}
+                                        >
+                                            <option value={10}>10</option>
+                                            <option value={20}>20</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleTicketsPageChange(1)}
+                                            disabled={!ticketsPagination.hasPrevPage || isLoadingTickets}
+                                            className="h-8 w-8 p-0 text-xs"
+                                        >
+                                            «
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleTicketsPageChange(ticketsPagination.page - 1)}
+                                            disabled={!ticketsPagination.hasPrevPage || isLoadingTickets}
+                                            className="h-8 w-8 p-0 text-xs"
+                                        >
+                                            ‹
+                                        </Button>
+
+                                        <div className="flex items-center gap-1">
+                                            {Array.from({ length: Math.min(5, ticketsPagination.totalPages || 1) }, (_, i) => {
+                                                let pageNum;
+                                                const totalPages = ticketsPagination.totalPages || 1;
+
+                                                if (totalPages <= 5) {
+                                                    pageNum = i + 1;
+                                                } else if (ticketsPagination.page <= 3) {
+                                                    pageNum = i + 1;
+                                                } else if (ticketsPagination.page >= totalPages - 2) {
+                                                    pageNum = totalPages - 4 + i;
+                                                } else {
+                                                    pageNum = ticketsPagination.page - 2 + i;
+                                                }
+
+                                                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                                                return (
+                                                    <Button
+                                                        key={pageNum}
+                                                        variant={ticketsPagination.page === pageNum ? "default" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => handleTicketsPageChange(pageNum)}
+                                                        disabled={isLoadingTickets}
+                                                        className="h-8 w-8 p-0 text-xs"
+                                                    >
+                                                        {pageNum}
+                                                    </Button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleTicketsPageChange(ticketsPagination.page + 1)}
+                                            disabled={!ticketsPagination.hasNextPage || isLoadingTickets}
+                                            className="h-8 w-8 p-0 text-xs"
+                                        >
+                                            ›
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleTicketsPageChange(ticketsPagination.totalPages)}
+                                            disabled={!ticketsPagination.hasNextPage || isLoadingTickets}
+                                            className="h-8 w-8 p-0 text-xs"
+                                        >
+                                            »
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
-                            Cerrar
-                        </Button>
-                        {tickets.length > 0 && (
-                            <>
-                                <Button
-                                    onClick={() => exportTicketsToCSV(tickets, selectedCuenta)}
-                                    className="bg-accent hover:bg-accent/90"
-                                >
-                                    Exportar CSV
-                                </Button>
-                                <Button
-                                    onClick={() => exportTicketsToXLSX(tickets, selectedCuenta)}
-                                    className="bg-accent hover:bg-accent/90"
-                                >
-                                    Exportar XLSX
-                                </Button>
-                            </>
-                        )}
+
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+                                Cerrar
+                            </Button>
+                            {tickets.length > 0 && (
+                                <>
+                                    <Button
+                                        onClick={() => exportAllTicketsToCSV(selectedCuenta)}
+                                        className="bg-accent hover:bg-accent/90"
+                                    >
+                                        Exportar CSV
+                                    </Button>
+                                    <Button
+                                        onClick={() => exportAllTicketsToXLSX(selectedCuenta)}
+                                        className="bg-accent hover:bg-accent/90"
+                                    >
+                                        Exportar XLSX
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
