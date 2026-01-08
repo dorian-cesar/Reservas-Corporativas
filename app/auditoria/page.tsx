@@ -9,7 +9,7 @@ import { AdminStats } from "@/components/admin-stats"
 import { AuditoriaCurrentAccounts } from "@/components/auditoria-components/auditoria-cuenta-corriente"
 import { AuditoriaBookings } from "@/components/auditoria-components/auditoria-bookings"
 import { AuditoriaCompanies } from "@/components/auditoria-components/auditoria-companies"
-import { CompanyUsers } from "@/components/controller-components/company-users"
+import { CompanyUsers } from "@/components/company-users"
 import { AuditoriaCostCenters } from "@/components/auditoria-components/auditoria-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { SuperAllBookings } from "@/components/super-components/super-bookings"
@@ -76,10 +76,10 @@ export default function AuditoriaPage() {
                   Pasajeros
                 </TabsTrigger>
 
-                <TabsTrigger value="bookings" className="gap-2">
+                {/* <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
                   Reservas
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -110,10 +110,10 @@ export default function AuditoriaPage() {
                 <CompanyPassengers />
               </TabsContent>
 
-              <TabsContent value="bookings" className="mt-6">
+              {/* <TabsContent value="bookings" className="mt-6">
                 <UserProvider />
                 <TravelSearch />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </main>

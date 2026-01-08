@@ -715,11 +715,14 @@ export function CompanyUsers() {
         loadingCompanies={loadingCompanies}
 
         refreshAction={() => selectedCompany && fetchUsers()}
-        primaryAction={{
-          label: "Agregar Usuario",
-          icon: <Plus className="h-4 w-4" />,
-          onClick: openAddDialog,
-        }}
+        primaryAction={
+          user?.role !== "auditoria"
+            ? {
+              label: "Agregar Usuario",
+              icon: <Plus className="h-4 w-4" />,
+              onClick: openAddDialog,
+            } : undefined
+        }
         secondaryAction={
           user?.role === "superuser"
             ? {
@@ -1274,15 +1277,17 @@ export function CompanyUsers() {
 
                     {canEditUser(currentUser?.role || "", user.rol) && (
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                          onClick={() => openEditDialog(user)}
-                        >
-                          <Pencil className="h-3 w-3 mr-2" />
-                          Editar
-                        </Button>
+                        {currentUser?.role !== "auditoria" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <Pencil className="h-3 w-3 mr-2" />
+                            Editar
+                          </Button>
+                        )}
 
 
                         {(superUser && user.rol === "admin") && (
@@ -1318,7 +1323,7 @@ export function CompanyUsers() {
                       <TableHead>Estado</TableHead>
                       <TableHead>Empresa ID</TableHead>
                       <TableHead>Centro Costo ID</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                      {currentUser?.role !== "auditoria" && <TableHead className="text-right">Acciones</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1374,43 +1379,45 @@ export function CompanyUsers() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell>
-                          {canEditUser(currentUser?.role || "", user.rol) && (
-                            <div className="flex justify-end">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
+                        {currentUser?.role !== "auditoria" && (
+                          <TableCell>
+                            {canEditUser(currentUser?.role || "", user.rol) && (
+                              <div className="flex justify-end">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
 
-                                <DropdownMenuContent align="end" className="w-44">
-                                  <DropdownMenuItem
-                                    onClick={() => openEditDialog(user)}
-                                    className="cursor-pointer"
-                                  >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Editar
-                                  </DropdownMenuItem>
-
-                                  {(superUser && user.rol === "admin") && (
+                                  <DropdownMenuContent align="end" className="w-44">
                                     <DropdownMenuItem
-                                      onClick={() => openAssignDialog(user)}
+                                      onClick={() => openEditDialog(user)}
                                       className="cursor-pointer"
                                     >
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      Asignar empresas
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Editar
                                     </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          )}
-                        </TableCell>
+
+                                    {(superUser && user.rol === "admin") && (
+                                      <DropdownMenuItem
+                                        onClick={() => openAssignDialog(user)}
+                                        className="cursor-pointer"
+                                      >
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Asignar empresas
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
 
 
                       </TableRow>

@@ -573,11 +573,12 @@ export function CompanyPassengers() {
                 loadingCompanies={loadingCompanies}
 
                 refreshAction={() => selectedCompany && fetchPassengers()}
-                primaryAction={{
-                    label: "Nuevo Pasajero",
-                    icon: <Plus className="h-4 w-4" />,
-                    onClick: openAddDialog,
-                }}
+                primaryAction={
+                    user?.role !== "auditoria" ? {
+                        label: "Nuevo Pasajero",
+                        icon: <Plus className="h-4 w-4" />,
+                        onClick: openAddDialog,
+                    } : undefined}
                 secondaryAction={
                     user?.role === "superuser"
                         ? {
@@ -763,108 +764,6 @@ export function CompanyPassengers() {
                 </div>
             )}
 
-            {/* <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Agregar Nuevo Pasajero</DialogTitle>
-                        <DialogDescription>Registre un nuevo pasajero en la empresa</DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nombre *</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                placeholder="Juan Perez"
-                                value={formData.nombre}
-                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="rut">RUT *</Label>
-                            <Input
-                                id="rut"
-                                type="text"
-                                placeholder="12345678-9"
-                                value={formData.rut}
-                                onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="correo">Correo *</Label>
-                            <Input
-                                id="correo"
-                                type="email"
-                                placeholder="usuario@empresa.com"
-                                value={formData.correo}
-                                onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="telefono">Teléfono *</Label>
-                            <Input
-                                id="telefono"
-                                type="text"
-                                placeholder="+56 9 8122 6760"
-                                value={formData.telefono}
-                                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="empresa">Empresa</Label>
-                            <select
-                                id="empresa"
-                                value={formData.id_empresa}
-                                onChange={(e) => setFormData({ ...formData, id_empresa: e.target.value })}
-                                className="w-full p-2 border rounded-md bg-gray-200 cursor-not-allowed"
-                                disabled
-                            >
-                                <option value="">Seleccione una empresa</option>
-                                {companies.map((company) => (
-                                    <option key={company.id} value={company.id}>
-                                        {company.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="centroCosto">Centro de costo *</Label>
-                            <select
-                                id="centroCosto"
-                                value={formData.id_centro_costo}
-                                onChange={(e) => setFormData({ ...formData, id_centro_costo: e.target.value })}
-                                className="w-full p-2 border rounded-md"
-                                disabled={!formData.id_empresa || costCenters.length === 0}
-                            >
-                                <option value="">Seleccione un centro de costo</option>
-                                {costCenters.map((centro) => (
-                                    <option key={centro.id} value={centro.id}>
-                                        {centro.nombre}
-                                    </option>
-                                ))}
-                            </select>
-                            {formData.id_empresa && costCenters.length === 0 && (
-                                <p className="text-sm text-muted-foreground">
-                                    No hay centros de costo disponibles para esta empresa
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-                            Agregar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog> */}
 
             {/* Modal para Editar Pasajero */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -1278,18 +1177,21 @@ export function CompanyPassengers() {
                                                 </div>
                                             )}
                                         </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                                                onClick={() => openEditDialog(passenger)}
-                                            >
-                                                <Pencil className="h-3 w-3 mr-2" />
-                                                Editar
-                                            </Button>
-                                        </div>
+                                        {
+                                            user?.role !== "auditoria" && (
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                                                        onClick={() => openEditDialog(passenger)}
+                                                    >
+                                                        <Pencil className="h-3 w-3 mr-2" />
+                                                        Editar
+                                                    </Button>
+                                                </div>
+                                            )
+                                        }
                                     </CardContent>
                                 </Card>
                             ))}
@@ -1309,7 +1211,7 @@ export function CompanyPassengers() {
                                             <TableHead>Teléfono</TableHead>
                                             <TableHead>Empresa</TableHead>
                                             <TableHead>Centro Costo</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
+                                            {user?.role !== "auditoria" && <TableHead className="text-right">Acciones</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -1367,18 +1269,20 @@ export function CompanyPassengers() {
                                                         </div>
                                                     )}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openEditDialog(passenger)}
-                                                            className="h-8 px-3"
-                                                        >
-                                                            <Pencil className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
+                                                {user?.role !== "auditoria" && (
+                                                    <TableCell>
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openEditDialog(passenger)}
+                                                                className="h-8 px-3"
+                                                            >
+                                                                <Pencil className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>
