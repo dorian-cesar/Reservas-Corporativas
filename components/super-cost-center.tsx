@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
     Dialog,
     DialogContent,
@@ -69,6 +70,8 @@ export function SuperCostCenters() {
     const [result, setResult] = useState<any>(null);
     const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
+    const [showInactives, setShowInactives] = useState(false);
+    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
     type CostCenter = {
         id: string;
@@ -98,9 +101,13 @@ export function SuperCostCenters() {
 
     useEffect(() => {
         if (!empresaId) return;
-        fetchCostCenters(empresaId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchCostCenters(empresaId, showInactives);
     }, [empresaId]);
+
+    const reloadCostCenters = () => {
+        if (!empresaId) return;
+        fetchCostCenters(empresaId, showInactives);
+    };
 
     const fetchCompanies = async () => {
         try {
@@ -125,7 +132,7 @@ export function SuperCostCenters() {
         }
     };
 
-    const fetchCostCenters = async (targetEmpresaId: string) => {
+    const fetchCostCenters = async (targetEmpresaId: string, showInactives?: boolean) => {
         if (!targetEmpresaId || targetEmpresaId === "") {
             toast({
                 title: "Información",
@@ -137,14 +144,16 @@ export function SuperCostCenters() {
 
         setIsLoading(true);
         try {
-            const url = `/api/centros-costo/empresa/${targetEmpresaId}`;
-            console.log("🔄 Fetching from:", url); // ← Agregar log
+
+            let url = `/api/centros-costo/empresa/${targetEmpresaId}`;
+
+            if (showInactives) {
+                url += "?showInactives=true";
+            }
 
             const res = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
-            console.log("📡 Response status:", res.status); // ← Agregar log
 
             if (!res.ok) {
                 if (res.status === 404) {
@@ -154,7 +163,7 @@ export function SuperCostCenters() {
             }
 
             const costCentersData = await res.json();
-            console.log("✅ Cost centers data:", costCentersData); // ← Agregar log
+            console.log("✅ Cost centers data:", costCentersData);
 
             const costCentersMapped = costCentersData.map((costCenter: any) => ({
                 id: costCenter.id.toString(),
@@ -192,9 +201,8 @@ export function SuperCostCenters() {
     }
 
     const handleSearch = () => {
-        fetchCostCenters(empresaId);
+        reloadCostCenters();
     }
-
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleSearch();
@@ -242,7 +250,7 @@ export function SuperCostCenters() {
             toast({ title: "Centro de costo agregado", description: `${formData.nombre} agregado exitosamente` });
 
             if (empresaId && empresaId === formData.empresa_id) {
-                fetchCostCenters(empresaId);
+                fetchCostCenters(empresaId, showInactives);
             }
         } catch (err: any) {
             toast({ title: "Error", description: err.message || "No se pudo agregar", variant: "destructive" });
@@ -281,7 +289,7 @@ export function SuperCostCenters() {
 
             // Recargar los centros si estamos viendo la misma empresa
             if (empresaId && empresaId === formData.empresa_id) {
-                fetchCostCenters(empresaId);
+                fetchCostCenters(empresaId, showInactives);
             }
 
             toast({ title: "Centro de costo actualizado", description: `${formData.nombre} actualizado exitosamente` });
@@ -314,6 +322,27 @@ export function SuperCostCenters() {
     const sendCSV = () => {
         resetCSVModal();
         setCsvModalOpen(true);
+    };
+
+    const openDetailsDialog = () => {
+        setDetailsDialogOpen(true)
+    }
+
+    const changeVisibility = () => {
+        const newShowInactives = !showInactives;
+        setShowInactives(newShowInactives);
+        setDetailsDialogOpen(false);
+
+        // Usar reloadCostCenters en lugar de fetchCostCenters directamente
+        reloadCostCenters();
+
+        toast({
+            title: "Filtro cambiado",
+            description: newShowInactives
+                ? "Mostrando TODOS los centros de costo (activos e inactivos)"
+                : "Mostrando solo centros de costo activos",
+            variant: "default",
+        });
     };
 
     const handleUploadCSV = async () => {
@@ -417,15 +446,88 @@ export function SuperCostCenters() {
                     } : undefined
                 }
                 secondaryAction={
-                    user?.role === "superuser"
-                        ? {
-                            label: "Subir CSV",
-                            icon: <Upload className="h-4 w-4" />,
-                            onClick: sendCSV,
-                        }
-                        : undefined
+                    {
+                        label: "Detalles",
+                        onClick: openDetailsDialog,
+                    }
                 }
             />
+
+            <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Herramientas</DialogTitle>
+                        <DialogDescription>
+                            {isLoading ? (
+                                "Cargando..."
+                            ) : (
+                                `Utilice la opcion de carga por CSV o ver centros de costo inactivos`
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="text-muted-foreground mt-2 ml-2">Cargando...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label>Selecciona una acción</Label>
+                                    <Button
+                                        onClick={sendCSV}
+                                        className="w-full bg-accent hover:bg-accent/90"
+                                        disabled={isLoading}
+                                    >
+                                        <Upload className="h-4 w-4 mr-2" /> Subir CSV
+                                    </Button>
+                                </div>
+
+                                <div className="flex items-center justify-between rounded-lg border p-4">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="show-inactives" className="text-base">
+                                            Mostrar centros inactivos
+                                        </Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            {showInactives
+                                                ? "Mostrando todos los centros (activos e inactivos)"
+                                                : "Mostrando solo centros activos"}
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="show-inactives"
+                                        checked={showInactives}
+                                        onCheckedChange={(checked) => {
+                                            setShowInactives(checked);
+                                            if (empresaId) {
+                                                fetchCostCenters(empresaId, checked);
+                                            }
+                                            toast({
+                                                title: "Filtro actualizado",
+                                                description: checked
+                                                    ? "Mostrando TODOS los centros de costo"
+                                                    : "Mostrando solo centros activos",
+                                                variant: "default",
+                                            });
+                                        }}
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDetailsDialogOpen(false)}
+                            disabled={isLoading}
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <div className={`space-y-4 p-4 border rounded-lg bg-card ${isAddDialogOpen ? '' : 'hidden'
                 }`}>
