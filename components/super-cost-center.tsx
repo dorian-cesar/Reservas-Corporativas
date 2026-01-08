@@ -473,16 +473,18 @@ export function SuperCostCenters() {
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label>Selecciona una acción</Label>
-                                    <Button
-                                        onClick={sendCSV}
-                                        className="w-full bg-accent hover:bg-accent/90"
-                                        disabled={isLoading}
-                                    >
-                                        <Upload className="h-4 w-4 mr-2" /> Subir CSV
-                                    </Button>
-                                </div>
+                                {user?.role === "superuser" && (
+                                    <div className="space-y-2">
+                                        <Label>Selecciona una acción</Label>
+                                        <Button
+                                            onClick={sendCSV}
+                                            className="w-full bg-accent hover:bg-accent/90"
+                                            disabled={isLoading}
+                                        >
+                                            <Upload className="h-4 w-4 mr-2" /> Subir CSV
+                                        </Button>
+                                    </div>
+                                )}
 
                                 <div className="flex items-center justify-between rounded-lg border p-4">
                                     <div className="space-y-0.5">

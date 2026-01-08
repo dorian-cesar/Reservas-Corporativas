@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const page = params.get("page");
     const limit = params.get("limit");
     const search = params.get("search");
+    const includeInactives = params.get("includeInactives")
 
     if (page && limit) {
       params.set("page", page.toString());
@@ -26,6 +27,12 @@ export async function GET(req: NextRequest) {
       params.set("search", search);
     } else {
       params.delete("search");
+    }
+
+    if (includeInactives && includeInactives !== "false") {
+      params.set("includeInactives", 'true');
+    } else {
+      params.delete("includeInactives");
     }
 
     const queryString = params.toString() ? `?${params.toString()}` : "";

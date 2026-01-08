@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as XLSX from "xlsx";
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -70,6 +71,8 @@ export function SuperCompanies() {
   const [result, setResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [showInactives, setShowInactives] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -140,19 +143,31 @@ export function SuperCompanies() {
   })
 
   useEffect(() => {
-    fetchCompanies({ page: 1, limit: pagination.limit });
+    fetchCompanies({ page: 1, limit: pagination.limit, includeInactives: showInactives });
   }, []);
+
+  const reloadCompanies = () => {
+    fetchCompanies({
+      page: pagination.page,
+      limit: pagination.limit,
+      search: searchQuery,
+      includeInactives: showInactives
+    });
+  };
 
   const fetchCompanies = async (opts?: {
     page?: number;
     limit?: number;
     search?: string;
+    includeInactives?: boolean;
   }) => {
     try {
       setIsSearching(true);
       const page = opts?.page ?? pagination.page;
       const limit = opts?.limit ?? pagination.limit;
       const search = opts?.search ?? searchQuery;
+
+      const includeInactives = opts?.includeInactives ?? false
 
       const params = new URLSearchParams({
         page: String(page),
@@ -161,6 +176,10 @@ export function SuperCompanies() {
 
       if (search && search.trim() !== "") {
         params.set("search", search.trim());
+      }
+
+      if (includeInactives === true) {
+        params.set("includeInactives", 'true')
       }
 
       const res = await fetch(`/api/companies?${params.toString()}`, {
@@ -224,7 +243,7 @@ export function SuperCompanies() {
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchCompanies({ page: 1, limit: pagination.limit, search: searchQuery });
+    fetchCompanies({ page: 1, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
   };
 
   const handleClearSearch = () => {
@@ -236,13 +255,13 @@ export function SuperCompanies() {
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage === pagination.page || newPage > pagination.totalPages) return;
     setPagination(prev => ({ ...prev, page: newPage }));
-    fetchCompanies({ page: newPage, limit: pagination.limit, search: searchQuery });
+    fetchCompanies({ page: newPage, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
   };
 
   const handleLimitChange = (newLimit: number) => {
     if (newLimit === pagination.limit) return;
     setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
-    fetchCompanies({ page: 1, limit: newLimit, search: searchQuery });
+    fetchCompanies({ page: 1, limit: newLimit, search: searchQuery, includeInactives: showInactives });
   };
 
   const resetForm = () => {
@@ -299,7 +318,7 @@ export function SuperCompanies() {
         title: "Empresa agregada",
         description: `${formData.name} ha sido agregada exitosamente`,
       });
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
     } catch (err) {
       console.error(err);
       toast({
@@ -348,7 +367,7 @@ export function SuperCompanies() {
       setSelectedCompany(null);
       resetForm();
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
 
       toast({
         title: "Empresa actualizada",
@@ -399,7 +418,7 @@ export function SuperCompanies() {
 
       if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
 
       toast({
         title: "Monto Reestablecido",
@@ -459,7 +478,7 @@ export function SuperCompanies() {
         description: `Se procesaron ${data.result?.success || 0} empresas exitosamente`,
       });
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery });
+      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
 
     } catch (err: any) {
       toast({
@@ -478,6 +497,10 @@ export function SuperCompanies() {
     setResult(null);
     setLoading(false);
   };
+
+  const openDetailsDialog = () => {
+    setDetailsDialogOpen(true)
+  }
 
   const exportToCSV = async () => {
     try {
@@ -694,28 +717,112 @@ export function SuperCompanies() {
         description="Gestione las empresas y sus porcentajes de recargo"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery })}
+        refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives })}
         primaryAction={(user?.role !== "admin" && user?.role !== "contralor") ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
         } : undefined}
-        secondaryActions={[
-          ...(user?.role === "superuser"
-            ? [{
-              label: "Subir CSV",
-              icon: <Upload className="h-4 w-4" />,
-              onClick: sendCSV,
-            }]
-            : []),
+        secondaryAction={
           {
-            label: "Exportar",
-            icon: <Download className="h-4 w-4" />,
-            onClick: () => setIsExportDialogOpen(true),
-            disabled: filteredCompanies.length === 0,
+            label: "Detalles",
+            onClick: openDetailsDialog,
           }
-        ]}
+        }
       />
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Herramientas</DialogTitle>
+            <DialogDescription>
+              {loading ? (
+                "Cargando..."
+              ) : (
+                `Utilice la opcion de carga por CSV o ver centros de costo inactivos`
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground mt-2 ml-2">Cargando...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {user?.role === "superuser" && (
+                  <div className="space-y-2">
+                    <Label>Selecciona una acción</Label>
+                    <Button
+                      onClick={sendCSV}
+                      className="w-full bg-accent hover:bg-accent/90"
+                      disabled={loading}
+                    >
+                      <Upload className="h-4 w-4 mr-2" /> Subir CSV
+                    </Button>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => setIsExportDialogOpen(true)}
+                    className="w-full bg-accent hover:bg-accent/90"
+                    disabled={loading || filteredCompanies.length === 0}
+                  >
+                    <Download className="h-4 w-4" /> Exportar
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="show-inactives" className="text-base">
+                      Mostrar centros inactivos
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {showInactives
+                        ? "Mostrando todos los centros (activos e inactivos)"
+                        : "Mostrando solo centros activos"}
+                    </p>
+                  </div>
+                  <Switch
+                    id="show-inactives"
+                    checked={showInactives}
+                    onCheckedChange={(checked) => {
+                      setShowInactives(checked);
+                      setDetailsDialogOpen(false);
+
+                      if (pagination.total > 0) {
+                        fetchCompanies({
+                          page: 1,
+                          limit: pagination.limit,
+                          search: searchQuery,
+                          includeInactives: checked
+                        });
+                      }
+
+                      toast({
+                        title: "Filtro actualizado",
+                        description: checked
+                          ? "Mostrando TODAS las empresas (activas e inactivas)"
+                          : "Mostrando solo empresas activas",
+                        variant: "default",
+                      });
+                    }}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDetailsDialogOpen(false)}
+              disabled={loading}
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Barra de búsqueda */}
       <Card className="mb-4">
