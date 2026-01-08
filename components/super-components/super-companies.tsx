@@ -695,7 +695,7 @@ export function SuperCompanies() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery })}
-        primaryAction={user?.role !== "admin" ? {
+        primaryAction={(user?.role !== "admin" && user?.role !== "contralor") ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
@@ -1134,28 +1134,30 @@ export function SuperCompanies() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                    onClick={() => openEditDialog(company)}
-                  >
-                    <Pencil className="h-3 w-3 mr-2" />
-                    Editar
-                  </Button>
-                  {user?.role === "superuser" && (
+                {(user?.role !== "admin" && user?.role !== "contralor") && (
+                  <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
-                      onClick={() => handleReset(company.id)}
+                      className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                      onClick={() => openEditDialog(company)}
                     >
-                      <RefreshCcw className="h-3 w-3 mr-2" />
-                      Reestablecer
+                      <Pencil className="h-3 w-3 mr-2" />
+                      Editar
                     </Button>
-                  )}
-                </div>
+                    {user?.role === "superuser" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                        onClick={() => handleReset(company.id)}
+                      >
+                        <RefreshCcw className="h-3 w-3 mr-2" />
+                        Reestablecer
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -1178,7 +1180,7 @@ export function SuperCompanies() {
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
-                  {user?.role !== "admin" && (<TableHead>Acciones</TableHead>)}
+                  {(user?.role !== "admin" && user?.role !== "contralor") && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1235,7 +1237,7 @@ export function SuperCompanies() {
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         {
-                          user?.role !== "admin" && (
+                          (user?.role !== "admin" && user?.role !== "contralor") && (
                             <Button
                               variant="outline"
                               size="sm"
