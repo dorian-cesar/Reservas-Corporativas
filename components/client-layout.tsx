@@ -12,9 +12,10 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const hideLayout =
-    pathname === "/login" ||
-    pathname === "/unauthorized" ||
-    pathname === "/verify-otp";
+    pathname === "/login"
+    || pathname === "/unauthorized"
+    || pathname === "/verify-otp"
+    || pathname.startsWith("/change-password");
 
   return (
     <TravelProvider>
