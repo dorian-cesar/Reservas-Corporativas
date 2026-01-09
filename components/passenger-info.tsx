@@ -9,6 +9,7 @@ import {
   Search,
   UserPlus,
   Loader2,
+  Pencil
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -40,7 +41,7 @@ export function PassengerInfo({
   requireCentroCosto = true,
   initialPassenger,
 }: PassengerInfoProps) {
-  const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear">(
+  const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear" | "editar">(
     initialMode
   );
   const [rutBusqueda, setRutBusqueda] = useState("");
@@ -104,6 +105,26 @@ export function PassengerInfo({
       setInitialPassengerLoaded(true);
     }
   }, [initialPassenger, initialPassengerLoaded, onPassengerSelected]);
+
+  useEffect(() => {
+    if (modoPasajero === "editar" && pasajeroEncontrado) {
+      // Prellenar los campos con los datos del pasajero encontrado
+      setPassengerName(pasajeroEncontrado.nombre || "");
+      setPassengerRut(pasajeroEncontrado.rut || "");
+      setPassengerEmail(pasajeroEncontrado.correo || "");
+      setPassengerPhone(pasajeroEncontrado.telefono || "");
+
+      // Configurar centro de costo si existe
+      if (pasajeroEncontrado.id_centro_costo) {
+        setCentroCostoSeleccionado({
+          id: pasajeroEncontrado.id_centro_costo,
+          nombre: pasajeroEncontrado.centroCosto?.nombre || "Centro de costo",
+        });
+      } else {
+        setCentroCostoSeleccionado(null);
+      }
+    }
+  }, [modoPasajero, pasajeroEncontrado]);
 
   const formatRutInput = (value: string): string => {
     const clean = value.replace(/[^0-9kK]/g, "");
@@ -280,6 +301,148 @@ export function PassengerInfo({
     onPassengerSelected(null);
   };
 
+  const guardarEdicionPasajero = async () => {
+    if (!validarRut(passengerRut)) {
+      setPassengerErrors((prev) => ({ ...prev, rut: "RUT inválido" }));
+      return null;
+    }
+
+    if (!passengerName || passengerName.trim().length < 3) {
+      setPassengerErrors((prev) => ({
+        ...prev,
+        name: "Nombre es obligatorio (mín. 3 caracteres)",
+      }));
+      return null;
+    }
+
+    if (!passengerEmail || !validateEmail(passengerEmail)) {
+      setPassengerErrors((prev) => ({
+        ...prev,
+        email: "Email inválido",
+      }));
+      return null;
+    }
+
+    if (requireCentroCosto && !centroCostoSeleccionado) {
+      setErrorPasajero("Debe seleccionar un centro de costo");
+      return null;
+    }
+
+    setPassengerErrors({});
+    setBuscandoPasajero(true);
+    setErrorPasajero(null);
+
+    try {
+      const id_empresa = getCompanyId();
+      if (!id_empresa) {
+        throw new Error("No se pudo determinar la empresa del usuario");
+      }
+
+      const response = await fetch(`/api/pasajeros/${pasajeroEncontrado.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nombre: passengerName,
+          rut: passengerRut,
+          correo: passengerEmail,
+          telefono: passengerPhone,
+          id_empresa: id_empresa,
+          id_centro_costo: centroCostoSeleccionado?.id || null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        let errorMessage = "Error al actualizar pasajero";
+        if (result.error) {
+          errorMessage = result.error;
+          if (response.status === 401) {
+            errorMessage =
+              "No autorizado para editar pasajero. Verifique sus credenciales.";
+          }
+          if (result.details) {
+            errorMessage += ` - ${JSON.stringify(result.details)}`;
+          }
+        } else {
+          errorMessage = `Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (response.ok && (result.pasajero || result.id)) {
+        const pasajeroActualizado = result.pasajero || {
+          id: result.id,
+          nombre: result.nombre || passengerName,
+          rut: result.rut || passengerRut,
+          correo: result.correo || passengerEmail,
+          telefono: result.telefono || passengerPhone,
+          id_empresa: result.id_empresa || pasajeroEncontrado?.id_empresa,
+          id_centro_costo: result.id_centro_costo || centroCostoSeleccionado?.id,
+          empresa: result.empresa || pasajeroEncontrado?.empresa,
+          centroCosto: result.centroCosto || (centroCostoSeleccionado
+            ? { id: centroCostoSeleccionado.id, nombre: centroCostoSeleccionado.nombre }
+            : pasajeroEncontrado?.centroCosto)
+        };
+
+        setPasajeroEncontrado(pasajeroActualizado);
+        setModoPasajero("buscar");
+
+        onPassengerSelected(pasajeroActualizado);
+
+        Swal.fire({
+          icon: "success",
+          title: "Pasajero actualizado",
+          html: `
+            <div style="text-align: center; padding: 10px;">
+              <div style="font-size: 1.2rem; font-weight: 600; color: #059669; margin-bottom: 10px;">
+                ${pasajeroActualizado.nombre}
+              </div>
+              <div style="color: #6b7280; font-size: 0.9rem; margin-bottom: 8px;">
+                RUT: ${pasajeroActualizado.rut}
+              </div>
+              <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; 
+                    border-radius: 8px; padding: 12px; margin-top: 10px;">
+                <p style="color: #166534; margin: 0; font-size: 0.9rem;">
+                  ${result.message || "Los datos del pasajero han sido actualizados exitosamente."}
+                </p>
+              </div>
+            </div>
+          `,
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          background: "#f9fafb",
+        });
+
+        return pasajeroActualizado;
+      }
+
+      return null;
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Error al actualizar pasajero";
+      setErrorPasajero(errorMsg);
+
+      if (errorMsg.includes("401") || errorMsg.includes("No autorizado")) {
+        Swal.fire({
+          icon: "error",
+          title: "Error de autorización",
+          text: "No tiene permisos para editar pasajeros. Contacte al administrador.",
+          confirmButtonColor: "#3085d6",
+          ...swalConfig,
+        });
+      }
+
+      return null;
+    } finally {
+      setBuscandoPasajero(false);
+    }
+  };
+
   const buscarOCrearPasajero = async () => {
     if (!validarRut(passengerRut)) {
       setPassengerErrors((prev) => ({ ...prev, rut: "RUT inválido" }));
@@ -411,7 +574,7 @@ export function PassengerInfo({
       } else if (result.encontrado === false) {
         setErrorPasajero(
           result.mensaje ||
-            "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'"
+          "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'"
         );
         return null;
       }
@@ -578,16 +741,15 @@ export function PassengerInfo({
           {/* Mostrar errores en modo búsqueda */}
           {errorPasajero && modoPasajero === "buscar" && (
             <div
-              className={`p-3 rounded-md ${
-                errorPasajero.includes("no encontrado") ||
+              className={`p-3 rounded-md ${errorPasajero.includes("no encontrado") ||
                 errorPasajero.includes("Puede crear")
-                  ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
-                  : "bg-red-50 border border-red-200 text-red-600"
-              }`}
+                ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                : "bg-red-50 border border-red-200 text-red-600"
+                }`}
             >
               <div className="flex items-start">
                 {errorPasajero.includes("no encontrado") ||
-                errorPasajero.includes("Puede crear") ? (
+                  errorPasajero.includes("Puede crear") ? (
                   <Search className="h-4 w-4 mt-0.5 shrink-0" />
                 ) : (
                   <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
@@ -596,11 +758,11 @@ export function PassengerInfo({
                   <p className="text-sm font-medium">{errorPasajero}</p>
                   {(errorPasajero.includes("401") ||
                     errorPasajero.includes("autorizado")) && (
-                    <p className="text-xs mt-1">
-                      Contacte al administrador del sistema para obtener
-                      permisos.
-                    </p>
-                  )}
+                      <p className="text-xs mt-1">
+                        Contacte al administrador del sistema para obtener
+                        permisos.
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
@@ -621,6 +783,20 @@ export function PassengerInfo({
                 >
                   RUT: {formatearRutParaMostrar(pasajeroEncontrado.rut)}
                 </Badge>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setModoPasajero("editar");
+                    setErrorPasajero(null);
+                    setPassengerErrors({});
+                  }}
+                  className="h-7 text-xs"
+                >
+                  <Pencil className="h-10 w-10" />
+                </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
@@ -686,16 +862,15 @@ export function PassengerInfo({
             !errorPasajero.includes("no encontrado") &&
             !errorPasajero.includes("Puede crear") && (
               <div
-                className={`p-3 rounded-md ${
-                  errorPasajero.includes("creado") ||
+                className={`p-3 rounded-md ${errorPasajero.includes("creado") ||
                   errorPasajero.includes("actualizado")
-                    ? "bg-green-50 border border-green-200 text-green-800"
-                    : "bg-red-50 border border-red-200 text-red-600"
-                }`}
+                  ? "bg-green-50 border border-green-200 text-green-800"
+                  : "bg-red-50 border border-red-200 text-red-600"
+                  }`}
               >
                 <div className="flex items-start">
                   {errorPasajero.includes("creado") ||
-                  errorPasajero.includes("actualizado") ? (
+                    errorPasajero.includes("actualizado") ? (
                     <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                   ) : (
                     <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
@@ -704,11 +879,11 @@ export function PassengerInfo({
                     <p className="text-sm font-medium">{errorPasajero}</p>
                     {(errorPasajero.includes("401") ||
                       errorPasajero.includes("autorizado")) && (
-                      <p className="text-xs mt-1">
-                        Contacte al administrador del sistema para obtener
-                        permisos.
-                      </p>
-                    )}
+                        <p className="text-xs mt-1">
+                          Contacte al administrador del sistema para obtener
+                          permisos.
+                        </p>
+                      )}
                   </div>
                 </div>
               </div>
@@ -922,6 +1097,223 @@ export function PassengerInfo({
               <strong>Nota:</strong> El pasajero será asociado automáticamente a
               su empresa.
             </p>
+          </div>
+        </div>
+      )}
+
+      {modoPasajero === "editar" && (
+        <div className="space-y-3">
+          {errorPasajero && (
+            <div className={`p-3 rounded-md ${errorPasajero.includes("actualizado") || errorPasajero.includes("creado")
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-200 text-red-600"
+              }`}>
+              <div className="flex items-start">
+                {errorPasajero.includes("actualizado") || errorPasajero.includes("creado") ? (
+                  <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                )}
+                <div>
+                  <p className="text-sm font-medium">{errorPasajero}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start">
+              <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">
+                  Editando pasajero
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Modifique los datos del pasajero. Los cambios se guardarán en el sistema.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mismos campos que en modo crear */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium block mb-1">
+                Nombre completo *
+              </label>
+              <input
+                type="text"
+                value={passengerName}
+                onChange={(e) => setPassengerName(e.target.value)}
+                onBlur={() => {
+                  if (!passengerName || passengerName.trim().length < 3) {
+                    setPassengerErrors((prev) => ({
+                      ...prev,
+                      name: "Nombre es obligatorio (mín. 3 caracteres)",
+                    }));
+                  } else {
+                    setPassengerErrors((prev) => ({
+                      ...prev,
+                      name: undefined,
+                    }));
+                  }
+                }}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+                placeholder="Ej: Juan Pérez González"
+                aria-invalid={!!passengerErrors.name}
+              />
+              {passengerErrors.name && (
+                <p className="text-xs text-destructive mt-1">
+                  {passengerErrors.name}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium block mb-1">RUT *</label>
+              <input
+                type="text"
+                value={passengerRut}
+                disabled
+                onChange={(e) => {
+                  const formatted = formatRutInput(e.target.value);
+                  setPassengerRut(formatted);
+                }}
+                onBlur={() => {
+                  if (!validarRut(passengerRut)) {
+                    setPassengerErrors((prev) => ({
+                      ...prev,
+                      rut: "RUT inválido",
+                    }));
+                  } else {
+                    setPassengerErrors((prev) => ({ ...prev, rut: undefined }));
+                  }
+                }}
+                className="w-full px-3 py-2 border rounded-md bg-background cursor-not-allowed"
+                placeholder="12.345.678-9"
+                aria-invalid={!!passengerErrors.rut}
+              />
+              {passengerErrors.rut && (
+                <p className="text-xs text-destructive mt-1">
+                  {passengerErrors.rut}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium block mb-1">Email *</label>
+              <input
+                type="email"
+                value={passengerEmail}
+                onChange={(e) => setPassengerEmail(e.target.value)}
+                onBlur={() => {
+                  if (!passengerEmail || !validateEmail(passengerEmail)) {
+                    setPassengerErrors((prev) => ({
+                      ...prev,
+                      email: "Email inválido",
+                    }));
+                  } else {
+                    setPassengerErrors((prev) => ({
+                      ...prev,
+                      email: undefined,
+                    }));
+                  }
+                }}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+                placeholder="email@dominio.cl"
+                aria-invalid={!!passengerErrors.email}
+              />
+              {passengerErrors.email && (
+                <p className="text-xs text-destructive mt-1">
+                  {passengerErrors.email}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium block mb-1">
+                Teléfono (opcional)
+              </label>
+              <input
+                type="text"
+                value={passengerPhone}
+                onChange={(e) => setPassengerPhone(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+                placeholder="Ej: +56 9 1234 5678"
+              />
+            </div>
+
+            {requireCentroCosto && (
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium block mb-1">
+                  Centro de Costo *
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={centroCostoSeleccionado?.id || ""}
+                    onChange={(e) => {
+                      const id = parseInt(e.target.value);
+                      const centro = centrosCosto.find((c) => c.id === id);
+                      setCentroCostoSeleccionado(
+                        centro ? { id: centro.id, nombre: centro.nombre } : null
+                      );
+                    }}
+                    className="w-full px-3 py-2 border rounded-md bg-background"
+                    required
+                  >
+                    <option value="">Seleccionar centro de costo</option>
+                    {centrosCosto.map((centro) => (
+                      <option key={centro.id} value={centro.id}>
+                        {centro.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {cargandoCentros && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="default"
+              onClick={guardarEdicionPasajero}
+              disabled={
+                buscandoPasajero ||
+                !passengerName ||
+                !passengerRut ||
+                !passengerEmail ||
+                (requireCentroCosto && !centroCostoSeleccionado)
+              }
+              className="flex-1"
+            >
+              {buscandoPasajero ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Guardar cambios
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setModoPasajero("buscar");
+                setErrorPasajero(null);
+                setPassengerErrors({});
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
           </div>
         </div>
       )}
