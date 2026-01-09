@@ -738,6 +738,7 @@ export function SuperCostCenters() {
                         <UITable>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>ID</TableHead>
                                     <TableHead>Centro de Costo</TableHead>
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Creado</TableHead>
@@ -748,6 +749,11 @@ export function SuperCostCenters() {
                             <TableBody>
                                 {costCenters.map((costCenter) => (
                                     <TableRow key={costCenter.id} className="hover:bg-muted/50">
+                                        <TableCell>
+                                            <div>
+                                                <p className="font-medium">{costCenter.id }</p>
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-primary/10 rounded-lg">

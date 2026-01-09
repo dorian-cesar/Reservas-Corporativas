@@ -639,7 +639,7 @@ export function CompanyPassengers() {
                                 <Input
                                     id="telefono"
                                     type="text"
-                                    placeholder="+56 9 8122 6760"
+                                    placeholder="56912345678"
                                     value={formData.telefono}
                                     onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                                 />
