@@ -29,7 +29,12 @@ import {
   LayoutGrid,
   TrendingUp,
   TrendingDown,
-  Badge
+  Badge,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -41,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import ToolBar from "./tool-bar";
+import { SimplePagarDialog } from "./pagar-dialog";
 
 export function CurrentAccounts() {
   const { token } = useAuth.getState();
@@ -48,7 +54,28 @@ export function CurrentAccounts() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [pagarDialogOpen, setPagarDialogOpen] = useState(false);
+  const [movimientoAPagar, setMovimientoAPagar] = useState<Movement | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    tipo: "",
+    pagado: "",
+    desde: "",
+    hasta: ""
+  });
+
+  // Estados de paginación
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
   const { toast } = useToast();
 
   type Movement = {
@@ -60,6 +87,7 @@ export function CurrentAccounts() {
     descripcion?: string;
     saldo: number;
     referencia?: string;
+    pagado?: boolean;
     empresa?: {
       id: string;
       nombre: string;
@@ -80,12 +108,24 @@ export function CurrentAccounts() {
 
   useEffect(() => {
     if (selectedCompany) {
-      fetchMovements(selectedCompany);
+      setPagination(prev => ({ ...prev, page: 1 }));
+      fetchMovements(selectedCompany, 1, pagination.limit);
+    } else {
+      setMovements([]);
+      setPagination({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
     }
   }, [selectedCompany]);
 
   const fetchCompanies = async () => {
     try {
+      setLoadingCompanies(true);
       const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -99,21 +139,114 @@ export function CurrentAccounts() {
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+    } finally {
+      setLoadingCompanies(false);
     }
   };
 
-  const fetchMovements = async (empresaId: string) => {
+  const buildQueryParams = (page: number, limit: number) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+
+    if (searchFilters.tipo) params.append("tipo", searchFilters.tipo);
+    if (searchFilters.pagado) params.append("pagado", searchFilters.pagado);
+    if (searchFilters.desde) params.append("desde", searchFilters.desde);
+    if (searchFilters.hasta) params.append("hasta", searchFilters.hasta);
+
+    return params.toString();
+  };
+
+  const fetchMovements = async (empresaId: string, page: number, limit: number) => {
+    if (!empresaId) return;
+
     try {
-      const res = await fetch(`/api/current-accounts/empresa/${empresaId}`, {
+      setLoadingMovements(true);
+      const queryParams = buildQueryParams(page, limit);
+      const res = await fetch(`/api/current-accounts/empresa/${empresaId}?${queryParams}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Error fetching movimientos");
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          setMovements([]);
+          setPagination({
+            page: 1,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPrevPage: false,
+          });
+          return;
+        }
+        throw new Error("Error fetching movimientos");
+      }
+
       const data = await res.json();
-      setMovements(data);
+
+      // Asegurarse de que data tenga el formato correcto
+      const movementsArray = Array.isArray(data.movimientos) ? data.movimientos :
+        (Array.isArray(data) ? data : []);
+
+      const paginationData = data.pagination || {
+        page,
+        limit,
+        total: movementsArray.length,
+        totalPages: Math.ceil(movementsArray.length / limit),
+        hasNextPage: false,
+        hasPrevPage: page > 1,
+      };
+
+      setMovements(movementsArray);
+      setPagination({
+        page: paginationData.page || page,
+        limit: paginationData.limit || limit,
+        total: paginationData.total || movementsArray.length,
+        totalPages: paginationData.totalPages || Math.ceil((paginationData.total || movementsArray.length) / (paginationData.limit || limit)),
+        hasNextPage: Boolean(paginationData.hasNextPage),
+        hasPrevPage: Boolean(paginationData.hasPrevPage),
+      });
+
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar los movimientos", variant: "destructive" });
+      setMovements([]);
+    } finally {
+      setLoadingMovements(false);
     }
+  };
+
+  const handleSearch = () => {
+    if (selectedCompany) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      fetchMovements(selectedCompany, 1, pagination.limit);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearchFilters({
+      tipo: "",
+      pagado: "",
+      desde: "",
+      hasta: ""
+    });
+    if (selectedCompany) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      fetchMovements(selectedCompany, 1, pagination.limit);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page: newPage }));
+    fetchMovements(selectedCompany, newPage, pagination.limit);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    fetchMovements(selectedCompany, 1, newLimit);
   };
 
   const resetForm = () => {
@@ -162,7 +295,7 @@ export function CurrentAccounts() {
       });
 
       if (selectedCompany) {
-        fetchMovements(selectedCompany);
+        fetchMovements(selectedCompany, 1, pagination.limit);
       }
     } catch (err) {
       console.error(err);
@@ -187,11 +320,13 @@ export function CurrentAccounts() {
 
       if (!res.ok) throw new Error("Error al eliminar movimiento");
 
-      setMovements(movements.filter((m) => m.id !== movementId));
       toast({
         title: "Movimiento eliminado",
         description: "El movimiento ha sido eliminado exitosamente",
       });
+
+      // Recargar la página actual
+      fetchMovements(selectedCompany, pagination.page, pagination.limit);
     } catch (err) {
       console.error(err);
       toast({
@@ -202,9 +337,41 @@ export function CurrentAccounts() {
     }
   };
 
+  const handlePagarClick = (movement: Movement) => {
+    // Solo permitir pagar cargos (no abonos)
+    if (movement.tipo_movimiento === 'cargo') {
+      setMovimientoAPagar(movement);
+      setPagarDialogOpen(true);
+    }
+  };
+
+  const handlePagoSuccess = () => {
+    if (selectedCompany) {
+      fetchMovements(selectedCompany, pagination.page, pagination.limit);
+    }
+    setPagarDialogOpen(false);
+    setMovimientoAPagar(null);
+  };
+
+  const getPaymentStatus = (movement: Movement) => {
+    if (movement.tipo_movimiento === 'abono') {
+      return <span className="text-green-600 text-sm">Abono recibido</span>;
+    }
+
+    return movement.pagado ? (
+      <div className="flex items-center gap-1 text-green-600">
+        <span className="text-sm">✓ Pagado</span>
+      </div>
+    ) : (
+      <div className="flex items-center gap-1 text-red-600">
+        <span className="text-sm">Pendiente</span>
+      </div>
+    );
+  };
+
   const getCurrentBalance = () => {
     if (movements.length === 0) return 0;
-    return movements[movements.length - 1].saldo;
+    return movements[movements.length - 1]?.saldo || 0;
   };
 
   const formatCurrency = (amount: number) => {
@@ -246,14 +413,14 @@ export function CurrentAccounts() {
         description="Gestione los movimientos de cuenta corriente por empresa"
         viewMode={viewMode}
         setViewMode={setViewMode}
-
         showCompanySelect
         companies={companies}
         selectedCompany={selectedCompany}
         onCompanyChange={(id) => setSelectedCompany(id)}
-
-        refreshAction={() => selectedCompany && fetchMovements(selectedCompany)}
-
+        companySelectMode="combobox"
+        companySelectPlaceholder="Selecciona una empresa..."
+        loadingCompanies={loadingCompanies}
+        refreshAction={() => selectedCompany && fetchMovements(selectedCompany, pagination.page, pagination.limit)}
         primaryAction={{
           label: "Nuevo Movimiento",
           icon: <Plus className="h-4 w-4" />,
@@ -261,13 +428,74 @@ export function CurrentAccounts() {
           disabled: !selectedCompany,
         }}
       />
+
+      {/* Filtros de búsqueda */}
+      {selectedCompany && (
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Filtro por tipo */}
+              <div className="space-y-2">
+                <Label htmlFor="tipo-filtro">Tipo</Label>
+                <select
+                  id="tipo-filtro"
+                  value={searchFilters.tipo}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, tipo: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Todos</option>
+                  <option value="abono">Abono</option>
+                  <option value="cargo">Cargo</option>
+                </select>
+              </div>
+
+              {/* Filtro por estado de pago */}
+              <div className="space-y-2">
+                <Label htmlFor="pagado-filtro">Estado de pago</Label>
+                <select
+                  id="pagado-filtro"
+                  value={searchFilters.pagado}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, pagado: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="">Todos</option>
+                  <option value="true">Pagado</option>
+                  <option value="false">Pendiente</option>
+                </select>
+              </div>
+
+
+              {/* Botones de acción */}
+              <div className="flex items-end gap-2">
+                <Button
+                  onClick={handleSearch}
+                  className="bg-accent hover:bg-accent/90"
+                  disabled={loadingMovements}
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleClearFilters}
+                  disabled={loadingMovements}
+                >
+                  Limpiar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modal para agregar movimiento (igual que antes) */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Agregar Nuevo Movimiento</DialogTitle>
-            <DialogDescription>Registre un nuevo movimiento en la cuenta corriente</DialogDescription>
+            <DialogTitle>Agregar Nuevo Abono</DialogTitle>
+            <DialogDescription>Registre un nuevo abono en la cuenta corriente</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
@@ -289,35 +517,37 @@ export function CurrentAccounts() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo de Movimiento</Label>
-              <select
-                id="tipo"
-                value={formData.tipo_movimiento}
+              <input
+                type="hidden"
+                value="abono"
                 onChange={(e) => setFormData({ ...formData, tipo_movimiento: e.target.value as 'abono' | 'cargo' })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="abono">Abono</option>
-                <option value="cargo">Cargo</option>
-              </select>
+              />
+              <p className="text-xs text-gray-500">
+                Nota: Solo se pueden crear abonos directamente. Los cargos se crean automáticamente al registrar facturas.
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="monto">Monto *</Label>
-              <Input
-                id="monto"
-                type="number"
-                step="1"
-                placeholder="0"
-                value={formData.monto}
-                onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-              />
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="monto"
+                  type="number"
+                  step="1"
+                  placeholder="0"
+                  value={formData.monto}
+                  onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="descripcion">Descripción</Label>
               <Input
                 id="descripcion"
-                placeholder="Descripción del movimiento"
+                placeholder="Descripción del abono (ej: Pago de factura, Transferencia, etc.)"
                 value={formData.descripcion}
                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
               />
@@ -327,7 +557,7 @@ export function CurrentAccounts() {
               <Label htmlFor="referencia">Referencia</Label>
               <Input
                 id="referencia"
-                placeholder="Número de referencia"
+                placeholder="Número de referencia (ej: N° de transferencia, cheque, etc.)"
                 value={formData.referencia}
                 onChange={(e) => setFormData({ ...formData, referencia: e.target.value })}
               />
@@ -337,8 +567,11 @@ export function CurrentAccounts() {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
-              Agregar
+            <Button
+              onClick={handleAdd}
+              disabled={!formData.empresa_id || !formData.monto || parseFloat(formData.monto) <= 0}
+            >
+              Agregar Abono
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -346,8 +579,133 @@ export function CurrentAccounts() {
 
       {selectedCompany ? (
         <>
+          {/* Información de paginación */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <>
+                  Mostrando{" "}
+                  <strong>
+                    {(pagination.page - 1) * pagination.limit + 1}
+                    {" - "}
+                    {Math.min(pagination.page * pagination.limit, pagination.total)}
+                  </strong>{" "}
+                  de <strong>{pagination.total}</strong> movimientos
+                </>
+              ) : (
+                <>No hay movimientos para mostrar</>
+              )}
+
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Selector de límite por página */}
+              <div className="flex items-center gap-2 text-sm">
+                <label className="text-muted-foreground">Mostrar:</label>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                  className="p-2 border rounded-md bg-background"
+                  disabled={loadingMovements}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              {/* Controles de página */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={!pagination.hasPrevPage || loadingMovements}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage || loadingMovements}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {/* Números de página */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
+                    let pageNum;
+                    const totalPages = pagination.totalPages || 1;
+
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    if (pageNum < 1 || pageNum > totalPages) return null;
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={loadingMovements}
+                        className="h-8 w-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage || loadingMovements}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={!pagination.hasNextPage || loadingMovements}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="my-4 border-t" />
+
+          {/* Indicador de carga */}
+          {loadingMovements && (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCcw className="h-5 w-5 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Cargando movimientos...</span>
+            </div>
+          )}
+
           {/* Vista de Tarjetas */}
-          {viewMode === "cards" && (
+          {!loadingMovements && viewMode === "cards" && (
             <div className="grid gap-4">
               {movements.map((movement, index) => (
                 <Card
@@ -378,15 +736,18 @@ export function CurrentAccounts() {
                         </p>
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:bg-destructive/10 transition-all hover:scale-[1.02] bg-transparent"
-                          onClick={() => handleDelete(movement.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                      <div className="flex gap-2 mt-3">
+                        {movement.tipo_movimiento === 'cargo' && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handlePagarClick(movement)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            Pagar Cargo
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -405,7 +766,7 @@ export function CurrentAccounts() {
           )}
 
           {/* Vista de Tabla */}
-          {viewMode === "table" && (
+          {!loadingMovements && viewMode === "table" && (
             <Card>
               <CardContent className="p-0">
                 <UITable>
@@ -413,6 +774,7 @@ export function CurrentAccounts() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Tipo</TableHead>
+                      <TableHead>Estado</TableHead>
                       <TableHead>Descripción</TableHead>
                       <TableHead>Referencia</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
@@ -423,39 +785,54 @@ export function CurrentAccounts() {
                   <TableBody>
                     {movements.map((movement) => (
                       <TableRow key={movement.id} className="hover:bg-muted/50">
+                        <TableCell>{formatDate(movement.fecha_movimiento)}</TableCell>
+                        <TableCell>{getMovementBadge(movement.tipo_movimiento)}</TableCell>
+
+                        {/* COLUMNA ESTADO */}
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(movement.fecha_movimiento)}
-                          </div>
+                          {movement.tipo_movimiento === 'cargo' ? (
+                            movement.pagado ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                <span className="h-1.5 w-1.5 bg-green-500 rounded-full"></span>
+                                Pagado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                                <span className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                                Pendiente
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-xs text-gray-500">-</span>
+                          )}
                         </TableCell>
-                        <TableCell>
-                          {getMovementBadge(movement.tipo_movimiento)}
-                        </TableCell>
-                        <TableCell>
-                          {movement.descripcion || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {movement.referencia || "-"}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                          }`}>
+
+                        <TableCell>{movement.descripcion || "-"}</TableCell>
+                        <TableCell>{movement.referencia || "-"}</TableCell>
+                        <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'}`}>
                           {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(movement.saldo)}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex justify-end">
+
+                        {/* COLUMNA ACCIONES */}
+                        <TableCell className="text-right">
+                          {movement.tipo_movimiento === 'cargo' && !movement.pagado ? (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDelete(movement.id)}
-                              className="h-8 px-3 text-destructive hover:bg-destructive/10"
+                              onClick={() => handlePagarClick(movement)}
+                              className="h-7 px-2 text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              Pagar
                             </Button>
-                          </div>
+                          ) : movement.tipo_movimiento === 'cargo' && movement.pagado ? (
+                            <span className="text-xs text-green-600">✓</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -479,6 +856,13 @@ export function CurrentAccounts() {
           </CardContent>
         </Card>
       )}
+      <SimplePagarDialog
+        open={pagarDialogOpen}
+        onOpenChange={setPagarDialogOpen}
+        movimiento={movimientoAPagar}
+        token={token}
+        onSuccess={handlePagoSuccess}
+      />
     </div>
   );
 }
