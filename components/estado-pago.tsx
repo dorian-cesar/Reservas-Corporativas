@@ -401,7 +401,7 @@ export function EstadoPago() {
                 ticket?.pasajero?.rut || "",
                 ticket?.pasajero?.nombre || "",
                 `$${ticket.monto_boleto?.toLocaleString('es-CL') || '0'}`,
-                ticket?.pasajero?.id_centro_costo || "",
+                ticket?.pasajero?.centroCosto.nombre || "",
                 ticket?.empresa?.cuenta_corriente || "",
                 ticket?.user?.rut || "",
                 ticket?.user?.nombre || ""
@@ -460,7 +460,7 @@ export function EstadoPago() {
                 "RUT Pasajero": ticket?.pasajero?.rut || "",
                 "Nombre Pasajero": ticket?.pasajero?.nombre || "",
                 "Monto": `$${ticket.monto_boleto?.toLocaleString('es-CL') || '0'}`,
-                "Centro De Costo": ticket?.pasajero?.id_centro_costo || "",
+                "Centro De Costo": ticket?.pasajero?.centroCosto.nombre || "",
                 "Cta. Cte": ticket?.empresa?.cuenta_corriente || "",
                 "RUT Comprador": ticket?.user?.rut || "",
                 "Nombre Comprador": ticket?.user?.nombre || "",
