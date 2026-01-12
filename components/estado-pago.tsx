@@ -732,7 +732,7 @@ export function EstadoPago() {
                                                     <TableCell>
                                                         ${ticket.monto_boleto ? ticket.monto_boleto.toLocaleString('es-CL') : '0'}
                                                     </TableCell>
-                                                    <TableCell>{ticket?.pasajero.id_centro_costo ?? "-"}</TableCell>
+                                                    <TableCell>{ticket?.pasajero?.centroCosto.nombre ?? "-"}</TableCell>
                                                     <TableCell>{ticket?.empresa.cuenta_corriente ?? "-"}</TableCell>
                                                     <TableCell>{ticket?.user.rut ?? "-"}</TableCell>
                                                     <TableCell>{ticket?.user.nombre ?? "-"}</TableCell>
