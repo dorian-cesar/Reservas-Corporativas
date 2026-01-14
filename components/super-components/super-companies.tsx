@@ -774,7 +774,7 @@ export function SuperCompanies() {
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="show-inactives" className="text-base">
-                      Mostrar centros inactivos
+                      Mostrar empresas inactivas
                     </Label>
                     <p className="text-sm text-muted-foreground">
                       {showInactives
