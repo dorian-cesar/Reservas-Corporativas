@@ -24,6 +24,16 @@ interface ComboBoxProps {
   disabled?: boolean;
 }
 
+// Función para normalizar texto (remover tildes)
+const normalizeText = (text: string): string => {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+};
+
 export function ComboBox({
   items,
   value,
@@ -32,11 +42,23 @@ export function ComboBox({
   disabled = false,
 }: ComboBoxProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const selectedLabel =
     items.find((i) => i.value === value)?.label || placeholder;
 
   const commandRef = React.useRef<HTMLDivElement>(null);
+
+  const filteredItems = React.useMemo(() => {
+    if (!searchQuery) return items;
+
+    const normalizedSearch = normalizeText(searchQuery);
+
+    return items.filter((item) => {
+      const normalizedLabel = normalizeText(item.label);
+      return normalizedLabel.includes(normalizedSearch);
+    });
+  }, [items, searchQuery]);
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -69,16 +91,18 @@ export function ComboBox({
       </PopoverTrigger>
 
       <PopoverContent className="w-full p-0">
-        <Command ref={commandRef}>
+        <Command ref={commandRef} filter={() => 1}>
+          {" "}
           <CommandInput
             placeholder="Buscar ciudad..."
             onKeyDown={handleEnter}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
           />
           <CommandEmpty>No encontrada.</CommandEmpty>
-
           <div className="max-h-64 overflow-y-auto">
             <CommandGroup>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <CommandItem
                   key={item.value}
                   value={item.label}
@@ -86,6 +110,7 @@ export function ComboBox({
                     if (!disabled) {
                       onChange(item.value);
                       setOpen(false);
+                      setSearchQuery(""); // Limpiar búsqueda al seleccionar
                     }
                   }}
                   className={cn(disabled && "opacity-50 cursor-not-allowed")}

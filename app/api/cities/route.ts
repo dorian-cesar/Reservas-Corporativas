@@ -7,8 +7,22 @@ type City = {
   destination_count: number;
 };
 
-export async function GET() {
+// Función para normalizar texto (remover tildes)
+const normalizeText = (text: string): string => {
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+};
+
+export async function GET(request: Request) {
   try {
+    // Obtener parámetro de búsqueda
+    const { searchParams } = new URL(request.url);
+    const searchQuery = searchParams.get("q") || "";
+
     const apiKey = process.env.NEXT_PUBLIC_KUPOS_API_KEY_PROD;
     const URL_KUPOS = process.env.NEXT_PUBLIC_URL_KUPOS_PROD;
 
@@ -34,9 +48,20 @@ export async function GET() {
       destination_count: row[3],
     }));
 
+    // Filtrar ciudades con nombres inválidos
     cities = cities.filter(
       (c) => !c.name.toLowerCase().includes("hackedbykode")
     );
+
+    // Si hay una búsqueda, filtrar insensible a tildes
+    if (searchQuery) {
+      const normalizedSearch = normalizeText(searchQuery);
+
+      cities = cities.filter((city) => {
+        const normalizedCityName = normalizeText(city.name);
+        return normalizedCityName.includes(normalizedSearch);
+      });
+    }
 
     return NextResponse.json({ cities });
   } catch (error) {
