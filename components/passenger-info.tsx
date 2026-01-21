@@ -1189,7 +1189,7 @@ export function PassengerInfo({
                     setPassengerErrors((prev) => ({ ...prev, rut: undefined }));
                   }
                 }}
-                className="w-full px-3 py-2 border rounded-md bg-background cursor-not-allowed"
+                className="w-full px-3 py-2 border rounded-md bg-gray-200 text-gray-700 cursor-not-allowed"
                 placeholder="12.345.678-9"
                 aria-invalid={!!passengerErrors.rut}
               />

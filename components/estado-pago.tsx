@@ -255,7 +255,7 @@ export function EstadoPago() {
         if (estadosCuenta.length === 0) return;
 
         // ACTUALIZADO: Headers con nuevos campos
-        const headers = ["Periodo", "Fecha Generación", "Fecha Inicio", "Fecha Fin", "Total Tickets", "Total Anulados", "Monto Facturado", "Devoluciones", "Pagado", "Fecha Pago"];
+        const headers = ["Periodo", "Fecha Generación", "Fecha Inicio", "Fecha Fin", "Total Tickets", "Total Anulados", "Monto Facturado", "Devoluciones", "Fecha Pago"];
 
         const csvData = estadosCuenta.map(ec => [
             ec.periodo,
@@ -266,7 +266,7 @@ export function EstadoPago() {
             ec.total_tickets_anulados,
             formatCurrency(ec.monto_facturado),
             formatCurrency(ec.suma_devoluciones || 0),
-            ec.pagado ? "Sí" : "No",
+            // ec.pagado ? "Sí" : "No",
             formatDate(ec.fecha_pago)
         ]);
 
@@ -293,7 +293,7 @@ export function EstadoPago() {
             "Total Anulados": ec.total_tickets_anulados,
             "Monto Facturado": formatCurrency(ec.monto_facturado),
             "Devoluciones": formatCurrency(ec.suma_devoluciones || 0),
-            "Pagado": ec.pagado ? "Sí" : "No",
+            // "Pagado": ec.pagado ? "Sí" : "No",
             "Fecha Pago": formatDate(ec.fecha_pago)
         }));
 
@@ -606,7 +606,7 @@ export function EstadoPago() {
                                     <TableHead>Total Anulados</TableHead>
                                     <TableHead>Monto Facturado</TableHead>
                                     <TableHead>Suma Devoluciones</TableHead>
-                                    <TableHead>Pagado</TableHead>
+                                    {/* <TableHead>Pagado</TableHead> */}
                                     <TableHead>Detalles</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -623,7 +623,7 @@ export function EstadoPago() {
                                         <TableCell>{ec.total_tickets_anulados}</TableCell>
                                         <TableCell>{formatCurrency(ec.monto_facturado)}</TableCell>
                                         <TableCell>{formatCurrency(ec.suma_devoluciones ?? 0)}</TableCell>
-                                        <TableCell>{ec.pagado ? "Sí" : "No"}</TableCell>
+                                        {/* <TableCell>{ec.pagado ? "Sí" : "No"}</TableCell> */}
                                         <TableCell>
                                             <div className="flex justify-end gap-2">
                                                 <Button
@@ -660,7 +660,7 @@ export function EstadoPago() {
                                 <p>Anulados: {ec.total_tickets_anulados}</p>
                                 <p>Monto: {formatCurrency(ec.monto_facturado)}</p>
                                 <p>Devoluciones: {ec.suma_devoluciones ? formatCurrency(ec.suma_devoluciones) : '$0'}</p>
-                                <p>Pagado: {ec.pagado ? "Sí" : "No"}</p>
+                                {/* <p>Pagado: {ec.pagado ? "Sí" : "No"}</p> */}
                                 <p>Fecha Pago: {formatDate(ec.fecha_pago)}</p>
                             </CardContent>
                         </Card>
