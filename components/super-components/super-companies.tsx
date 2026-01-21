@@ -504,7 +504,7 @@ export function SuperCompanies() {
 
   const exportToCSV = async () => {
     try {
-      const res = await fetch(`/api/companies`, {
+      const res = await fetch(`/api/companies?includeInactives=${showInactives}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -600,7 +600,7 @@ export function SuperCompanies() {
   const exportToXLSX = async () => {
 
     try {
-      const res = await fetch(`/api/companies`, {
+      const res = await fetch(`/api/companies?includeInactives=${showInactives}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
