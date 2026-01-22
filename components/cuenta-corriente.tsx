@@ -46,7 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import ToolBar from "./tool-bar";
-import { SimplePagarDialog } from "./pagar-dialog";
+import { PagarDialog } from "./pagar-dialog";
 
 export function CurrentAccounts() {
   const { token } = useAuth.getState();
@@ -856,7 +856,7 @@ export function CurrentAccounts() {
           </CardContent>
         </Card>
       )}
-      <SimplePagarDialog
+      <PagarDialog
         open={pagarDialogOpen}
         onOpenChange={setPagarDialogOpen}
         movimiento={movimientoAPagar}
