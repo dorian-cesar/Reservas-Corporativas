@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, use } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import {
     Download,
@@ -23,7 +24,11 @@ import {
     FileText,
     DollarSign,
     RefreshCcw,
+    Edit,
+    Percent,
+    Trash2
 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import {
     Table as UITable,
@@ -52,6 +57,7 @@ type EstadoCuentaType = {
     pagado: boolean;
     fecha_pago?: string;
     suma_devoluciones?: number; // NUEVO: Campo añadido
+    porcentaje_descuento?: number;
 };
 
 export function EstadoPago() {
@@ -185,6 +191,332 @@ export function EstadoPago() {
             setIsLoadingTickets(false);
         }
     };
+
+
+    const DescuentoDialog = ({
+        estadoCuenta,
+        onDescuentoAplicado
+    }: {
+        estadoCuenta: EstadoCuentaType,
+        onDescuentoAplicado: () => void
+    }) => {
+        const { token } = useAuth.getState();
+        const { toast } = useToast();
+        const [isOpen, setIsOpen] = useState(false);
+        const [porcentaje, setPorcentaje] = useState("");
+        const [descripcion, setDescripcion] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [mode, setMode] = useState<"apply" | "revert">("apply");
+
+        // FUNCIÓN LOCAL PARA MANEJAR EL CAMBIO DE PORCENTAJE
+        const handlePorcentajeChangeLocal = (value: string) => {
+            // Permitir borrar
+            if (value === "") {
+                setPorcentaje("");
+                return;
+            }
+
+            // Solo números con hasta 2 decimales
+            const regex = /^\d+(\.\d{0,2})?$/;
+            if (!regex.test(value)) return;
+
+            const num = Number(value);
+
+            // No negativos ni mayor a 100
+            if (num < 0 || num > 100) return;
+
+            setPorcentaje(value);
+        };
+
+        useEffect(() => {
+            if (estadoCuenta.porcentaje_descuento && estadoCuenta.porcentaje_descuento > 0) {
+                setMode("revert");
+            } else {
+                setMode("apply");
+                setPorcentaje("");
+            }
+        }, [estadoCuenta.porcentaje_descuento, isOpen]);
+
+        const handleSubmit = async () => {
+            if (mode === "apply") {
+                if (!porcentaje || isNaN(Number(porcentaje)) || Number(porcentaje) <= 0 || Number(porcentaje) > 100) {
+                    toast({
+                        title: "Error",
+                        description: "Porcentaje inválido. Debe ser un número entre 1 y 100",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/estado-cuenta/${estadoCuenta.id}/aplicar-descuento`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            porcentaje_descuento: Number(porcentaje),
+                            descripcion_descuento: descripcion || `Descuento del ${porcentaje}% aplicado manualmente`
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.message || "Error al aplicar descuento");
+                    }
+
+                    toast({
+                        title: "Descuento aplicado",
+                        description: `Se aplicó un descuento del ${porcentaje}% al estado de cuenta`,
+                        variant: "default"
+                    });
+
+                    onDescuentoAplicado();
+                    setIsOpen(false);
+                    setPorcentaje("");
+                    setDescripcion("");
+                } catch (error: any) {
+                    toast({
+                        title: "Error",
+                        description: error.message,
+                        variant: "destructive"
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                // Modo revertir
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/estado-cuenta/${estadoCuenta.id}/revertir-descuento`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            descripcion: descripcion || "Descuento revertido manualmente"
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        throw new Error(error.message || "Error al revertir descuento");
+                    }
+
+                    toast({
+                        title: "Descuento revertido",
+                        description: "El descuento ha sido revertido exitosamente",
+                        variant: "default"
+                    });
+
+                    onDescuentoAplicado();
+                    setIsOpen(false);
+                    setDescripcion("");
+                } catch (error: any) {
+                    toast({
+                        title: "Error",
+                        description: error.message,
+                        variant: "destructive"
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        const calcularMontos = () => {
+            if (mode !== "apply") return null;
+
+            const montoOriginal = Number(estadoCuenta.monto_facturado);
+            const porcentajeNum = Number(porcentaje) || 0;
+
+            if (porcentajeNum <= 0) return null;
+
+            const montoDescuento = montoOriginal * (porcentajeNum / 100);
+            const montoFinal = montoOriginal - montoDescuento;
+
+            return {
+                montoOriginal,
+                montoDescuento,
+                montoFinal,
+                porcentajeNum
+            };
+        };
+
+        const montos = calcularMontos();
+
+        return (
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    {estadoCuenta.porcentaje_descuento && estadoCuenta.porcentaje_descuento > 0 ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Percent className="h-3 w-3 mr-1" />
+                            {estadoCuenta.porcentaje_descuento}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3"
+                        >
+                            <Percent className="h-3 w-3" />
+                            0.00
+                        </Button>
+                    )}
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {mode === "apply" ? "Aplicar Descuento" : "Revertir Descuento"}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {mode === "apply"
+                                ? "Aplica un porcentaje de descuento a este estado de cuenta"
+                                : "Revierte el descuento aplicado a este estado de cuenta"}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        {mode === "apply" ? (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="porcentaje">Porcentaje de descuento (%)</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="porcentaje"
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={porcentaje}
+                                            onChange={(e) => handlePorcentajeChangeLocal(e.target.value)}  // CAMBIO AQUÍ
+                                            placeholder="Ej: 10.5"
+                                            className="flex-1"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Ingresa un valor entre 1 y 100
+                                    </p>
+                                </div>
+
+                                {montos && (
+                                    <Card className="bg-muted/50">
+                                        <CardContent className="pt-4 space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-sm">Monto original:</span>
+                                                <span className="text-sm font-medium">
+                                                    {formatCurrency(montos.montoOriginal)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-sm">Descuento ({montos.porcentajeNum}%):</span>
+                                                <span className="text-sm font-medium text-red-600">
+                                                    -{formatCurrency(montos.montoDescuento)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between border-t pt-2">
+                                                <span className="text-sm font-semibold">Monto final:</span>
+                                                <span className="text-sm font-bold text-green-600">
+                                                    {formatCurrency(montos.montoFinal)}
+                                                </span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="descripcion">Descripción (opcional)</Label>
+                                    <Textarea
+                                        id="descripcion"
+                                        value={descripcion}
+                                        onChange={(e) => setDescripcion(e.target.value)}
+                                        placeholder="Ej: Descuento por pago anticipado"
+                                        rows={3}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                                        <div className="flex items-center gap-2 text-red-700 mb-2">
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="font-semibold">Descuento a revertir</span>
+                                        </div>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                                <span>Porcentaje actual:</span>
+                                                <span className="font-medium">{estadoCuenta.porcentaje_descuento}%</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Monto original:</span>
+                                                <span className="font-medium">{formatCurrency(estadoCuenta.monto_facturado)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Descuento aplicado:</span>
+                                                <span className="font-medium text-red-600">
+                                                    -{formatCurrency(
+                                                        Number(estadoCuenta.monto_facturado) *
+                                                        (estadoCuenta.porcentaje_descuento! / 100)
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="descripcion-revert">Motivo de reversión (opcional)</Label>
+                                        <Textarea
+                                            id="descripcion-revert"
+                                            value={descripcion}
+                                            onChange={(e) => setDescripcion(e.target.value)}
+                                            placeholder="Ej: Descuento aplicado por error"
+                                            rows={3}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsOpen(false);
+                                setPorcentaje("");
+                                setDescripcion("");
+                            }}
+                            disabled={loading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleSubmit}
+                            disabled={loading || (mode === "apply" && (!porcentaje || Number(porcentaje) <= 0))}
+                            className={mode === "revert" ? "bg-red-600 hover:bg-red-700" : ""}
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Procesando...
+                                </>
+                            ) : mode === "apply" ? (
+                                "Aplicar Descuento"
+                            ) : (
+                                "Revertir Descuento"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
 
     const openDetailDialog = async (cuentaId: number) => {
         const cuentaSeleccionada = estadosCuenta.find(ec => ec.id === cuentaId);
@@ -606,6 +938,7 @@ export function EstadoPago() {
                                     <TableHead>Total Anulados</TableHead>
                                     <TableHead>Monto Facturado</TableHead>
                                     <TableHead>Suma Devoluciones</TableHead>
+                                    <TableHead>Descuento</TableHead>
                                     {/* <TableHead>Pagado</TableHead> */}
                                     <TableHead>Detalles</TableHead>
                                 </TableRow>
@@ -623,9 +956,15 @@ export function EstadoPago() {
                                         <TableCell>{ec.total_tickets_anulados}</TableCell>
                                         <TableCell>{formatCurrency(ec.monto_facturado)}</TableCell>
                                         <TableCell>{formatCurrency(ec.suma_devoluciones ?? 0)}</TableCell>
+                                        <TableCell>
+                                            <DescuentoDialog
+                                                estadoCuenta={ec}
+                                                onDescuentoAplicado={() => fetchEstadosCuenta(Number(empresaId), { desde: dateDesde, hasta: dateHasta })}
+                                            />
+                                        </TableCell>
                                         {/* <TableCell>{ec.pagado ? "Sí" : "No"}</TableCell> */}
                                         <TableCell>
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex gap-2">
                                                 <Button
                                                     variant="outline"
                                                     size="sm"

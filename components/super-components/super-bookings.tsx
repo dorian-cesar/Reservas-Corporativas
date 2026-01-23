@@ -1195,7 +1195,7 @@ export function SuperAllBookings() {
                       <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
                       <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
                       <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
-                      <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
+                      <TableCell><p className="text-sm">{ticket.pasajero?.centroCosto?.nombre ?? "—"}</p></TableCell>
                       <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
                       <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
                       <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>

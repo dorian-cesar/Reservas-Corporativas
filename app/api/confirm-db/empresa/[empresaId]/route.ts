@@ -57,7 +57,7 @@ export async function GET(
       backendParams.set("travelDate_hasta", travelDateHasta.trim());
     }
     if (ticketNumber && ticketNumber.trim() !== "") {
-      backendParams.set("ticketNumber", ticketNumber.trim());
+      backendParams.set("pnrNumber", ticketNumber.trim());
     }
 
     const backendUrl = `${API_BASE}/api/tickets/empresa/${encodeURIComponent(empresaId)}${backendParams.toString() ? `?${backendParams.toString()}` : ""}`;
