@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import EDPPDFButton from "@/components/edp-pdf"
 import {
     Dialog,
     DialogContent,
@@ -26,7 +27,10 @@ import {
     RefreshCcw,
     Edit,
     Percent,
-    Trash2
+    Trash2,
+    MoreHorizontal,
+    Pencil,
+    Plus
 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
@@ -42,6 +46,12 @@ import * as XLSX from "xlsx";
 import ToolBar from "./tool-bar";
 
 import { Eye } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 
 type EstadoCuentaType = {
     id: number;
@@ -58,6 +68,12 @@ type EstadoCuentaType = {
     fecha_pago?: string;
     suma_devoluciones?: number; // NUEVO: Campo añadido
     porcentaje_descuento?: number;
+    empresa?: {
+        id: number;
+        nombre: string;
+        rut: string;
+        cuenta_corriente: string;
+    }
 };
 
 export function EstadoPago() {
@@ -825,8 +841,7 @@ export function EstadoPago() {
                                     <TableHead>Monto Facturado</TableHead>
                                     <TableHead>Suma Devoluciones</TableHead>
                                     {user?.role === "superuser" && <TableHead>Descuento</TableHead>}
-                                    {/* <TableHead>Pagado</TableHead> */}
-                                    <TableHead>Detalles</TableHead>
+                                    <TableHead>Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -850,17 +865,34 @@ export function EstadoPago() {
                                                 />
                                             </TableCell>
                                         )}
-                                        {/* <TableCell>{ec.pagado ? "Sí" : "No"}</TableCell> */}
+
                                         <TableCell>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openDetailDialog(ec.id)}
-                                                    className={`h-8 px-3`}
-                                                >
-                                                    <Eye className="h-3 w-3" />
-                                                </Button>
+                                            <div className="flex justify-end">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8"
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+
+                                                    <DropdownMenuContent align="end" className="w-44">
+                                                        <DropdownMenuItem
+                                                            onClick={() => openDetailDialog(ec.id)}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <Eye className="h-3 w-3" />
+                                                            Detalles
+                                                        </DropdownMenuItem>
+
+                                                        <DropdownMenuItem>
+                                                            <EDPPDFButton id={ec.id} nombre={ec.empresa?.nombre ?? "sistema"} cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"} periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`} />
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </TableCell>
                                     </TableRow>
