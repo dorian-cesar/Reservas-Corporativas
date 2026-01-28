@@ -98,6 +98,8 @@ export function SuperCompanies() {
     expirationDay: number;
     max: number;
     count: number
+    saldo_actual?: number;
+    saldo_restante?: number;
   };
 
   const swalConfig = {
@@ -215,7 +217,9 @@ export function SuperCompanies() {
           billingDay: empresa.dia_facturacion,
           expirationDay: empresa.dia_vencimiento,
           max: empresa.monto_maximo,
-          count: empresa.monto_acumulado
+          count: empresa.monto_acumulado,
+          saldo_actual: empresa.saldo_actual || 0,          // Añadir esto
+          saldo_restante: empresa.saldo_restante || 0       // Añadir esto
         }));
 
         setCompanies(empresas);
@@ -277,6 +281,15 @@ export function SuperCompanies() {
       max: "100000",
       count: "0"
     });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   const handleAdd = async () => {
@@ -1195,20 +1208,24 @@ export function SuperCompanies() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <Percent className="h-3 w-3" />
-                      Recargo
-                    </div>
-                    <p className="text-2xl font-bold">{company.surchargePercentage}%</p>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <Percent className="h-3 w-3" />
-                      Devolución
-                    </div>
-                    <p className="text-2xl font-bold">{formatPercent(Number(company.returnPercentage) || 0)}%</p>
-                  </div>
+                  {user?.role !== "admin" && (
+                    <>
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                          <Percent className="h-3 w-3" />
+                          Recargo
+                        </div>
+                        <p className="text-2xl font-bold">{company.surchargePercentage}%</p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                          <Percent className="h-3 w-3" />
+                          Devolución
+                        </div>
+                        <p className="text-2xl font-bold">{formatPercent(Number(company.returnPercentage) || 0)}%</p>
+                      </div>
+                    </>
+                  )}
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Día de Facturación
@@ -1281,12 +1298,13 @@ export function SuperCompanies() {
                   <TableHead>ID</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Recargo</TableHead>
-                  <TableHead>Devolución</TableHead>
+                  {user?.role !== "admin" && <TableHead>Recargo</TableHead>}
+                  {user?.role !== "admin" && <TableHead>Devolución</TableHead>}
                   <TableHead>Día Facturación</TableHead>
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
+                  <TableHead>Saldo disponible</TableHead>
                   {(user?.role !== "admin" && user?.role !== "contralor") && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
@@ -1309,18 +1327,23 @@ export function SuperCompanies() {
                     <TableCell>
                       {getStatusBadge(company.state)}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{company.surchargePercentage}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Percent className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
-                      </div>
-                    </TableCell>
+                    {user?.role !== "admin" && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">{company.surchargePercentage}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    {user?.role !== "admin" && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Percent className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
+                        </div>
+                      </TableCell>
+                    )}
+
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{company.billingDay || 0}</span>
@@ -1339,6 +1362,11 @@ export function SuperCompanies() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{formatNumber(company.count) || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{formatCurrency(company.saldo_restante || 0)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
