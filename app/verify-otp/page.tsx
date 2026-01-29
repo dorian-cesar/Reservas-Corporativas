@@ -79,6 +79,8 @@ export default function VerifyOtpPage() {
       router.push("/auditoria");
     } else if (role === "contralor") {
       router.push("/controller");
+    } else if (role === "admincc") {
+      router.push("/admincc");
     } else {
       router.push("/dashboard");
     }

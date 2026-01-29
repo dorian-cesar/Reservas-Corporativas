@@ -731,7 +731,7 @@ export function SuperCompanies() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives })}
-        primaryAction={(user?.role !== "admin" && user?.role !== "contralor") ? {
+        primaryAction={(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") ? {
           label: "Agregar Empresa",
           icon: <Plus className="h-4 w-4" />,
           onClick: openAddDialog,
@@ -1258,7 +1258,7 @@ export function SuperCompanies() {
                   </div>
                 </div>
 
-                {(user?.role !== "admin" && user?.role !== "contralor") && (
+                {(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -1305,7 +1305,7 @@ export function SuperCompanies() {
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
                   <TableHead>Saldo disponible</TableHead>
-                  {(user?.role !== "admin" && user?.role !== "contralor") && (<TableHead>Acciones</TableHead>)}
+                  {(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (<TableHead>Acciones</TableHead>)}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1372,7 +1372,7 @@ export function SuperCompanies() {
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         {
-                          (user?.role !== "admin" && user?.role !== "contralor") && (
+                          (user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (
                             <Button
                               variant="outline"
                               size="sm"
