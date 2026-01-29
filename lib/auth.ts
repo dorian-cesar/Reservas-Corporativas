@@ -11,7 +11,8 @@ export type UserRole =
   | "empresa"
   | "subusuario"
   | "auditoria"
-  | "contralor";
+  | "contralor"
+  | "admincc";
 
 export interface User {
   id: string;

@@ -66,6 +66,8 @@ export default function LoginPage() {
         router.push("/auditoria");
       } else if (role === "contralor") {
         router.push("/controller");
+      } else if (role === "admincc") {
+        router.push("/admincc");
       } else {
         router.push("/dashboard");
       }

@@ -61,6 +61,7 @@ export function Header({ onLogout }: HeaderProps) {
                 {user?.role === "empresa" && "Empresa"}
                 {user?.role === "admin" && "Administrador"}
                 {user?.role === "superuser" && "Super Usuario"}
+                {user?.role === "admincc" && "AdminCC"}
                 {user?.companyName && ` - ${user.companyName}`}
               </p>
             </div>

@@ -867,32 +867,22 @@ export function EstadoPago() {
                                         )}
 
                                         <TableCell>
-                                            <div className="flex justify-end">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                        >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
+                                            <div className="flex justify-end gap-4">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => openDetailDialog(ec.id)}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
 
-                                                    <DropdownMenuContent align="end" className="w-44">
-                                                        <DropdownMenuItem
-                                                            onClick={() => openDetailDialog(ec.id)}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            <Eye className="h-3 w-3" />
-                                                            Detalles
-                                                        </DropdownMenuItem>
-
-                                                        <DropdownMenuItem>
-                                                            <EDPPDFButton id={ec.id} nombre={ec.empresa?.nombre ?? "sistema"} cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"} periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`} />
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <EDPPDFButton
+                                                    id={ec.id}
+                                                    nombre={ec.empresa?.nombre ?? "sistema"}
+                                                    cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"}
+                                                    periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`}
+                                                />
                                             </div>
                                         </TableCell>
                                     </TableRow>

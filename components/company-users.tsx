@@ -802,6 +802,7 @@ export function CompanyUsers() {
                   {user?.role !== "admin" && <option value="empresa">Empresa</option>}
                   {user?.role !== "admin" && <option value="auditoria">Auditoría</option>}
                   {user?.role !== "admin" && <option value="contralor">Contralor</option>}
+                  {user?.role !== "admin" && <option value="admincc">AdminCC</option>}
                   <option value="subusuario">Usuario</option>
                 </select>
               </div>
@@ -1515,6 +1516,11 @@ export function CompanyUsers() {
                 {
                   user?.role !== "admin" && (
                     <option value="contralor">Contralor</option>
+                  )
+                }
+                                {
+                  user?.role !== "admin" && (
+                    <option value="admincc">AdminCC</option>
                   )
                 }
                 <option value="subusuario">usuario</option>
