@@ -1510,7 +1510,7 @@ export function SuperCompanies() {
                   min="0"
                   max="31"
                   placeholder="5"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.billingDay}
                   onChange={(e) => {
                     setFormData({
