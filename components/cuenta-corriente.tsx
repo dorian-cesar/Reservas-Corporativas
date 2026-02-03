@@ -49,7 +49,7 @@ import ToolBar from "./tool-bar";
 import { PagarDialog } from "./pagar-dialog";
 
 export function CurrentAccounts() {
-  const { token } = useAuth.getState();
+  const { user, token } = useAuth.getState();
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
@@ -421,15 +421,18 @@ export function CurrentAccounts() {
         companySelectPlaceholder="Selecciona una empresa..."
         loadingCompanies={loadingCompanies}
         refreshAction={() => selectedCompany && fetchMovements(selectedCompany, pagination.page, pagination.limit)}
-        primaryAction={{
-          label: "Nuevo Movimiento",
-          icon: <Plus className="h-4 w-4" />,
-          onClick: openAddDialog,
-          disabled: !selectedCompany,
-        }}
+        primaryAction={
+          user?.role !== "admincc" ?
+            {
+              label: "Nuevo Movimiento",
+              icon: <Plus className="h-4 w-4" />,
+              onClick: openAddDialog,
+              disabled: !selectedCompany,
+            } :
+            undefined
+        }
       />
 
-      {/* Filtros de búsqueda */}
       {selectedCompany && (
         <Card className="mb-4">
           <CardContent className="p-4">
@@ -779,7 +782,7 @@ export function CurrentAccounts() {
                       <TableHead>Referencia</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                      {user?.role !== "admincc" && <TableHead className="text-right">Acciones</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -817,23 +820,28 @@ export function CurrentAccounts() {
                         </TableCell>
 
                         {/* COLUMNA ACCIONES */}
-                        <TableCell className="text-right">
-                          {movement.tipo_movimiento === 'cargo' && !movement.pagado ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePagarClick(movement)}
-                              className="h-7 px-2 text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400"
-                            >
-                              <DollarSign className="h-3 w-3 mr-1" />
-                              Pagar
-                            </Button>
-                          ) : movement.tipo_movimiento === 'cargo' && movement.pagado ? (
-                            <span className="text-xs text-green-600">✓</span>
-                          ) : (
-                            <span className="text-xs text-gray-400">-</span>
-                          )}
-                        </TableCell>
+                        {user?.role !== "admincc" &&
+                          (
+                            <TableCell className="text-right">
+                              {movement.tipo_movimiento === 'cargo' && !movement.pagado ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handlePagarClick(movement)}
+                                  className="h-7 px-2 text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400"
+                                >
+                                  <DollarSign className="h-3 w-3 mr-1" />
+                                  Pagar
+                                </Button>
+                              ) : movement.tipo_movimiento === 'cargo' && movement.pagado ? (
+                                <span className="text-xs text-green-600">✓</span>
+                              ) : (
+                                <span className="text-xs text-gray-400">-</span>
+                              )}
+                            </TableCell>
+                          )
+                        }
+
                       </TableRow>
                     ))}
                   </TableBody>

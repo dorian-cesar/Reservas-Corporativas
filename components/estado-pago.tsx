@@ -294,7 +294,7 @@ export function EstadoPago() {
         };
 
         const calcularMontos = () => {
-            const montoOriginal = Number(estadoCuenta.monto_facturado);
+            const montoOriginal = Number(estadoCuenta.monto_facturado) - (estadoCuenta.suma_devoluciones ?? 0);
             const porcentajeNum = Number(porcentaje) || 0;
 
             if (porcentajeNum <= 0) return null;
@@ -840,7 +840,7 @@ export function EstadoPago() {
                                     <TableHead>Total Anulados</TableHead>
                                     <TableHead>Monto Facturado</TableHead>
                                     <TableHead>Suma Devoluciones</TableHead>
-                                    {user?.role === "superuser" && <TableHead>Descuento</TableHead>}
+                                    {(user?.role === "superuser" || user?.role === "admincc") && <TableHead>Descuento</TableHead>}
                                     <TableHead>Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -857,7 +857,7 @@ export function EstadoPago() {
                                         <TableCell>{ec.total_tickets_anulados}</TableCell>
                                         <TableCell>{formatCurrency(ec.monto_facturado)}</TableCell>
                                         <TableCell>{formatCurrency(ec.suma_devoluciones ?? 0)}</TableCell>
-                                        {user?.role === "superuser" && (
+                                        {(user?.role === "superuser" || user?.role === "admincc") && (
                                             <TableCell>
                                                 <DescuentoDialog
                                                     estadoCuenta={ec}
