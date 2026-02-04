@@ -1454,7 +1454,7 @@ export function SuperCompanies() {
                   min="0"
                   max="100"
                   placeholder="0"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.surchargePercentage}
                   onChange={(e) => {
                     setFormData({
@@ -1472,7 +1472,7 @@ export function SuperCompanies() {
                   min="0"
                   max="100"
                   placeholder="0"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.returnPercentage}
                   onChange={(e) => {
                     setFormData({
@@ -1488,7 +1488,7 @@ export function SuperCompanies() {
                   id="rut"
                   type="text"
                   placeholder="123456789-0"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.rut}
                   onChange={(e) => {
                     setFormData({
@@ -1528,7 +1528,7 @@ export function SuperCompanies() {
                   min="0"
                   max="31"
                   placeholder="15"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.expirationDay}
                   onChange={(e) => {
                     setFormData({
@@ -1568,7 +1568,6 @@ export function SuperCompanies() {
                   className="bg-gray-100 cursor-not-allowed"
                   readOnly
                 />
-                <p className="text-xs text-muted-foreground">Este campo no se puede editar</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="current_account">Cuenta Corriente</Label>
@@ -1576,7 +1575,7 @@ export function SuperCompanies() {
                   id="current_account"
                   type="text"
                   placeholder="ABCD-0"
-                  required
+                  disabled={user?.role !== "superuser"}
                   value={formData.current_account}
                   onChange={(e) => {
                     setFormData({
