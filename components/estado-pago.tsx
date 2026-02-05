@@ -294,7 +294,7 @@ export function EstadoPago() {
         };
 
         const calcularMontos = () => {
-            const montoOriginal = Number(estadoCuenta.monto_facturado) - (estadoCuenta.suma_devoluciones ?? 0);
+            const montoOriginal = Number(estadoCuenta.monto_facturado) || 0;
             const porcentajeNum = Number(porcentaje) || 0;
 
             if (porcentajeNum <= 0) return null;
