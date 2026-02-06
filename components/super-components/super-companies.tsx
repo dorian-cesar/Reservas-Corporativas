@@ -1356,12 +1356,12 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatNumber(company.max) || 0}</span>
+                        <span className="font-medium">{formatCurrency(company.max) || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatNumber(company.count) || 0}</span>
+                        <span className="font-medium">{formatCurrency(company.count) || 0}</span>
                       </div>
                     </TableCell>
                     <TableCell>
