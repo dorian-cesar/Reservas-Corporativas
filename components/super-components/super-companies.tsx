@@ -73,6 +73,7 @@ export function SuperCompanies() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [showInactives, setShowInactives] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -294,15 +295,13 @@ export function SuperCompanies() {
 
   const handleAdd = async () => {
     if (!formData.name) {
-      toast({
-        title: "Error",
-        description: "Por favor complete todos los campos requeridos",
-        variant: "destructive",
-      });
+      setAddError("Por favor complete todos los campos requeridos");
       return;
     }
 
     try {
+      setAddError(null);
+
       const res = await fetch("/api/companies", {
         method: "POST",
         headers: {
@@ -323,22 +322,29 @@ export function SuperCompanies() {
         }),
       });
 
-      if (!res.ok) throw new Error("Error al crear empresa");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Error al crear empresa");
+      }
 
       setIsAddDialogOpen(false);
       resetForm();
+
       toast({
         title: "Empresa agregada",
         description: `${formData.name} ha sido agregada exitosamente`,
       });
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudo agregar la empresa",
-        variant: "destructive",
+
+      fetchCompanies({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        includeInactives: showInactives
       });
+
+    } catch (err: any) {
+      setAddError(err.message);
     }
   };
 
@@ -704,9 +710,10 @@ export function SuperCompanies() {
   };
 
   const openAddDialog = () => {
-    resetForm()
-    setIsAddDialogOpen(true)
-  }
+    resetForm();
+    setAddError(null); // limpiar error anterior
+    setIsAddDialogOpen(true);
+  };
 
   const getStatusBadge = (state: boolean) => {
     return state ? (
@@ -1170,6 +1177,11 @@ export function SuperCompanies() {
               </div>
             </div>
           </div>
+          {addError && (
+            <div className="mb-4 p-3 rounded-md bg-red-100 text-red-800 border border-red-300 text-sm">
+              {addError}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancelar
