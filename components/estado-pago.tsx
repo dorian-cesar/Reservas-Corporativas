@@ -91,6 +91,7 @@ export function EstadoPago() {
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoadingTickets, setIsLoadingTickets] = useState(false);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const [ticketsPagination, setTicketsPagination] = useState({
         page: 1,
@@ -605,6 +606,7 @@ export function EstadoPago() {
         if (!cuenta) return;
 
         try {
+            setIsExporting(true);
             // Obtener todos los tickets sin paginación
             const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -658,6 +660,9 @@ export function EstadoPago() {
                 description: (err as Error).message,
                 variant: "destructive"
             });
+            setIsExporting(false);
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -665,6 +670,7 @@ export function EstadoPago() {
         if (!cuenta) return;
 
         try {
+            setIsExporting(true);
             // Obtener todos los tickets sin paginación
             const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -715,6 +721,9 @@ export function EstadoPago() {
                 description: (err as Error).message,
                 variant: "destructive"
             });
+            setIsExporting(false);
+        } finally {
+            setIsExporting(false);
         }
     };
 
@@ -1103,14 +1112,16 @@ export function EstadoPago() {
                                     <Button
                                         onClick={() => exportAllTicketsToCSV(selectedCuenta)}
                                         className="bg-accent hover:bg-accent/90"
+                                        disabled={isExporting}
                                     >
-                                        Exportar CSV
+                                        {isExporting ? "Exportando..." : "Exportar CSV"}
                                     </Button>
                                     <Button
                                         onClick={() => exportAllTicketsToXLSX(selectedCuenta)}
                                         className="bg-accent hover:bg-accent/90"
+                                        disabled={isExporting}
                                     >
-                                        Exportar XLSX
+                                        {isExporting ? "Exportando..." : "Exportar XLSX"}
                                     </Button>
                                 </>
                             )}
