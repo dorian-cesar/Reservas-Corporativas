@@ -30,7 +30,8 @@ import {
     Trash2,
     MoreHorizontal,
     Pencil,
-    Plus
+    Plus,
+    ChevronsUpDown
 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
@@ -52,6 +53,9 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { set } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command";
 
 type EstadoCuentaType = {
     id: number;
@@ -92,6 +96,8 @@ export function EstadoPago() {
     const [isLoadingTickets, setIsLoadingTickets] = useState(false);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
 
     const [ticketsPagination, setTicketsPagination] = useState({
         page: 1,
@@ -101,6 +107,12 @@ export function EstadoPago() {
         hasNextPage: false,
         hasPrevPage: false,
     });
+
+    const [formData, setFormData] = useState({
+        empresa_id: "",
+        fecha_desde: "",
+        fecha_hasta: "",
+    })
 
 
     const { toast } = useToast();
@@ -157,6 +169,64 @@ export function EstadoPago() {
             setEstadosCuenta([]);
         } finally { setIsLoading(false); }
     };
+
+    const resetForm = () => {
+        setFormData({
+            empresa_id: "",
+            fecha_desde: "",
+            fecha_hasta: "",
+        })
+    }
+
+    const handleAdd = async (e?: React.FormEvent) => {
+        if (e) {
+            e.preventDefault();
+        }
+
+        if (!formData.empresa_id || !formData.fecha_desde || !formData.fecha_hasta) {
+            toast({ title: "Error", description: "Complete todos los campos", variant: "destructive" });
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const res = await fetch(`api/estado-cuenta`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    empresa_id: formData.empresa_id,
+                    fecha_desde: formData.fecha_desde,
+                    fecha_hasta: formData.fecha_hasta
+                })
+            })
+
+            if (!res.ok) throw new Error("Error al crear estado de cuenta");
+
+            setIsAddDialogOpen(false);
+            resetForm();
+            toast({ title: "Estado de cuenta creado", description: `Estado de cuenta creado exitosamente` });
+
+        } catch (err) {
+            toast({ title: "Error", description: (err as Error).message, variant: "destructive" });
+            console.error("Error al crear estado de cuenta:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const openAddDialog = () => {
+        setFormData({
+            empresa_id: empresaId || "",
+            fecha_desde: "",
+            fecha_hasta: "",
+        })
+
+        setIsAddDialogOpen(true)
+    }
 
     const fetchTicketsDeEstadoCuenta = async (estadoCuentaId: number, page?: number, limit?: number) => {
         setIsLoadingTickets(true);
@@ -743,12 +813,20 @@ export function EstadoPago() {
                 loadingCompanies={loadingCompanies}
 
                 refreshAction={() => empresaId && fetchEstadosCuenta(Number(empresaId), { desde: dateDesde, hasta: dateHasta })}
-                secondaryAction={{
-                    label: "Exportar",
-                    icon: <Download className="h-4 w-4" />,
-                    onClick: () => setIsExportDialogOpen(true),
-                    disabled: !empresaId || estadosCuenta.length === 0
-                }}
+                secondaryActions={[
+                    {
+                        label: "Exportar",
+                        icon: <Download className="h-4 w-4" />,
+                        onClick: () => setIsExportDialogOpen(true),
+                        disabled: !empresaId || estadosCuenta.length === 0
+                    },
+                    {
+                        label: "Crear Estado de Cuenta",
+                        icon: <Plus className="h-4 w-4" />,
+                        onClick: openAddDialog,
+                        disabled: !empresaId || isLoading
+                    }
+                ]}
             />
 
             {!isLoading && !empresaId && (
@@ -836,6 +914,98 @@ export function EstadoPago() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <div className={`space-y-4 p-4 border rounded-lg bg-card ${isAddDialogOpen ? '' : 'hidden'
+                }`}>
+                <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Agregar Nuevo Centro de Costo</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Complete los datos del centro de costo
+                    </p>
+                </div>
+
+                <form onSubmit={handleAdd} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="empresa_id">Empresa *</Label>
+
+                        <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={companyPopoverOpen}
+                                    className="w-full justify-between bg-white"
+                                >
+                                    {formData.empresa_id
+                                        ? `${companies.find(c => c.id === formData.empresa_id)?.id || ''} - ${companies.find(c => c.id === formData.empresa_id)?.nombre || ''}`
+                                        : "Selecciona una empresa"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar empresa..." />
+                                    <CommandList>
+                                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                                        <CommandGroup>
+                                            {companies.map((company) => (
+                                                <CommandItem
+                                                    key={company.id}
+                                                    value={`${company.id} ${company.nombre}`}
+                                                    onSelect={() => {
+                                                        setFormData({ ...formData, empresa_id: company.id });
+                                                        setCompanyPopoverOpen(false);
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    {company.id} - {company.nombre}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="fecha_desde">Fecha Desde</Label>
+                        <Input
+                            type="date"
+                            id="fecha_desde"
+                            value={formData.fecha_desde}
+                            onChange={(e) => setFormData({ ...formData, fecha_desde: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="fecha_desde">Fecha Hasta</Label>
+                        <Input
+                            type="date"
+                            id="fecha_hasta"
+                            value={formData.fecha_hasta}
+                            onChange={(e) => setFormData({ ...formData, fecha_hasta: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => { setIsAddDialogOpen(false) }}
+                            disabled={isLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="bg-accent hover:bg-accent/90"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Agregando..." : "Agregar"}
+                        </Button>
+                    </div>
+                </form>
+            </div>
 
             {!isLoading && estadosCuenta.length > 0 && viewMode === "table" && (
                 <Card>

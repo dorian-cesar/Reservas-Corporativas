@@ -101,6 +101,7 @@ export function SuperCompanies() {
     count: number
     saldo_actual?: number;
     saldo_restante?: number;
+    fact_manual?: boolean;
   };
 
   const swalConfig = {
@@ -142,7 +143,8 @@ export function SuperCompanies() {
     billingDay: "5",
     expirationDay: "15",
     max: "100000",
-    count: "0"
+    count: "0",
+    fact_manual: false
   })
 
   useEffect(() => {
@@ -220,7 +222,8 @@ export function SuperCompanies() {
           max: empresa.monto_maximo,
           count: empresa.monto_acumulado,
           saldo_actual: empresa.saldo_actual || 0,          // Añadir esto
-          saldo_restante: empresa.saldo_restante || 0       // Añadir esto
+          saldo_restante: empresa.saldo_restante || 0,       // Añadir esto
+          fact_manual: empresa.fact_manual || false
         }));
 
         setCompanies(empresas);
@@ -280,7 +283,8 @@ export function SuperCompanies() {
       billingDay: "5",
       expirationDay: "15",
       max: "100000",
-      count: "0"
+      count: "0",
+      fact_manual: false
     });
   };
 
@@ -318,7 +322,8 @@ export function SuperCompanies() {
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
-          monto_acumulado: Number(formData.count)
+          monto_acumulado: Number(formData.count),
+          fact_manual: formData.fact_manual
         }),
       });
 
@@ -377,6 +382,7 @@ export function SuperCompanies() {
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
+          fact_manual: formData.fact_manual
         }),
       });
 
@@ -705,6 +711,7 @@ export function SuperCompanies() {
       expirationDay: company.expirationDay?.toString() ?? "0",
       max: company.max?.toString() ?? "0",
       count: company.count?.toString() ?? "0",
+      fact_manual: Boolean(company.fact_manual)
     });
     setIsEditDialogOpen(true);
   };
@@ -1175,6 +1182,23 @@ export function SuperCompanies() {
                   }}
                 />
               </div>
+              <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="fact-manual-add"
+                    checked={formData.fact_manual}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, fact_manual: checked })
+                    }
+                  />
+                  <Label htmlFor="fact-manual-add" className="cursor-pointer">
+                    Facturación Manual
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Si se activa, no se generará facturación automática)
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
           {addError && (
@@ -1596,6 +1620,24 @@ export function SuperCompanies() {
                     });
                   }}
                 />
+              </div>
+              <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="fact-manual-edit"
+                    checked={formData.fact_manual}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, fact_manual: checked })
+                    }
+                    disabled={user?.role !== "superuser"} // Solo superuser puede cambiar esto
+                  />
+                  <Label htmlFor="fact-manual-edit" className="cursor-pointer">
+                    Facturación Manual
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Si se activa, no se generará facturación automática)
+                  </span>
+                </div>
               </div>
             </div>
           </div>
