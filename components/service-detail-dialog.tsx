@@ -733,7 +733,7 @@ export function ServiceDetailDialog({
 
         const payload = {
           ticketNumber: confirmData.ticketNumber,
-          pnrNumber: confirmData.operatorPnr,
+          pnrNumber: confirmData.ticketNumber,
           ticketStatus: confirmData.ticketStatus,
           origin: confirmData.origin,
           destination: confirmData.destination,
