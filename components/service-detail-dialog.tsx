@@ -64,7 +64,7 @@ export function ServiceDetailDialog({
   const { token } = useAuth();
   const router = useRouter();
   const [serviceDetail, setServiceDetail] = useState<ServiceDetail | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -120,7 +120,7 @@ export function ServiceDetailDialog({
     backdrop: true,
     didOpen: () => {
       const container = document.querySelector(
-        ".swal-container"
+        ".swal-container",
       ) as HTMLElement;
       const popup = document.querySelector(".swal-popup") as HTMLElement;
       const modal = document.querySelector('[role="dialog"]') as HTMLElement;
@@ -201,12 +201,12 @@ export function ServiceDetailDialog({
     if (open && tripType === "return") {
       // Obtener las reservas de ida del localStorage
       const storedBookings = JSON.parse(
-        localStorage.getItem("completedBookings") || "[]"
+        localStorage.getItem("completedBookings") || "[]",
       );
 
       // Buscar la reserva de ida
       const departureBooking = storedBookings.find(
-        (booking: any) => booking.tripType === "departure"
+        (booking: any) => booking.tripType === "departure",
       );
 
       if (departureBooking?.passengers?.length > 0) {
@@ -224,7 +224,7 @@ export function ServiceDetailDialog({
     ) {
       setBookingError(
         `Para el viaje de vuelta, solo puedes seleccionar hasta ${savedPassengers.length} asiento(s) 
-        (el mismo número de pasajeros del viaje de ida)`
+        (el mismo número de pasajeros del viaje de ida)`,
       );
 
       // Remover asientos extras
@@ -248,7 +248,7 @@ export function ServiceDetailDialog({
           if (savedPassenger) {
             console.log(
               `Asignando pasajero guardado al asiento ${seat}:`,
-              savedPassenger
+              savedPassenger,
             );
           }
 
@@ -299,7 +299,7 @@ export function ServiceDetailDialog({
       setError(
         err instanceof Error
           ? err.message
-          : "Error al cargar detalles del servicio"
+          : "Error al cargar detalles del servicio",
       );
     } finally {
       setLoadingDetail(false);
@@ -319,7 +319,13 @@ export function ServiceDetailDialog({
       };
 
       const precioConRecargo = extractPriceForVerification(service.cost);
-      const precioTotal = precioConRecargo * Math.min(MAX_SEATS, 5);
+      const precioTotal =
+        selectedSeats.length > 0
+          ? selectedSeats.reduce((total, seatNumber) => {
+              const seat = parseSeats().find((s) => s.number === seatNumber);
+              return total + (seat?.price || precioConRecargo);
+            }, 0)
+          : precioConRecargo;
 
       const res = await fetch("/api/disponibilidad", {
         method: "POST",
@@ -342,10 +348,10 @@ export function ServiceDetailDialog({
           html: `
           <b>La empresa ha excedido su límite de gasto.</b><br><br>
           Monto máximo: $${data.detalles.monto_maximo.toLocaleString(
-            "es-CL"
+            "es-CL",
           )}<br>
           Acumulado: $${data.detalles.monto_acumulado.toLocaleString(
-            "es-CL"
+            "es-CL",
           )}<br>
           Nuevo ticket: $${data.detalles.monto_ticket.toLocaleString("es-CL")}
         `,
@@ -405,7 +411,7 @@ export function ServiceDetailDialog({
     const totalSeats = serviceDetail.bus_layout.total_seats;
     const availableSeats = parseSeats().map((seat) => seat.number);
     const allSeats = Array.from({ length: totalSeats }, (_, i) =>
-      (i + 1).toString()
+      (i + 1).toString(),
     );
 
     return allSeats.filter((seat) => !availableSeats.includes(seat));
@@ -442,10 +448,10 @@ export function ServiceDetailDialog({
 
   const showSweetAlert = async (config: any) => {
     const modalBackdrops = document.querySelectorAll(
-      '[data-state="open"][data-aria-hidden="true"]'
+      '[data-state="open"][data-aria-hidden="true"]',
     );
     const dialogBackdrops = document.querySelectorAll(
-      '[data-aria-hidden="true"]'
+      '[data-aria-hidden="true"]',
     );
     const allBackdrops = [...modalBackdrops, ...dialogBackdrops];
     const originalStyles: any[] = [];
@@ -555,16 +561,16 @@ export function ServiceDetailDialog({
   const handlePassengerSelected = (passengerId: string, passenger: any) => {
     setPassengersData((prev) =>
       prev.map((p) =>
-        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p
-      )
+        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p,
+      ),
     );
   };
 
   const handlePassengerCreated = (passengerId: string, passenger: any) => {
     setPassengersData((prev) =>
       prev.map((p) =>
-        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p
-      )
+        p.id === passengerId ? { ...p, passenger, completed: !!passenger } : p,
+      ),
     );
   };
 
@@ -633,7 +639,7 @@ export function ServiceDetailDialog({
       // Reservar cada asiento
       for (const passengerData of passengersData) {
         const seatObj = availableSeats.find(
-          (s) => s.number === passengerData.seat
+          (s) => s.number === passengerData.seat,
         );
         const seatPrice = seatObj?.basePrice || 0;
 
@@ -671,15 +677,15 @@ export function ServiceDetailDialog({
             markSeatsAsUnavailable([passengerData.seat]);
 
             setSelectedSeats((prev) =>
-              prev.filter((seat) => seat !== passengerData.seat)
+              prev.filter((seat) => seat !== passengerData.seat),
             );
 
             setPassengersData((prev) =>
-              prev.filter((p) => p.seat !== passengerData.seat)
+              prev.filter((p) => p.seat !== passengerData.seat),
             );
 
             setBookingError(
-              `El asiento ${passengerData.seat} ya no está disponible. Posiblemente fue reservado por otro usuario. El asiento ha sido removido de tu selección.`
+              `El asiento ${passengerData.seat} ya no está disponible. Posiblemente fue reservado por otro usuario. El asiento ha sido removido de tu selección.`,
             );
 
             if (passengersData.length > 1) {
@@ -693,7 +699,7 @@ export function ServiceDetailDialog({
           throw new Error(
             `Error al reservar el asiento ${passengerData.seat}: ${
               bookData?.error || "Error desconocido"
-            }`
+            }`,
           );
         }
 
@@ -720,7 +726,7 @@ export function ServiceDetailDialog({
           throw new Error(
             `Error al confirmar reserva para asiento ${booking.seat}: ${
               confirmData.error || "Error desconocido"
-            }`
+            }`,
           );
         }
 
@@ -808,7 +814,7 @@ export function ServiceDetailDialog({
 
       // Guardar en localStorage
       const storedBookings = JSON.parse(
-        localStorage.getItem("completedBookings") || "[]"
+        localStorage.getItem("completedBookings") || "[]",
       );
       storedBookings.push(currentBooking);
       localStorage.setItem("completedBookings", JSON.stringify(storedBookings));
@@ -837,7 +843,7 @@ export function ServiceDetailDialog({
       setBookingError(
         err instanceof Error
           ? err.message
-          : "Error inesperado al procesar las reservas"
+          : "Error inesperado al procesar las reservas",
       );
     } finally {
       setLoading(false);
@@ -1169,13 +1175,13 @@ export function ServiceDetailDialog({
                             onPassengerSelected={(passenger) =>
                               handlePassengerSelected(
                                 passengerData.id,
-                                passenger
+                                passenger,
                               )
                             }
                             onPassengerCreated={(passenger) =>
                               handlePassengerCreated(
                                 passengerData.id,
-                                passenger
+                                passenger,
                               )
                             }
                             initialMode="buscar"
