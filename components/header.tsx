@@ -23,7 +23,8 @@ export function Header({ onLogout }: HeaderProps) {
   useTokenExpiration(30_000, 15 * 60 * 1000);
 
   const navigation = [
-    { name: "Inicio", href: "/portal" },
+    { name: "Inicio", href: "/" },
+    { name: "Buscar", href: "/portal" },
     { name: "Reservas", href: "/bookings" },
   ];
 
