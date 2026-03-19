@@ -225,17 +225,6 @@ export function ContactForm() {
                 </li>
               ))}
             </ul>
-
-            {/* Trust badge */}
-            {/* <div className="mt-10 rounded-2xl bg-secondary/5 border border-secondary/15 p-5">
-              <p className="text-sm font-semibold text-secondary mb-1">
-                Respuesta garantizada
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Nos comprometemos a responder todas las solicitudes dentro de
-                las 24 horas hábiles siguientes a su recepción.
-              </p>
-            </div> */}
           </div>
 
           {/* Right column: form */}
@@ -445,17 +434,6 @@ export function ContactForm() {
                     "Solicitar información"
                   )}
                 </Button>
-
-                {/* <p className="text-xs text-center text-muted-foreground">
-                  Al enviar este formulario aceptas nuestra{" "}
-                  <a
-                    href="/politicas-de-privacidad"
-                    className="underline hover:text-[#0739b3] transition-colors"
-                  >
-                    política de privacidad
-                  </a>
-                  .
-                </p> */}
               </div>
             </form>
           </div>

@@ -64,7 +64,7 @@ export function Navbar() {
               Iniciar sesión
             </a>
             <Button
-              className="rounded-full bg-primary hover:opacity-90 text-white px-5"
+              className="rounded-full bg-primary-pullman hover:bg-primary-pullman/90 text-white px-5"
               onClick={() => scrollToSection("contacto")}
             >
               Solicitar información
