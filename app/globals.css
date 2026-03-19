@@ -25,8 +25,8 @@
   /* Blue secondary for secondary buttons */
   --secondary: oklch(0.55 0.18 250);
   --secondary-foreground: oklch(1 0 0);
-  --primary-pullman: #023caf;
-  --secondary-pullman: #fa5e00;
+  --primary-pullman: #fa5e00;
+  --secondary-pullman: #023caf;
 
   --muted: oklch(0.96 0.01 210);
   --muted-foreground: oklch(0.5 0.02 240);
@@ -125,6 +125,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-primary-pullman: var(--primary-pullman);
+  --color-secondary-pullman: var(--secondary-pullman);
 }
 
 @layer base {
