@@ -141,8 +141,19 @@ export function FooterLanding() {
         {/* Bottom */}
         <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-sm text-white/40">
-            © 2026 Portal de Reservas Corporativas. Todos los derechos
-            reservados.
+            © {new Date().getFullYear()} Portal de Reservas Corporativas de
+            Pullman Bus. Todos los derechos reservados.
+          </p>
+          <p className="text-white/40 text-sm">
+            Desarrollado por{" "}
+            <a
+              href="https://wit.la"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/40 hover:text-primary transition-colors hover:underline"
+            >
+              WIT.la
+            </a>
           </p>
         </div>
       </div>
