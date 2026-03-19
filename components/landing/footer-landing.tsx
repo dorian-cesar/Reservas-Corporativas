@@ -34,13 +34,13 @@ const social = [
   },
 ];
 
-export function Footer() {
+export function FooterLanding() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <footer className="border-t border-border bg-secondary px-4 py-12 lg:px-8">
+    <footer className="border-t border-border bg-[#023caf] px-4 py-12 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           {/* Logo + tagline + social */}
@@ -164,7 +164,7 @@ export function Footer() {
       {/* Scroll to top */}
       <button
         onClick={scrollToTop}
-        className="fixed bottom-6 right-6 w-12 h-12 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 z-50"
+        className="fixed bottom-6 right-6 w-12 h-12 bg-[#fa5e00] text-secondary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 z-50"
         aria-label="Scroll to top"
       >
         <ArrowUp className="w-5 h-5" />

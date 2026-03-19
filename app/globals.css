@@ -25,6 +25,8 @@
   /* Blue secondary for secondary buttons */
   --secondary: oklch(0.55 0.18 250);
   --secondary-foreground: oklch(1 0 0);
+  --primary-pullman: #023caf;
+  --secondary-pullman: #fa5e00;
 
   --muted: oklch(0.96 0.01 210);
   --muted-foreground: oklch(0.5 0.02 240);

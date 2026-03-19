@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -16,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -39,11 +38,10 @@ export default function LoginPage() {
       if (!result.success) {
         if (result.requiresPasswordUpdate) {
           router.push(
-            `/change-password?userId=${result.passwordUpdateUserId}&reason=${result.passwordUpdateReason}&email=${encodeURIComponent(email)}`
+            `/change-password?userId=${result.passwordUpdateUserId}&reason=${result.passwordUpdateReason}&email=${encodeURIComponent(email)}`,
           );
           return;
         }
-
         setError(result.message ?? "Credenciales inválidas");
         return;
       }
@@ -90,11 +88,9 @@ export default function LoginPage() {
               height={100}
               className="object-contain"
             />
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Reservas Corporativas
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Reservas Corporativas
+            </p>
           </div>
         </div>
 
@@ -132,7 +128,6 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-
                 <div className="relative">
                   <Input
                     id="password"
@@ -143,7 +138,6 @@ export default function LoginPage() {
                     required
                     className="transition-all duration-200 focus:scale-[1.01] pr-10"
                   />
-
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -166,17 +160,17 @@ export default function LoginPage() {
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
-
-            {/* <div className="mt-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
-              <p className="font-medium text-foreground">Usuarios de prueba:</p>
-              <div className="space-y-1 text-muted-foreground">
-                <p>👤 Usuario: user@wit.la / 123456</p>
-                <p>👔 Controlador: controlador@wit.la / 123456</p>
-                <p>⚡ SuperUser: super@wit.la / 123456</p>
-              </div>
-            </div> */}
           </CardContent>
         </Card>
+        <div className="flex justify-center mt-4">
+          <a
+            href="/"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver al inicio
+          </a>
+        </div>
       </div>
 
       <img

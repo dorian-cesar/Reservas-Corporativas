@@ -1,46 +1,17 @@
-"use client";
+import { Navbar } from "@/components/landing/navbar";
+import { Hero } from "@/components/landing/hero";
+import { Benefits } from "@/components/landing/benefits";
+import { ContactForm } from "@/components/landing/contact-form";
+import { FooterLanding } from "@/components/landing/footer-landing";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth, useAuthHydration } from "@/lib/auth";
-
-export default function HomePage() {
-  const router = useRouter();
-  const isAuthenticated = useAuth((s) => s.isAuthenticated);
-  const hydrated = useAuthHydration();
-
-  useEffect(() => {
-    if (!hydrated) return;
-
-    if (isAuthenticated) {
-      const currentUser = useAuth.getState().user;
-      const role = currentUser?.role ?? "user";
-
-      if (role === "superuser") {
-        router.push("/superuser");
-      } else if (role === "admin") {
-        router.push("/admin");
-      } else if (role === "empresa") {
-        router.push("/empresa");
-      } else if (role === "auditoria") {
-        router.push("/auditoria");
-      } else if (role === "contralor") {
-        router.push("/controller");
-      } else {
-        router.push("/dashboard");
-      }
-    } else {
-      router.push("/login");
-    }
-  }, [hydrated, isAuthenticated, router]);
-
-  if (!hydrated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  return null;
+export default function LandingPage() {
+  return (
+    <>
+      <Navbar />
+      <Hero />
+      <Benefits />
+      <ContactForm />
+      <FooterLanding />
+    </>
+  );
 }

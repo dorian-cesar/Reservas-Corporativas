@@ -12,16 +12,17 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const hideLayout =
-    pathname === "/login"
-    || pathname === "/unauthorized"
-    || pathname === "/verify-otp"
-    || pathname.startsWith("/change-password");
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/unauthorized" ||
+    pathname === "/verify-otp" ||
+    pathname.startsWith("/change-password");
 
   return (
     <TravelProvider>
       <div className="min-h-screen flex flex-col">
         {!hideLayout && <Header />}
-        <main className="flex-1 bg-blue-50">{children}</main>
+        <main className="flex-1 bg-blue-50 min-h-screen">{children}</main>
         {!hideLayout && <Footer />}
       </div>
     </TravelProvider>

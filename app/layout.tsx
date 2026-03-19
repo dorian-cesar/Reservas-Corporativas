@@ -1,7 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import ClientLayout from "@/components/client-layout";
 import "./globals.css";
 
@@ -28,7 +27,6 @@ export default function RootLayout({
         className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <ClientLayout>{children}</ClientLayout>
-        <Analytics />
       </body>
     </html>
   );
