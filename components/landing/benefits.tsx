@@ -1,121 +1,214 @@
 import {
-  Tag,
-  CalendarCheck,
+  Building2,
+  Users,
+  UserCheck,
+  FileText,
   BarChart3,
-  HeadphonesIcon,
-  Globe,
-  CreditCard,
+  Clock,
+  Eye,
+  ClipboardList,
+  Zap,
+  Mail,
+  Receipt,
+  CheckCircle,
+  Sparkles,
 } from "lucide-react";
 
-const benefits = [
+const benefitsForCompany = [
   {
-    icon: Tag,
-    title: "Descuentos exclusivos",
+    icon: FileText,
+    title: "Consolidación",
     description:
-      "Hasta un 30% de descuento en todos los pasajes para colaboradores de empresas con convenio activo.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Reservas prioritarias",
-    description:
-      "Accede a asientos reservados y bloques de cupos asegurados en rutas de alta demanda.",
+      "Recibe una única factura mensual con el detalle de todos los viajes.",
   },
   {
     icon: BarChart3,
-    title: "Reportes en tiempo real",
+    title: "Control",
     description:
-      "Panel de control con historial de viajes, gastos por área y reportes descargables para tu contabilidad.",
+      "Supervisa los gastos por centro de costos y optimiza tu presupuesto.",
   },
   {
-    icon: HeadphonesIcon,
-    title: "Ejecutivo dedicado",
-    description:
-      "Cada empresa convenio cuenta con un ejecutivo de cuenta exclusivo disponible vía teléfono y email.",
-  },
-  {
-    icon: Globe,
-    title: "Cobertura nacional",
-    description:
-      "Más de 200 destinos en todo Chile, desde Arica hasta Punta Arenas, con salidas diarias.",
-  },
-  {
-    icon: CreditCard,
-    title: "Facturación centralizada",
-    description:
-      "Factura mensual consolidada para tu empresa. Simplifica la gestión administrativa de viajes.",
+    icon: Clock,
+    title: "Eficiencia",
+    description: "Reduce la carga administrativa y el manejo de efectivo.",
   },
 ];
 
-const stats = [
-  { value: "+500", label: "Empresas convenio" },
-  { value: "200+", label: "Destinos en Chile" },
-  { value: "30%", label: "Descuento promedio" },
-  { value: "15 años", label: "De experiencia" },
+const benefitsForAdmin = [
+  {
+    icon: Users,
+    title: "Autonomía",
+    description:
+      "Gestiona usuarios y permisos según las necesidades de tu equipo.",
+  },
+  {
+    icon: Eye,
+    title: "Visibilidad",
+    description: "Controla y visualiza el consumo de pasajes en tiempo real.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Reportes",
+    description: "Accede a informes detallados para un seguimiento preciso.",
+  },
+];
+
+const benefitsForColaborators = [
+  {
+    icon: Zap,
+    title: "Simplicidad",
+    description:
+      "Reservan sus pasajes en segundos, sin necesidad de dinero propio.",
+  },
+  {
+    icon: Mail,
+    title: "Comodidad",
+    description: "Reciben la confirmación inmediata en su correo.",
+  },
+  {
+    icon: Receipt,
+    title: "Cero Reembolsos",
+    description: "Sin guardar boletas y pedir devoluciones.",
+  },
+];
+
+const steps = [
+  {
+    step: "01",
+    title: "Activación",
+    desc: "Validamos el RUT de tu empresa y activamos tu cuenta corriente corporativa para que empieces a operar.",
+  },
+  {
+    step: "02",
+    title: "Reserva",
+    desc: "Tus colaboradores autorizados reservan sus pasajes en toda la red Pullmanbus, eligiendo origen, destino y horario.",
+  },
+  {
+    step: "03",
+    title: "Facturación",
+    desc: "Al final del período, recibes un informe consolidado con el detalle de todos los viajes, listo para facturar.",
+  },
 ];
 
 export function Benefits() {
   return (
     <>
-      {/* Stats bar */}
-      <section className="bg-primary py-10 px-4 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x md:divide-white/20">
-            {stats.map(({ value, label }) => (
-              <div key={label} className="text-center px-4">
-                <p className="text-3xl md:text-4xl font-bold text-white">{value}</p>
-                <p className="mt-1 text-sm text-white/60">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits grid */}
-      <section
-        id="beneficios"
-        className="py-20 px-4 lg:px-8 bg-background"
-      >
+      {/* Benefits section */}
+      <section id="beneficios" className="py-20 px-4 lg:px-8 bg-background">
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <div className="text-center mb-14 max-w-2xl mx-auto">
             <span className="inline-block rounded-full bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-secondary mb-4">
-              Características principales
+              Una plataforma, múltiples beneficios
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-              Todo lo que tu empresa necesita para gestionar viajes
+              Diseñamos una herramienta que simplifica la logística y la
+              burocracia de los viajes de negocios
             </h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              Plataforma diseñada para simplificar la gestión de viajes corporativos y maximizar control presupuestario.
-            </p>
           </div>
 
-          {/* Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {benefits.map(({ icon: Icon, title, description }) => (
-              <div
-                key={title}
-                className="group rounded-2xl border border-border bg-card p-7 hover:border-secondary/30 hover:shadow-lg transition-all duration-200"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/10 group-hover:bg-secondary/15 transition-colors">
-                  <Icon className="w-6 h-6 text-secondary" />
+          {/* Benefits grid by category */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Para la Empresa */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <Building2 className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="text-base font-semibold text-foreground mb-2">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Para la Empresa
+                </h3>
               </div>
-            ))}
+              <div className="space-y-5">
+                {benefitsForCompany.map(
+                  ({ icon: Icon, title, description }) => (
+                    <div key={title} className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
+                        <Icon className="w-4 h-4 text-secondary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          {title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {description}
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+
+            {/* Para el Administrador */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <UserCheck className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Para el Administrador
+                </h3>
+              </div>
+              <div className="space-y-5">
+                {benefitsForAdmin.map(({ icon: Icon, title, description }) => (
+                  <div key={title} className="flex items-start gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
+                      <Icon className="w-4 h-4 text-secondary" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground">
+                        {title}
+                      </h4>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Para los Colaboradores */}
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Para los Colaboradores
+                </h3>
+              </div>
+              <div className="space-y-5">
+                {benefitsForColaborators.map(
+                  ({ icon: Icon, title, description }) => (
+                    <div key={title} className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
+                        <Icon className="w-4 h-4 text-secondary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          {title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {description}
+                        </p>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section
-        id="como-funciona"
-        className="py-20 px-4 lg:px-8 bg-muted/40"
-      >
+      {/* <section id="como-funciona" className="py-20 px-4 lg:px-8 bg-muted/40">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-14 max-w-xl mx-auto">
             <span className="inline-block rounded-full bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-secondary mb-4">
-              Proceso simple
+              Empezar es muy simple
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
               Cómo funciona
@@ -123,50 +216,83 @@ export function Benefits() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            {/* Connector line on desktop */}
             <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px bg-border" />
 
-            {[
-              {
-                step: "01",
-                title: "Contacta con nuestro equipo",
-                desc: "Completa el formulario de contacto y un ejecutivo te llamará para entender las necesidades de tu empresa.",
-              },
-              {
-                step: "02",
-                title: "Configura tu portal",
-                desc: "Establecemos las condiciones y acceso. Tu equipo recibe credenciales en menos de 48 horas.",
-              },
-              {
-                step: "03",
-                title: "Comienza a reservar",
-                desc: "Accede al portal, gestiona reservas y controla tu presupuesto desde el primer día.",
-              },
-            ].map(({ step, title, desc }) => (
+            {steps.map(({ step, title, desc }) => (
               <div key={step} className="relative text-center">
                 <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-secondary/10 border border-secondary/20 shadow-sm">
-                  <span className="text-2xl font-bold text-secondary">{step}</span>
+                  <span className="text-2xl font-bold text-secondary">
+                    {step}
+                  </span>
                 </div>
-                <h3 className="text-base font-semibold text-foreground mb-2">{title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+                <h3 className="text-base font-semibold text-foreground mb-2">
+                  {title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* Logos / companies section */}
-      <section id="empresas" className="py-14 px-4 lg:px-8 bg-background border-y border-border">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="text-sm text-muted-foreground mb-8 font-medium uppercase tracking-widest">
-            Empresas que confían en nosotros
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 opacity-50 grayscale">
-            {["Codelco", "Falabella", "BCI", "Entel", "Sodimac", "Latam"].map((name) => (
-              <span key={name} className="text-lg font-bold text-foreground tracking-tight">
-                {name}
+      {/* What is section */}
+      <section className="py-20 px-4 lg:px-8 bg-background border-t border-border">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary mb-4">
+                Quiénes somos
               </span>
-            ))}
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance mb-6">
+                ¿Qué es Reservas Corporativas?
+              </h2>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                Es el portal de autogestión diseñado para optimizar la logística
+                terrestre de tu organización. Conectamos directamente con los
+                servicios de Pullmanbus, permitiendo que tus colaboradores
+                viajen por todo Chile sin necesidad de reembolsos ni pagos en
+                efectivo, utilizando una línea de crédito corporativa única.
+              </p>
+              <div className="space-y-3">
+                {[
+                  "Reservar pasajes en segundos, de forma autónoma",
+                  "Confirmación inmediata por correo electrónico",
+                  "Una sola factura mensual consolidada",
+                  "Control total de consumos en tiempo real",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-secondary shrink-0" />
+                    <span className="text-sm text-foreground">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div className="rounded-2xl bg-linear-to-br from-primary-pullman/5 to-secondary-pullman/5 border border-border p-8 lg:p-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-pullman/10">
+                    <Sparkles className="w-6 h-6 text-primary-pullman" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      ¿Para qué sirve?
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Elimina la fricción administrativa
+                    </p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Diseñamos esta herramienta para eliminar la fricción
+                  administrativa de los viajes de negocios. Tu equipo reserva
+                  pasajes sin usar dinero propio, el administrador controla
+                  consumos en tiempo real, y la empresa recibe una sola factura
+                  mensual consolidada.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

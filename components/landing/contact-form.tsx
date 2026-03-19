@@ -31,20 +31,20 @@ const RANGE_OPTIONS = [
 const CONTACT_INFO = [
   {
     icon: Phone,
-    label: "Información sobre el portal",
-    value: "contacto@portal.local",
+    label: "Soporte ventas online",
+    value: "+56 2 3304 8632",
     href: "tel:+56233048632",
   },
   {
     icon: Mail,
-    label: "Soporte técnico",
-    value: "soporte@portal.local",
-    href: "mailto:soporte@portal.local",
+    label: "Reservas Corporativas",
+    value: "corporativos@pullmanbus.cl",
+    href: "mailto:corporativos@pullmanbus.cl",
   },
   {
     icon: MapPin,
-    label: "Ubicación",
-    value: "Santiago, Chile",
+    label: "Casa matriz",
+    value: "San Borja 235, Estación Central, Santiago",
     href: undefined,
   },
 ];
@@ -61,12 +61,17 @@ export function ContactForm() {
     mensaje: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof ContactFormData, boolean>>>({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof ContactFormData, boolean>>
+  >({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const validateField = (field: keyof ContactFormData, value: string): string | undefined => {
+  const validateField = (
+    field: keyof ContactFormData,
+    value: string,
+  ): string | undefined => {
     switch (field) {
       case "nombre":
         if (!value.trim()) return "El nombre es requerido";
@@ -98,7 +103,10 @@ export function ContactForm() {
 
   const handleBlur = (field: keyof ContactFormData) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors((prev) => ({ ...prev, [field]: validateField(field, form[field]) }));
+    setErrors((prev) => ({
+      ...prev,
+      [field]: validateField(field, form[field]),
+    }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -115,7 +123,7 @@ export function ContactForm() {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setTouched(
-        Object.keys(form).reduce((acc, k) => ({ ...acc, [k]: true }), {})
+        Object.keys(form).reduce((acc, k) => ({ ...acc, [k]: true }), {}),
       );
       return;
     }
@@ -126,7 +134,9 @@ export function ContactForm() {
       await new Promise((res) => setTimeout(res, 1200));
       setSubmitted(true);
     } catch {
-      setServerError("Ocurrió un error al enviar el formulario. Intenta de nuevo.");
+      setServerError(
+        "Ocurrió un error al enviar el formulario. Intenta de nuevo.",
+      );
     } finally {
       setLoading(false);
     }
@@ -139,7 +149,9 @@ export function ContactForm() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
             <CheckCircle2 className="h-10 w-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">¡Mensaje enviado!</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            ¡Mensaje enviado!
+          </h2>
           <p className="mt-3 text-muted-foreground leading-relaxed">
             Gracias por contactarnos. Un ejecutivo de ventas se pondrá en
             contacto contigo dentro de las próximas 24 horas hábiles.
@@ -147,7 +159,16 @@ export function ContactForm() {
           <Button
             onClick={() => {
               setSubmitted(false);
-              setForm({ nombre: "", empresa: "", rut: "", cargo: "", email: "", telefono: "", empleados: "", mensaje: "" });
+              setForm({
+                nombre: "",
+                empresa: "",
+                rut: "",
+                cargo: "",
+                email: "",
+                telefono: "",
+                empleados: "",
+                mensaje: "",
+              });
               setTouched({});
               setErrors({});
             }}
@@ -164,17 +185,17 @@ export function ContactForm() {
     <section id="contacto" className="py-20 px-4 lg:px-8 bg-muted/30">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
-
           {/* Left column: info */}
           <div>
             <span className="inline-block rounded-full bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-secondary mb-4">
               Contacto
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-              Solicita información sobre nuestro portal
+              Digitaliza hoy los viajes de tu equipo
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              Completa el formulario y nuestro equipo te contactará para analizar las necesidades de tu empresa y ofrecerte la mejor solución.
+              Completa el formulario y nuestro equipo activará tu cuenta
+              corriente corporativa para que empieces a operar con Pullmanbus.
             </p>
 
             {/* Contact info */}
@@ -185,7 +206,9 @@ export function ContactForm() {
                     <Icon className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">
+                      {label}
+                    </p>
                     {href ? (
                       <a
                         href={href}
@@ -194,7 +217,9 @@ export function ContactForm() {
                         {value}
                       </a>
                     ) : (
-                      <p className="text-sm font-medium text-foreground">{value}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {value}
+                      </p>
                     )}
                   </div>
                 </li>
@@ -202,13 +227,15 @@ export function ContactForm() {
             </ul>
 
             {/* Trust badge */}
-            <div className="mt-10 rounded-2xl bg-secondary/5 border border-secondary/15 p-5">
-              <p className="text-sm font-semibold text-secondary mb-1">Respuesta garantizada</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Nos comprometemos a responder todas las solicitudes dentro
-                de las 24 horas hábiles siguientes a su recepción.
+            {/* <div className="mt-10 rounded-2xl bg-secondary/5 border border-secondary/15 p-5">
+              <p className="text-sm font-semibold text-secondary mb-1">
+                Respuesta garantizada
               </p>
-            </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Nos comprometemos a responder todas las solicitudes dentro de
+                las 24 horas hábiles siguientes a su recepción.
+              </p>
+            </div> */}
           </div>
 
           {/* Right column: form */}
@@ -234,11 +261,13 @@ export function ContactForm() {
                     <Input
                       placeholder="Juan Pérez"
                       value={form.nombre}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("nombre", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("nombre", e.target.value)
+                      }
                       onBlur={() => handleBlur("nombre")}
                       className={cn(
                         "h-11 rounded-xl border-border bg-background",
-                        touched.nombre && errors.nombre && "border-red-500"
+                        touched.nombre && errors.nombre && "border-red-500",
                       )}
                     />
                     {touched.nombre && errors.nombre && (
@@ -256,11 +285,13 @@ export function ContactForm() {
                     <Input
                       placeholder="Nombre de la empresa"
                       value={form.empresa}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("empresa", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("empresa", e.target.value)
+                      }
                       onBlur={() => handleBlur("empresa")}
                       className={cn(
                         "h-11 rounded-xl border-border bg-background",
-                        touched.empresa && errors.empresa && "border-red-500"
+                        touched.empresa && errors.empresa && "border-red-500",
                       )}
                     />
                     {touched.empresa && errors.empresa && (
@@ -281,7 +312,9 @@ export function ContactForm() {
                     <Input
                       placeholder="76.543.210-K"
                       value={form.rut}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("rut", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("rut", e.target.value)
+                      }
                       className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
@@ -292,7 +325,9 @@ export function ContactForm() {
                     <Input
                       placeholder="Gerente de Recursos Humanos"
                       value={form.cargo}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("cargo", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("cargo", e.target.value)
+                      }
                       className="h-11 rounded-xl border-border bg-background"
                     />
                   </div>
@@ -308,11 +343,13 @@ export function ContactForm() {
                       type="email"
                       placeholder="nombre@empresa.cl"
                       value={form.email}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("email", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("email", e.target.value)
+                      }
                       onBlur={() => handleBlur("email")}
                       className={cn(
                         "h-11 rounded-xl border-border bg-background",
-                        touched.email && errors.email && "border-red-500"
+                        touched.email && errors.email && "border-red-500",
                       )}
                     />
                     {touched.email && errors.email && (
@@ -329,11 +366,13 @@ export function ContactForm() {
                     <Input
                       placeholder="+56 9 1234 5678"
                       value={form.telefono}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange("telefono", e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        handleChange("telefono", e.target.value)
+                      }
                       onBlur={() => handleBlur("telefono")}
                       className={cn(
                         "h-11 rounded-xl border-border bg-background",
-                        touched.telefono && errors.telefono && "border-red-500"
+                        touched.telefono && errors.telefono && "border-red-500",
                       )}
                     />
                     {touched.telefono && errors.telefono && (
@@ -348,7 +387,8 @@ export function ContactForm() {
                 {/* Empleados */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-card-foreground">
-                    Cantidad de empleados <span className="text-red-500">*</span>
+                    Cantidad de empleados{" "}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <select
                     value={form.empleados}
@@ -357,7 +397,7 @@ export function ContactForm() {
                     className={cn(
                       "h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition",
                       touched.empleados && errors.empleados && "border-red-500",
-                      !form.empleados && "text-muted-foreground"
+                      !form.empleados && "text-muted-foreground",
                     )}
                   >
                     <option value="" disabled>
@@ -394,7 +434,7 @@ export function ContactForm() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 rounded-full bg-[#0739b3] hover:bg-[#052d8f] text-white font-semibold text-sm transition-all"
+                  className="w-full h-12 rounded-full bg-primary-pullman hover:bg-primary-pullman/90 text-white font-semibold text-sm transition-all"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -406,13 +446,16 @@ export function ContactForm() {
                   )}
                 </Button>
 
-                <p className="text-xs text-center text-muted-foreground">
+                {/* <p className="text-xs text-center text-muted-foreground">
                   Al enviar este formulario aceptas nuestra{" "}
-                  <a href="/politicas-de-privacidad" className="underline hover:text-[#0739b3] transition-colors">
+                  <a
+                    href="/politicas-de-privacidad"
+                    className="underline hover:text-[#0739b3] transition-colors"
+                  >
                     política de privacidad
                   </a>
                   .
-                </p>
+                </p> */}
               </div>
             </form>
           </div>

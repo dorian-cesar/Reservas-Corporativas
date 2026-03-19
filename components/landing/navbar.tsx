@@ -44,7 +44,7 @@ export function Navbar() {
             </span>
           </a>
 
-          <nav className="hidden md:flex items-center gap-8">
+          {/* <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <button
                 key={link.href}
@@ -54,7 +54,7 @@ export function Navbar() {
                 {link.label}
               </button>
             ))}
-          </nav>
+          </nav> */}
 
           <div className="hidden md:flex items-center gap-3">
             <a
