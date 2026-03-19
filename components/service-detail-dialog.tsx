@@ -853,7 +853,7 @@ export function ServiceDetailDialog({
   const handleClose = () => {
     onOpenChange(false);
     if (success) {
-      router.push("/");
+      router.push("/portal");
     }
   };
 

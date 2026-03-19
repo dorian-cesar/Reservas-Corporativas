@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
+import { FooterLanding } from "@/components/landing/footer-landing";
 import { TravelProvider } from "@/components/context/travel-context";
 
 export default function ClientLayout({
@@ -23,7 +23,7 @@ export default function ClientLayout({
       <div className="min-h-screen flex flex-col">
         {!hideLayout && <Header />}
         <main className="flex-1 bg-blue-50 min-h-screen">{children}</main>
-        {!hideLayout && <Footer />}
+        {!hideLayout && <FooterLanding />}
       </div>
     </TravelProvider>
   );

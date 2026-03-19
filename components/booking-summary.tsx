@@ -61,13 +61,13 @@ export function BookingSummary({ open, onOpenChange }: BookingSummaryProps) {
     if (open) {
       // Cargar reservas desde localStorage
       const storedBookings = JSON.parse(
-        localStorage.getItem("completedBookings") || "[]"
+        localStorage.getItem("completedBookings") || "[]",
       );
       setBookings(storedBookings);
 
       // También puedes verificar si hay datos en sessionStorage como respaldo
       const sessionBookings = JSON.parse(
-        sessionStorage.getItem("completedBookings") || "[]"
+        sessionStorage.getItem("completedBookings") || "[]",
       );
       if (sessionBookings.length > 0 && storedBookings.length === 0) {
         setBookings(sessionBookings);
@@ -142,15 +142,15 @@ export function BookingSummary({ open, onOpenChange }: BookingSummaryProps) {
               }</p>
               <p><strong>Fecha:</strong> ${formatDate(booking.date)}</p>
               <p><strong>Horario:</strong> ${formatTime(
-                booking.dep_time
+                booking.dep_time,
               )} - ${formatTime(booking.arr_time)}</p>
               <p><strong>Empresa:</strong> ${booking.travel_name}</p>
               <p><strong>Asientos:</strong> ${booking.seats.join(", ")}</p>
               <p><strong>Total:</strong> $${booking.totalPrice.toLocaleString(
-                "es-CL"
+                "es-CL",
               )}</p>
             </div>
-          `
+          `,
             )
             .join("")}
           <div class="total">
@@ -177,7 +177,7 @@ export function BookingSummary({ open, onOpenChange }: BookingSummaryProps) {
     onOpenChange(false);
 
     // Redirigir a la página principal
-    router.push("/");
+    router.push("/portal");
   };
 
   const handleNewSearch = () => {
@@ -420,8 +420,8 @@ export function BookingSummary({ open, onOpenChange }: BookingSummaryProps) {
                         {departureBooking && returnBooking
                           ? "2 reservas completadas"
                           : departureBooking || returnBooking
-                          ? "1 reserva completada"
-                          : "Sin reservas"}
+                            ? "1 reserva completada"
+                            : "Sin reservas"}
                       </p>
                     </div>
                     <div className="text-right mt-4 md:mt-0">

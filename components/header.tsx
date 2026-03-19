@@ -23,7 +23,7 @@ export function Header({ onLogout }: HeaderProps) {
   useTokenExpiration(30_000, 15 * 60 * 1000);
 
   const navigation = [
-    { name: "Inicio", href: "/" },
+    { name: "Inicio", href: "/portal" },
     { name: "Reservas", href: "/bookings" },
   ];
 
@@ -102,7 +102,7 @@ export function Header({ onLogout }: HeaderProps) {
                         "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors",
                         isActive
                           ? "border-primary text-foreground"
-                          : "border-transparent text-muted-foreground hover:text-foreground hover:border-primary/50"
+                          : "border-transparent text-muted-foreground hover:text-foreground hover:border-primary/50",
                       )}
                     >
                       {item.name}
