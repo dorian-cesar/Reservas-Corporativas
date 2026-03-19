@@ -51,8 +51,8 @@ export function FooterLanding() {
               </span>
             </a>
             <p className="text-white/50 text-sm leading-relaxed">
-              La plataforma integral para gestionar viajes y reservas
-              corporativas con facilidad.
+              La plataforma integral de Pullman Bus para gestionar viajes y
+              reservas corporativas con facilidad.
             </p>
             {/* Social inline bajo el logo */}
             <div className="flex items-center gap-4">
@@ -149,7 +149,7 @@ export function FooterLanding() {
 
       {/* WhatsApp FAB */}
       <a
-        href={`https://wa.me/?text=${encodeURIComponent("Hola, me gustaría información sobre el portal de reservas corporativas.")}`}
+        href={`https://wa.me/?text=${encodeURIComponent("Hola, me gustaría información sobre el portal de reservas corporativas de Pullman Bus.")}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-20 w-12 h-12 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 z-50"
