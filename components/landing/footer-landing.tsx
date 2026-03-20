@@ -9,6 +9,7 @@ import {
   Facebook,
   Linkedin,
 } from "lucide-react";
+import Image from "next/image";
 
 const links = [
   { label: "Conoce tus derechos", href: "/conoce-tus-derechos" },
@@ -46,9 +47,14 @@ export function FooterLanding() {
           {/* Logo + tagline + social */}
           <div className="flex flex-col gap-5 md:col-span-1">
             <a href="/" className="flex items-center">
-              <span className="text-xl font-bold text-white tracking-tight">
-                Reservas<span className="text-white/60">Corp</span>
-              </span>
+              <Image
+                src="/logo-reservas-corporativas.png"
+                alt="ReservasCorp"
+                width={160}
+                height={40}
+                className="h-auto w-auto max-h-15"
+                priority
+              />
             </a>
             <p className="text-white/50 text-sm leading-relaxed">
               La plataforma integral de Pullman Bus para gestionar viajes y

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 function scrollToSection(id: string) {
   const el = document.getElementById(id);
@@ -16,10 +17,15 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-border shadow-sm">
       <div className="mx-auto max-w-6xl px-4 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <a href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary tracking-tight">
-              Reservas<span className="text-foreground">Corp</span>
-            </span>
+          <a href="/" className="flex items-center">
+            <Image
+              src="/logo-reservas-corporativas.png"
+              alt="ReservasCorp"
+              width={160}
+              height={40}
+              className="h-auto w-auto max-h-15"
+              priority
+            />
           </a>
 
           <div className="hidden md:flex items-center gap-3">
