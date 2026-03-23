@@ -48,7 +48,7 @@ export function FooterLanding() {
           <div className="flex flex-col gap-5 md:col-span-1">
             <a href="/" className="flex items-center">
               <Image
-                src="/logo-reservas-corporativas.png"
+                src="/logo-reservas-corporativas-blanco.png"
                 alt="ReservasCorp"
                 width={160}
                 height={40}
@@ -125,7 +125,7 @@ export function FooterLanding() {
           </div>
 
           {/* Información */}
-          <div>
+          {/* <div>
             <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
               Información
             </h3>
@@ -141,7 +141,7 @@ export function FooterLanding() {
                 </li>
               ))}
             </ul>
-          </div>
+          </div> */}
         </div>
 
         {/* Bottom */}
