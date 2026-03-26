@@ -588,11 +588,47 @@ export function ServiceDetailDialog({
       return passengersData.every((p) => p.completed && p.passenger);
     }
 
-    // Validación normal
+    // Validación normal con centro de costo requerido
     return (
-      passengersData.length > 0 && passengersData.every((p) => p.completed)
+      passengersData.length > 0 &&
+      passengersData.every(
+        (p) => p.completed && p.passenger && p.passenger.id_centro_costo, // Validar que tenga centro de costo
+      )
     );
   };
+
+  const hasAllCentrosCosto = (): boolean => {
+    return passengersData.every((p) => {
+      if (!p.passenger) return false;
+      return (
+        p.passenger.id_centro_costo &&
+        p.passenger.id_centro_costo !== null &&
+        p.passenger.id_centro_costo !== ""
+      );
+    });
+  };
+
+  useEffect(() => {
+    if (selectedSeats.length > 0 && passengersData.length > 0) {
+      const missingCentroCosto = passengersData.filter(
+        (p) =>
+          p.completed &&
+          p.passenger &&
+          (!p.passenger.id_centro_costo || p.passenger.id_centro_costo === ""),
+      );
+
+      if (missingCentroCosto.length > 0) {
+        const seatsWithMissing = missingCentroCosto
+          .map((p) => p.seat)
+          .join(", ");
+        setBookingError(
+          `Los siguientes asientos requieren centro de costo: ${seatsWithMissing}. Por favor, seleccione un centro de costo para continuar.`,
+        );
+      } else if (bookingError && bookingError.includes("centro de costo")) {
+        setBookingError(null);
+      }
+    }
+  }, [passengersData, selectedSeats]);
 
   const handleUseSavedPassengers = () => {
     if (savedPassengers.length === 0) return;
@@ -853,7 +889,7 @@ export function ServiceDetailDialog({
   const handleClose = () => {
     onOpenChange(false);
     if (success) {
-      router.push("/portal");
+      router.push("/");
     }
   };
 
@@ -902,7 +938,8 @@ export function ServiceDetailDialog({
   const canConfirm =
     disponibilidadVerificada &&
     selectedSeats.length > 0 &&
-    allPassengersCompleted();
+    allPassengersCompleted() &&
+    hasAllCentrosCosto();
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
@@ -1234,6 +1271,15 @@ export function ServiceDetailDialog({
                     ? "opacity-50 cursor-not-allowed bg-accent hover:bg-accent/90 text-accent-foreground"
                     : "bg-accent hover:bg-accent/90 text-accent-foreground"
                 }`}
+                title={
+                  !hasAllCentrosCosto()
+                    ? "Todos los pasajeros deben tener centro de costo asignado"
+                    : !allPassengersCompleted()
+                      ? "Debe completar los datos de todos los pasajeros"
+                      : selectedSeats.length === 0
+                        ? "Debe seleccionar al menos un asiento"
+                        : ""
+                }
               >
                 {loading ? (
                   <>
