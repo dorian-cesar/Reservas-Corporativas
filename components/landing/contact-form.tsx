@@ -113,7 +113,6 @@ export function ContactForm() {
     e.preventDefault();
     setServerError(null);
 
-    // Validate all
     const newErrors: FormErrors = {};
     (Object.keys(form) as Array<keyof ContactFormData>).forEach((field) => {
       const err = validateField(field, form[field]);
@@ -129,13 +128,25 @@ export function ContactForm() {
     }
 
     setLoading(true);
+
     try {
-      // Simulate API call
-      await new Promise((res) => setTimeout(res, 1200));
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error || "Error al enviar");
+      }
+
       setSubmitted(true);
-    } catch {
+    } catch (err: any) {
       setServerError(
-        "Ocurrió un error al enviar el formulario. Intenta de nuevo.",
+        err.message || "Ocurrió un error al enviar el formulario.",
       );
     } finally {
       setLoading(false);
