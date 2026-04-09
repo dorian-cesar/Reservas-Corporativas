@@ -30,6 +30,7 @@ import {
 import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import moment from "moment-timezone";
 
 interface MyBookingsProps {
   showActiveOnly?: boolean;
@@ -249,7 +250,7 @@ export function MyBookings({
             <div class="font-medium">${booking.seatNumbers}</div>
             <div class="text-foreground">Monto original:</div>
             <div class="font-medium">${formatPrice(
-              booking.monto_boleto || booking.fare
+              booking.monto_boleto || booking.fare,
             )}</div>
             <div class="text-foreground">Porcentaje reembolso:</div>
             <div class="font-medium">${
@@ -257,7 +258,7 @@ export function MyBookings({
             }%</div>
             <div class="text-foreground font-semibold">Reembolso a Cuenta Corriente:</div>
             <div class="font-bold text-green-600">${formatPrice(
-              refundAmount
+              refundAmount,
             )}</div>
           </div>
         </div>
@@ -296,7 +297,7 @@ export function MyBookings({
 
       if (!cancelResponse.ok) {
         throw new Error(
-          cancelResult.error || "Error al anular la reserva en Kupos"
+          cancelResult.error || "Error al anular la reserva en Kupos",
         );
       }
 
@@ -319,7 +320,7 @@ export function MyBookings({
           const htmlText = await updateResponse.text();
           console.error(
             "Se recibió HTML en lugar de JSON:",
-            htmlText.substring(0, 500)
+            htmlText.substring(0, 500),
           );
           throw new Error("La ruta de API no existe (404)");
         }
@@ -345,7 +346,7 @@ export function MyBookings({
                 refundAmount
                   ? `<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                       <p class="font-semibold text-orange-800">Reembolso a Cuenta Corriente: ${formatPrice(
-                        refundAmount
+                        refundAmount,
                       )}</p>
                     </div>`
                   : ""
@@ -367,7 +368,7 @@ export function MyBookings({
                   ? `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                       <p class="text-sm text-orange-700 mb-1">Se ha procesado el reembolso:</p>
                       <p class="text-xl font-bold text-orange-800">${formatPrice(
-                        refundAmount
+                        refundAmount,
                       )}</p>
                       <p class="text-xs text-orange-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
                     </div>`
@@ -389,8 +390,8 @@ export function MyBookings({
                   status: "anulado",
                   monto_devolucion: cancelResult.refundAmount || 0,
                 }
-              : b
-          )
+              : b,
+          ),
         );
       } else {
         throw new Error(cancelResult.error || "Error al anular la reserva");
@@ -424,10 +425,15 @@ export function MyBookings({
       const date = booking.travelDate;
       const time = booking.departureTime;
       if (!date || !time) return false;
-      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
-      const now = new Date();
-      const diffHours =
-        (travelDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      const travelDateTime = moment.tz(
+        `${date} ${time}`,
+        "YYYY-MM-DD HH:mm",
+        "America/Santiago",
+      );
+      const nowChile = moment.tz("America/Santiago");
+
+      const diffHours = travelDateTime.diff(nowChile, "hours", true);
       return diffHours >= 4;
     } catch (err) {
       console.error("Error calculando horas restantes:", err);
@@ -440,9 +446,15 @@ export function MyBookings({
       const date = booking.travelDate;
       const time = booking.departureTime;
       if (!date || !time) return true;
-      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
-      const now = new Date();
-      return travelDateTime < now;
+
+      const travelDateTime = moment.tz(
+        `${date} ${time}`,
+        "YYYY-MM-DD HH:mm",
+        "America/Santiago",
+      );
+      const nowChile = moment.tz("America/Santiago");
+
+      return travelDateTime.isBefore(nowChile);
     } catch (err) {
       console.error("Error verificando viaje pasado:", err);
       return true;

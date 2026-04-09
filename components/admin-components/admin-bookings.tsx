@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   FileText,
   Download,
@@ -26,9 +32,9 @@ import {
   XCircle,
   Search,
   Building2,
-  Loader2
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table as UITable,
   TableBody,
@@ -36,9 +42,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import Swal from "sweetalert2";
-
+import moment from "moment-timezone";
 
 import * as XLSX from "xlsx";
 import ToolBarAdmin from "../ToolBarAdmin";
@@ -52,12 +58,16 @@ export function AdminBookings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
-  const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
+  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>(
+    [],
+  );
+  const [userCompany, setUserCompany] = useState<{
+    id: string;
+    nombre: string;
+  } | null>(null);
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
   const [cancelingId, setCancelingId] = useState<string | null>(null);
-
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -93,7 +103,6 @@ export function AdminBookings() {
     buttonsStyling: false,
     reverseButtons: true,
   };
-
 
   const { toast } = useToast();
 
@@ -145,7 +154,7 @@ export function AdminBookings() {
       id: number;
       nombre: string;
     };
-  }
+  };
 
   // Cargar empresa del usuario al inicio
   useEffect(() => {
@@ -157,7 +166,7 @@ export function AdminBookings() {
   // Cuando cambian las fechas o empresa, reiniciamos a página 1
   useEffect(() => {
     if (!empresaId) return;
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
     fetchTickets({
       targetEmpresaId: Number(empresaId),
       page: 1,
@@ -179,7 +188,7 @@ export function AdminBookings() {
         const companyData = await res.json();
         const company = {
           id: companyData.id.toString(),
-          nombre: companyData.nombre
+          nombre: companyData.nombre,
         };
 
         setUserCompany(company);
@@ -191,13 +200,23 @@ export function AdminBookings() {
       toast({
         title: "Error",
         description: "No se pudo cargar la empresa del usuario",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const fetchTickets = async (opts: { targetEmpresaId: number; page?: number; limit?: number; ticketNumber?: string }) => {
-    const { targetEmpresaId, page = pagination.page, limit = pagination.limit, ticketNumber } = opts;
+  const fetchTickets = async (opts: {
+    targetEmpresaId: number;
+    page?: number;
+    limit?: number;
+    ticketNumber?: string;
+  }) => {
+    const {
+      targetEmpresaId,
+      page = pagination.page,
+      limit = pagination.limit,
+      ticketNumber,
+    } = opts;
 
     if (!targetEmpresaId) {
       return;
@@ -228,10 +247,18 @@ export function AdminBookings() {
       if (res.status === 404) {
         const errorData = await res.json().catch(() => ({}));
         setTickets([]);
-        setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+        setPagination({
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
         toast({
           title: "Información",
-          description: errorData.message || "No se encontraron tickets para esta empresa",
+          description:
+            errorData.message || "No se encontraron tickets para esta empresa",
           variant: "default",
         });
         return;
@@ -245,24 +272,37 @@ export function AdminBookings() {
 
       if (responseData && responseData.empty) {
         setTickets([]);
-        setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+        setPagination({
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
         toast({
           title: "Información",
-          description: responseData.message || "No se encontraron tickets para esta empresa",
+          description:
+            responseData.message ||
+            "No se encontraron tickets para esta empresa",
           variant: "default",
         });
         return;
       }
 
       // aceptamos { tickets, pagination } o un array (en cuyo caso construimos pag)
-      const ticketsArray = Array.isArray(responseData.tickets) ? responseData.tickets : (Array.isArray(responseData) ? responseData : []);
+      const ticketsArray = Array.isArray(responseData.tickets)
+        ? responseData.tickets
+        : Array.isArray(responseData)
+          ? responseData
+          : [];
       const pag = responseData.pagination || {
         page,
         limit,
         total: ticketsArray.length,
         totalPages: Math.ceil((ticketsArray.length || 0) / limit),
         hasNextPage: false,
-        hasPrevPage: page > 1
+        hasPrevPage: page > 1,
       };
 
       setTickets(ticketsArray);
@@ -270,7 +310,9 @@ export function AdminBookings() {
         page: pag.page ?? page,
         limit: pag.limit ?? limit,
         total: pag.total ?? ticketsArray.length,
-        totalPages: pag.totalPages ?? Math.ceil((pag.total ?? ticketsArray.length) / (pag.limit ?? limit)),
+        totalPages:
+          pag.totalPages ??
+          Math.ceil((pag.total ?? ticketsArray.length) / (pag.limit ?? limit)),
         hasNextPage: Boolean(pag.hasNextPage),
         hasPrevPage: Boolean(pag.hasPrevPage),
       });
@@ -278,26 +320,40 @@ export function AdminBookings() {
       if ((ticketsArray || []).length === 0) {
         let message = "No se encontraron tickets";
         if (dateDesde || dateHasta) message += " para el período seleccionado";
-        toast({ title: "Información", description: message, variant: "default" });
+        toast({
+          title: "Información",
+          description: message,
+          variant: "default",
+        });
       }
     } catch (err) {
       console.error("Error fetching tickets:", err);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "No se pudieron cargar los tickets",
+        description:
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los tickets",
         variant: "destructive",
       });
       setTickets([]);
-      setPagination({ page: 1, limit, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+      setPagination({
+        page: 1,
+        limit,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -371,10 +427,10 @@ export function AdminBookings() {
       "Confirmado En",
       "ID Usuario",
       "Creado En",
-      "Actualizado En"
+      "Actualizado En",
     ];
 
-    const csvData = ticketsToExport.map(ticket => [
+    const csvData = ticketsToExport.map((ticket) => [
       ticket.ticketNumber,
       ticket.user?.nombre,
       ticket.user?.rut,
@@ -391,19 +447,22 @@ export function AdminBookings() {
       ticket.confirmedAt,
       ticket.id_User,
       ticket.created_at,
-      ticket.updated_at
+      ticket.updated_at,
     ]);
 
     const csvContent = [
       headers.join(","),
-      ...csvData.map(row => row.map(field => `"${field ?? ""}"`).join(","))
+      ...csvData.map((row) => row.map((field) => `"${field ?? ""}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `tickets_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `tickets_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -420,30 +479,33 @@ export function AdminBookings() {
     const ticketsToExport = Array.isArray(tickets) ? tickets : [];
     if (ticketsToExport.length === 0) return;
 
-    const data = ticketsToExport.map(ticket => ({
+    const data = ticketsToExport.map((ticket) => ({
       "Número de Ticket": ticket.ticketNumber,
       "Nombre Usuario": ticket.user?.nombre ?? "",
       "RUT Usuario": ticket.user?.rut ?? "",
       "Correo Usuario": ticket.user?.email ?? "",
       "Centro Costo": ticket.user?.centroCosto?.nombre ?? "",
-      "Estado": ticket.ticketStatus,
-      "Origen": ticket.origin,
-      "Destino": ticket.destination,
+      Estado: ticket.ticketStatus,
+      Origen: ticket.origin,
+      Destino: ticket.destination,
       "Fecha de Viaje": ticket.travelDate,
       "Hora de Salida": ticket.departureTime,
-      "Asiento": ticket.seatNumbers,
+      Asiento: ticket.seatNumbers,
       "Valor Asiento": ticket.fare,
       "Monto Boleto": ticket.monto_boleto,
       "Confirmado En": ticket.confirmedAt,
       "ID Usuario": ticket.id_User,
       "Creado En": ticket.created_at,
-      "Actualizado En": ticket.updated_at
+      "Actualizado En": ticket.updated_at,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
-    XLSX.writeFile(workbook, `tickets_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `tickets_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
 
     setIsExportDialogOpen(false);
     toast({
@@ -457,7 +519,6 @@ export function AdminBookings() {
     const amount = monto_boleto * refundPercentage;
     return Math.round(amount);
   };
-
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("es-CL", {
@@ -495,15 +556,16 @@ export function AdminBookings() {
                 <div class="font-medium">${ticket.seatNumbers}</div>
                 <div class="text-foreground">Monto original:</div>
                 <div class="font-medium">${formatPrice(
-        ticket.monto_boleto || ticket.fare
-      )}</div>
+                  ticket.monto_boleto || ticket.fare,
+                )}</div>
                 <div class="text-foreground">Porcentaje reembolso:</div>
-                <div class="font-medium">${(Number(user?.companyPorcentajeDevolucion) || 0) * 100
-        }%</div>
+                <div class="font-medium">${
+                  (Number(user?.companyPorcentajeDevolucion) || 0) * 100
+                }%</div>
                 <div class="text-foreground font-semibold">Reembolso a Cuenta Corriente:</div>
                 <div class="font-bold text-green-600">${formatPrice(
-          refundAmount
-        )}</div>
+                  refundAmount,
+                )}</div>
               </div>
             </div>
             <p class="text-sm text-muted-foreground mt-2">* El monto de reembolso será acreditado según las políticas de tu empresa.</p>
@@ -528,7 +590,7 @@ export function AdminBookings() {
       console.log("Cancelando ticket:", {
         ticketNumber: ticket.ticketNumber,
         seatNumbers: ticket.seatNumbers,
-        fullTicket: ticket
+        fullTicket: ticket,
       });
       const cancelResponse = await fetch("/api/tickets/cancel", {
         method: "POST",
@@ -546,7 +608,7 @@ export function AdminBookings() {
 
       if (!cancelResponse.ok) {
         throw new Error(
-          cancelResult.error || "Error al anular la reserva en Kupos"
+          cancelResult.error || "Error al anular la reserva en Kupos",
         );
       }
 
@@ -569,7 +631,7 @@ export function AdminBookings() {
           const htmlText = await updateResponse.text();
           console.error(
             "Se recibió HTML en lugar de JSON:",
-            htmlText.substring(0, 500)
+            htmlText.substring(0, 500),
           );
           throw new Error("La ruta de API no existe (404)");
         }
@@ -586,18 +648,20 @@ export function AdminBookings() {
                   <p class="text-foreground">La reserva fue anulada en el sistema, pero hubo un problema al actualizar nuestros registros.</p>
                   <div class="bg-muted/50 p-3 rounded-lg border">
                     <p class="text-sm text-muted-foreground mb-2">Error técnico:</p>
-                    <p class="text-sm font-medium text-foreground">${updateResult.error
-              }</p>
+                    <p class="text-sm font-medium text-foreground">${
+                      updateResult.error
+                    }</p>
                   </div>
                   <p class="text-sm text-muted-foreground">Por favor, contacte al administrador.</p>
-                  ${refundAmount
-                ? `<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  ${
+                    refundAmount
+                      ? `<div class="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                           <p class="font-semibold text-orange-800">Reembolso a Cuenta Corriente: ${formatPrice(
-                  refundAmount
-                )}</p>
+                            refundAmount,
+                          )}</p>
                         </div>`
-                : ""
-              }
+                      : ""
+                  }
                 </div>
               `,
             confirmButtonText: "Entendido",
@@ -610,16 +674,17 @@ export function AdminBookings() {
             html: `
                 <div class="text-center space-y-3">
                   <p class="text-foreground">La reserva ha sido anulada exitosamente.</p>
-                  ${refundAmount
-                ? `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  ${
+                    refundAmount
+                      ? `<div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                           <p class="text-sm text-orange-700 mb-1">Se ha procesado el reembolso:</p>
                           <p class="text-xl font-bold text-orange-800">${formatPrice(
-                  refundAmount
-                )}</p>
+                            refundAmount,
+                          )}</p>
                           <p class="text-xs text-orange-600 mt-1">Este monto será acreditado según las políticas de tu empresa.</p>
                         </div>`
-                : ""
-              }
+                      : ""
+                  }
                 </div>
               `,
             confirmButtonText: "Entendido",
@@ -631,13 +696,13 @@ export function AdminBookings() {
           prevBookings.map((b) =>
             b.id === bookingId
               ? {
-                ...b,
-                ticketStatus: "Anulado",
-                status: "anulado",
-                monto_devolucion: cancelResult.refundAmount || 0,
-              }
-              : b
-          )
+                  ...b,
+                  ticketStatus: "Anulado",
+                  status: "anulado",
+                  monto_devolucion: cancelResult.refundAmount || 0,
+                }
+              : b,
+          ),
         );
       } else {
         throw new Error(cancelResult.error || "Error al anular la reserva");
@@ -650,10 +715,11 @@ export function AdminBookings() {
         title: "Error",
         html: `
             <div class="text-center">
-              <p class="text-foreground mb-3">${error instanceof Error
-            ? error.message
-            : "Error al anular la reserva"
-          }</p>
+              <p class="text-foreground mb-3">${
+                error instanceof Error
+                  ? error.message
+                  : "Error al anular la reserva"
+              }</p>
               <p class="text-sm text-muted-foreground">Por favor, intente nuevamente o contacte al administrador.</p>
             </div>
           `,
@@ -665,16 +731,20 @@ export function AdminBookings() {
     }
   };
 
-
   const canCancelBooking = (ticket: Ticket) => {
     try {
       const date = ticket.travelDate;
       const time = ticket.departureTime;
       if (!date || !time) return false;
-      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
-      const now = new Date();
-      const diffHours =
-        (travelDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      const travelDateTime = moment.tz(
+        `${date} ${time}`,
+        "YYYY-MM-DD HH:mm",
+        "America/Santiago",
+      );
+      const nowChile = moment.tz("America/Santiago");
+
+      const diffHours = travelDateTime.diff(nowChile, "hours", true);
       return diffHours >= 4;
     } catch (err) {
       console.error("Error calculando horas restantes:", err);
@@ -687,9 +757,15 @@ export function AdminBookings() {
       const date = ticket.travelDate;
       const time = ticket.departureTime;
       if (!date || !time) return true;
-      const travelDateTime = new Date(`${date}T${time}:00-03:00`);
-      const now = new Date();
-      return travelDateTime < now;
+
+      const travelDateTime = moment.tz(
+        `${date} ${time}`,
+        "YYYY-MM-DD HH:mm",
+        "America/Santiago",
+      );
+      const nowChile = moment.tz("America/Santiago");
+
+      return travelDateTime.isBefore(nowChile);
     } catch (err) {
       console.error("Error verificando viaje pasado:", err);
       return true;
@@ -702,8 +778,13 @@ export function AdminBookings() {
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage === pagination.page || (pagination.totalPages && newPage > pagination.totalPages)) return;
-    setPagination(prev => ({ ...prev, page: newPage }));
+    if (
+      newPage < 1 ||
+      newPage === pagination.page ||
+      (pagination.totalPages && newPage > pagination.totalPages)
+    )
+      return;
+    setPagination((prev) => ({ ...prev, page: newPage }));
     fetchTickets({
       targetEmpresaId: Number(empresaId),
       page: newPage,
@@ -714,7 +795,7 @@ export function AdminBookings() {
 
   const handleLimitChange = (newLimit: number) => {
     if (newLimit === pagination.limit) return;
-    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    setPagination((prev) => ({ ...prev, page: 1, limit: newLimit }));
     fetchTickets({
       targetEmpresaId: Number(empresaId),
       page: 1,
@@ -725,10 +806,14 @@ export function AdminBookings() {
 
   const doSearch = () => {
     if (!empresaId) {
-      toast({ title: "Información", description: "Cargando empresa del usuario...", variant: "default" });
+      toast({
+        title: "Información",
+        description: "Cargando empresa del usuario...",
+        variant: "default",
+      });
       return;
     }
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
     fetchTickets({
       targetEmpresaId: Number(empresaId),
       page: 1,
@@ -743,9 +828,12 @@ export function AdminBookings() {
         <Card>
           <CardContent className="text-center py-12">
             <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">Usuario sin empresa asignada</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              Usuario sin empresa asignada
+            </h3>
             <p className="text-muted-foreground">
-              Tu usuario no tiene una empresa asignada. Contacta al administrador.
+              Tu usuario no tiene una empresa asignada. Contacta al
+              administrador.
             </p>
           </CardContent>
         </Card>
@@ -760,21 +848,28 @@ export function AdminBookings() {
         description="Visualice y exporte los tickets del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        companyInfo={userCompany ? {
-          id: userCompany.id,
-          nombre: userCompany.nombre
-        } : undefined}
-        refreshAction={() => empresaId && fetchTickets({
-          targetEmpresaId: Number(empresaId),
-          page: pagination.page,
-          limit: pagination.limit,
-          ticketNumber: searchTerm.trim() || undefined,
-        })}
+        companyInfo={
+          userCompany
+            ? {
+                id: userCompany.id,
+                nombre: userCompany.nombre,
+              }
+            : undefined
+        }
+        refreshAction={() =>
+          empresaId &&
+          fetchTickets({
+            targetEmpresaId: Number(empresaId),
+            page: pagination.page,
+            limit: pagination.limit,
+            ticketNumber: searchTerm.trim() || undefined,
+          })
+        }
         primaryAction={{
           label: "Exportar",
           icon: <Download className="h-4 w-4" />,
           onClick: () => setIsExportDialogOpen(true),
-          disabled: !empresaId || tickets.length === 0
+          disabled: !empresaId || tickets.length === 0,
         }}
       />
 
@@ -811,36 +906,67 @@ export function AdminBookings() {
                     placeholder="Código de ticket"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") doSearch();
+                    }}
                     className="pl-9"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">La búsqueda por número se realiza en el servidor.</p>
+                <p className="text-xs text-muted-foreground">
+                  La búsqueda por número se realiza en el servidor.
+                </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateDesde">Fecha Desde</Label>
-                <Input id="dateDesde" type="date" value={dateDesde} onChange={(e) => setDateDesde(e.target.value)} max={dateHasta || undefined} />
+                <Input
+                  id="dateDesde"
+                  type="date"
+                  value={dateDesde}
+                  onChange={(e) => setDateDesde(e.target.value)}
+                  max={dateHasta || undefined}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateHasta">Fecha Hasta</Label>
-                <Input id="dateHasta" type="date" value={dateHasta} onChange={(e) => setDateHasta(e.target.value)} min={dateDesde || undefined} />
+                <Input
+                  id="dateHasta"
+                  type="date"
+                  value={dateHasta}
+                  onChange={(e) => setDateHasta(e.target.value)}
+                  min={dateDesde || undefined}
+                />
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Acciones</Label>
                 <div className="flex gap-2">
-                  <Button onClick={doSearch} className="bg-accent hover:bg-accent/90">Buscar</Button>
-                  <Button variant="outline" onClick={() => {
-                    setSearchTerm("");
-                    clearDateFilters();
-                    setPagination(prev => ({ ...prev, page: 1 }));
-                    fetchTickets({ targetEmpresaId: Number(empresaId), page: 1, limit: pagination.limit });
-                  }}>Limpiar</Button>
+                  <Button
+                    onClick={doSearch}
+                    className="bg-accent hover:bg-accent/90"
+                  >
+                    Buscar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("");
+                      clearDateFilters();
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                      fetchTickets({
+                        targetEmpresaId: Number(empresaId),
+                        page: 1,
+                        limit: pagination.limit,
+                      });
+                    }}
+                  >
+                    Limpiar
+                  </Button>
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  {pagination.total} tickets — página {pagination.page} de {pagination.totalPages || 1}
+                  {pagination.total} tickets — página {pagination.page} de{" "}
+                  {pagination.totalPages || 1}
                 </div>
               </div>
             </div>
@@ -848,8 +974,14 @@ export function AdminBookings() {
             {/* Paginación */}
             <div className="mt-4 flex items-center justify-end gap-2">
               <div className="flex items-center gap-2 text-sm">
-                <label className="text-muted-foreground">Resultados por página:</label>
-                <select value={pagination.limit} onChange={(e) => handleLimitChange(parseInt(e.target.value))} className="p-2 border rounded-md bg-background">
+                <label className="text-muted-foreground">
+                  Resultados por página:
+                </label>
+                <select
+                  value={pagination.limit}
+                  onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                  className="p-2 border rounded-md bg-background"
+                >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -858,26 +990,70 @@ export function AdminBookings() {
               </div>
 
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={() => handlePageChange(1)} disabled={!pagination.hasPrevPage} className="h-8 w-8 p-0">«</Button>
-                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page - 1)} disabled={!pagination.hasPrevPage} className="h-8 w-8 p-0">‹</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="h-8 w-8 p-0"
+                >
+                  «
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="h-8 w-8 p-0"
+                >
+                  ‹
+                </Button>
 
-                {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
-                  let pageNum;
-                  const totalPages = pagination.totalPages || 1;
-                  if (totalPages <= 5) pageNum = i + 1;
-                  else if (pagination.page <= 3) pageNum = i + 1;
-                  else if (pagination.page >= totalPages - 2) pageNum = totalPages - 4 + i;
-                  else pageNum = pagination.page - 2 + i;
-                  if (pageNum < 1 || pageNum > totalPages) return null;
-                  return (
-                    <Button key={pageNum} variant={pagination.page === pageNum ? "default" : "outline"} size="sm" onClick={() => handlePageChange(pageNum)} className="h-8 w-8 p-0">
-                      {pageNum}
-                    </Button>
-                  );
-                })}
+                {Array.from(
+                  { length: Math.min(5, pagination.totalPages || 1) },
+                  (_, i) => {
+                    let pageNum;
+                    const totalPages = pagination.totalPages || 1;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (pagination.page <= 3) pageNum = i + 1;
+                    else if (pagination.page >= totalPages - 2)
+                      pageNum = totalPages - 4 + i;
+                    else pageNum = pagination.page - 2 + i;
+                    if (pageNum < 1 || pageNum > totalPages) return null;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={
+                          pagination.page === pageNum ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  },
+                )}
 
-                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.page + 1)} disabled={!pagination.hasNextPage} className="h-8 w-8 p-0">›</Button>
-                <Button variant="outline" size="sm" onClick={() => handlePageChange(pagination.totalPages)} disabled={!pagination.hasNextPage} className="h-8 w-8 p-0">»</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="h-8 w-8 p-0"
+                >
+                  ›
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={!pagination.hasNextPage}
+                  className="h-8 w-8 p-0"
+                >
+                  »
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -908,13 +1084,28 @@ export function AdminBookings() {
             <div className="space-y-2">
               <Label>Formato de exportación</Label>
               <div className="flex gap-4">
-                <Button onClick={exportToCSV} className="flex-1 bg-accent hover:bg-accent/90">CSV</Button>
-                <Button onClick={exportToXLSX} className="flex-1 bg-accent hover:bg-accent/90">XLSX</Button>
+                <Button
+                  onClick={exportToCSV}
+                  className="flex-1 bg-accent hover:bg-accent/90"
+                >
+                  CSV
+                </Button>
+                <Button
+                  onClick={exportToXLSX}
+                  className="flex-1 bg-accent hover:bg-accent/90"
+                >
+                  XLSX
+                </Button>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -923,17 +1114,29 @@ export function AdminBookings() {
       {!isLoading && tickets.length > 0 && viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tickets.map((ticket, index) => (
-            <Card key={ticket.id} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in" style={{ animationDelay: `${index * 100}ms` }}>
+            <Card
+              key={ticket.id}
+              className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
               <CardHeader>
                 <div className="flex flex-col gap-5 justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-lg">{getStatusIcon(ticket.ticketStatus)}</div>
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      {getStatusIcon(ticket.ticketStatus)}
+                    </div>
                     <div>
-                      <CardTitle className="text-lg">{ticket.pnrNumber ?? "-"}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">{getStatusBadge(ticket.ticketStatus)}</CardDescription>
+                      <CardTitle className="text-lg">
+                        {ticket.pnrNumber ?? "-"}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        {getStatusBadge(ticket.ticketStatus)}
+                      </CardDescription>
                     </div>
                   </div>
-                  {ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
+                  {ticket.ticketStatus === "Confirmed" && (
+                    <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                  )}
                 </div>
               </CardHeader>
 
@@ -942,7 +1145,9 @@ export function AdminBookings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Usuario</p>
-                      <p className="font-medium">{ticket.user?.nombre || "—"}</p>
+                      <p className="font-medium">
+                        {ticket.user?.nombre || "—"}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">RUT</p>
@@ -952,18 +1157,26 @@ export function AdminBookings() {
                   <div className="flex items-center justify-between mt-5">
                     <div>
                       <p className="text-sm text-muted-foreground">Pasajero</p>
-                      <p className="font-medium">{ticket.pasajero?.nombre || "—"}</p>
+                      <p className="font-medium">
+                        {ticket.pasajero?.nombre || "—"}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">RUT</p>
-                      <p className="font-medium">{ticket.pasajero?.rut || "—"}</p>
+                      <p className="font-medium">
+                        {ticket.pasajero?.rut || "—"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <p className="text-xs text-muted-foreground">Centro de Costo</p>
-                      <p className="text-sm">{ticket.user?.centroCosto?.nombre || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Centro de Costo
+                      </p>
+                      <p className="text-sm">
+                        {ticket.user?.centroCosto?.nombre || "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -973,31 +1186,59 @@ export function AdminBookings() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{ticket.origin || "—"}</span>
                     <span className="text-muted-foreground">→</span>
-                    <span className="font-medium">{ticket.destination || "—"}</span>
+                    <span className="font-medium">
+                      {ticket.destination || "—"}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" /> <span>{formatDateOnly(ticket.travelDate)}</span></div>
-                    <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> <span>{ticket.departureTime}</span></div>
-                    <div className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> <span>Asiento: {ticket.seatNumbers}</span></div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />{" "}
+                      <span>{formatDateOnly(ticket.travelDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />{" "}
+                      <span>{ticket.departureTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />{" "}
+                      <span>Asiento: {ticket.seatNumbers}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Valor Asiento</div>
-                    <p className="text-lg font-bold">{formatCurrency(ticket.fare)}</p>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="h-3 w-3" /> Valor Asiento
+                    </div>
+                    <p className="text-lg font-bold">
+                      {formatCurrency(ticket.fare)}
+                    </p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1"><DollarSign className="h-3 w-3" /> Monto</div>
-                    <p className="text-lg font-bold">{formatCurrency(ticket.monto_boleto)}</p>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                      <DollarSign className="h-3 w-3" /> Monto
+                    </div>
+                    <p className="text-lg font-bold">
+                      {formatCurrency(ticket.monto_boleto)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div><p>Confirmado: {ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></div>
-                    <div className="text-right"><p>ID Usuario: {ticket.id_User ?? "—"}</p></div>
+                    <div>
+                      <p>
+                        Confirmado:{" "}
+                        {ticket.confirmedAt
+                          ? formatDateTime(ticket.confirmedAt)
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p>ID Usuario: {ticket.id_User ?? "—"}</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1037,48 +1278,102 @@ export function AdminBookings() {
                     <TableRow key={ticket.id} className="hover:bg-muted/50">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-4 w-4 text-primary" /></div>
-                          <div><p className="text-sm text-muted-foreground">{ticket.pnrNumber ?? "-"}</p></div>
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <FileText className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              {ticket.pnrNumber ?? "-"}
+                            </p>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell><p className="text-sm">{ticket.user?.nombre || "—"}</p></TableCell>
-                      <TableCell><p className="text-sm text-muted-foreground">{ticket.user?.rut || "—"}</p></TableCell>
-                      <TableCell><p className="text-sm ">{ticket.pasajero?.nombre || "—"}</p></TableCell>
-                      <TableCell><p className="text-sm text-muted-foreground">{ticket.pasajero?.rut || "—"}</p></TableCell>
-                      <TableCell><p className="text-sm">{ticket.user?.centroCosto?.nombre ?? "—"}</p></TableCell>
-                      <TableCell>{getStatusBadge(ticket.ticketStatus)}</TableCell>
-                      <TableCell><p className="font-medium">{ticket.origin || "—"}</p></TableCell>
-                      <TableCell><p className="font-medium">{ticket.destination || "—"}</p></TableCell>
-                      <TableCell><div className="flex items-center gap-2"><Calendar className="h-3 w-3 text-muted-foreground" />{formatDateOnly(ticket.travelDate)}</div></TableCell>
-                      <TableCell><div className="flex items-center gap-2"><Clock className="h-3 w-3 text-muted-foreground" />{ticket.departureTime}</div></TableCell>
+                      <TableCell>
+                        <p className="text-sm">{ticket.user?.nombre || "—"}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground">
+                          {ticket.user?.rut || "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm ">
+                          {ticket.pasajero?.nombre || "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground">
+                          {ticket.pasajero?.rut || "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">
+                          {ticket.user?.centroCosto?.nombre ?? "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(ticket.ticketStatus)}
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{ticket.origin || "—"}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">
+                          {ticket.destination || "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {formatDateOnly(ticket.travelDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          {ticket.departureTime}
+                        </div>
+                      </TableCell>
                       <TableCell>{ticket.seatNumbers}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(ticket.monto_boleto)}</TableCell>
-                      <TableCell><p className="text-sm">{ticket.confirmedAt ? formatDateTime(ticket.confirmedAt) : "—"}</p></TableCell>
-                      <TableCell>{ticket.ticketStatus === "Confirmed" && <TicketPDFButton ticketNumber={ticket.ticketNumber} />}
-                        {ticket.ticketStatus === "Confirmed" && !isPastTrip(ticket) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
-                            onClick={() => handleCancelBooking(ticket)}
-                            disabled={isCanceling}
-                          >
-                            {isCanceling ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Anulando...
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4" />
-                                Anular Reserva
-                              </>
-                            )}
-                          </Button>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(ticket.monto_boleto)}
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">
+                          {ticket.confirmedAt
+                            ? formatDateTime(ticket.confirmedAt)
+                            : "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {ticket.ticketStatus === "Confirmed" && (
+                          <TicketPDFButton ticketNumber={ticket.ticketNumber} />
                         )}
+                        {ticket.ticketStatus === "Confirmed" &&
+                          !isPastTrip(ticket) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
+                              onClick={() => handleCancelBooking(ticket)}
+                              disabled={isCanceling}
+                            >
+                              {isCanceling ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Anulando...
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-4 w-4" />
+                                  Anular Reserva
+                                </>
+                              )}
+                            </Button>
+                          )}
                       </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
               </TableBody>
             </UITable>
