@@ -61,7 +61,7 @@ export function FooterLanding() {
               reservas corporativas con facilidad.
             </p>
             {/* Social inline bajo el logo */}
-            <div className="flex items-center gap-4">
+            {/* <div className="flex items-center gap-4">
               {social.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -77,7 +77,7 @@ export function FooterLanding() {
                   </a>
                 );
               })}
-            </div>
+            </div> */}
           </div>
 
           {/* Spacer vacío en md para empujar las 3 columnas a la derecha */}

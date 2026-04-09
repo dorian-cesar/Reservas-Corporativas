@@ -74,7 +74,7 @@ export function Hero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 md:pt-0">
       <div className="absolute inset-0">
         <img
           src="/images/hero-bus.png"
@@ -89,17 +89,12 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-8rem)]">
           {/* Columna izquierda - Texto */}
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-white mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-              Portal de reservas corporativas
-            </span>
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight text-balance">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight text-balance drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
               Reservas corporativas{" "}
               <span className="text-white/70">simplificadas y controladas</span>
             </h1>
 
-            <p className="mt-5 text-lg text-white/80 leading-relaxed max-w-xl">
+            <p className="mt-5 text-lg text-white/80 leading-relaxed max-w-xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]">
               Plataforma integral para gestionar viajes y reservas de tu
               empresa. Control presupuestario, reportes en tiempo real y
               beneficios exclusivos en un solo lugar.
