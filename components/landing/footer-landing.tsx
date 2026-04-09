@@ -89,7 +89,7 @@ export function FooterLanding() {
               Contacto
             </h3>
             <ul className="space-y-3">
-              <li className="flex items-start gap-2 text-white/70 text-sm">
+              {/* <li className="flex items-start gap-2 text-white/70 text-sm">
                 <Phone className="w-4 h-4 mt-0.5 shrink-0 text-white/40" />
                 <span>
                   <span className="block text-white/40 text-xs mb-0.5">
@@ -97,7 +97,7 @@ export function FooterLanding() {
                   </span>
                   +56 2 3304 8632
                 </span>
-              </li>
+              </li> */}
               <li className="flex items-start gap-2 text-white/70 text-sm">
                 <Mail className="w-4 h-4 mt-0.5 shrink-0 text-white/40" />
                 <span>
@@ -105,10 +105,10 @@ export function FooterLanding() {
                     Otras consultas
                   </span>
                   <a
-                    href="mailto:clientes@pullmanbus.cl"
+                    href="mailto:soportecuentascorrientes@pullmanbus.cl"
                     className="hover:text-white transition-colors"
                   >
-                    clientes@pullmanbus.cl
+                    soportecuentascorrientes@pullmanbus.cl
                   </a>
                 </span>
               </li>

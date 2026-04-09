@@ -29,17 +29,17 @@ const RANGE_OPTIONS = [
 ];
 
 const CONTACT_INFO = [
-  {
-    icon: Phone,
-    label: "Soporte ventas online",
-    value: "+56 2 3304 8632",
-    href: "tel:+56233048632",
-  },
+  // {
+  //   icon: Phone,
+  //   label: "Soporte ventas online",
+  //   value: "+56 2 3304 8632",
+  //   href: "tel:+56233048632",
+  // },
   {
     icon: Mail,
     label: "Reservas Corporativas",
-    value: "corporativos@pullmanbus.cl",
-    href: "mailto:corporativos@pullmanbus.cl",
+    value: "soportecuentascorrientes@pullmanbus.cl",
+    href: "mailto:soportecuentascorrientes@pullmanbus.cl",
   },
   {
     icon: MapPin,

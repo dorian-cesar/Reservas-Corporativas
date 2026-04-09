@@ -77,9 +77,9 @@ export function Hero() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       <div className="absolute inset-0">
         <img
-          src="/images/hero-bus.jpg"
+          src="/images/hero-bus.png"
           alt="Bus Pullman en carretera chilena"
-          className="h-full w-full object-cover object-center"
+          className="h-full w-full object-cover object-[center_85%]"
         />
         <div className="absolute inset-0 bg-black/60" />
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-background to-transparent" />
@@ -108,19 +108,20 @@ export function Hero() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button
                 size="lg"
-                className="rounded-full bg-white text-primary hover:bg-white/90 font-semibold px-8 gap-2"
+                // className="rounded-full bg-white text-primary hover:bg-white/90 font-semibold px-8 gap-2 cursor-pointer"
+                className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white font-semibold px-8 cursor-pointer"
                 onClick={() => scrollToSection("contacto")}
               >
                 Solicitar información
                 <ArrowRight className="w-4 h-4" />
               </Button>
-              <Button
+              {/* <Button
                 asChild
                 size="lg"
                 className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white font-semibold px-8"
               >
                 <a href="/portal">Acceder al portal</a>
-              </Button>
+              </Button> */}
             </div>
           </div>
 

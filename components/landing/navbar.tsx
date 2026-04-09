@@ -34,12 +34,12 @@ export function Navbar() {
           >
             Solicitar información
           </Button>
-          <Button
+          {/* <Button
             className="rounded-full bg-primary-pullman hover:bg-primary-pullman/90 text-white px-5 cursor-pointer hover:scale-105 transition-transform"
             onClick={() => (window.location.href = "/portal")}
           >
             Iniciar sesión
-          </Button>
+          </Button> */}
 
           <div className="border-l border-border pl-6 ml-2">
             <Image
