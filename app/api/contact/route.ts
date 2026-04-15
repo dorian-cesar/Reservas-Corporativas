@@ -3,6 +3,14 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const authHeader = req.headers.get("authorization");
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { success: false, error: "Token no proporcionado" },
+        { status: 401 },
+      );
+    }
 
     if (!body.email || !body.nombre) {
       return NextResponse.json(
@@ -11,13 +19,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Aquí llamas a tu backend externo
     const response = await fetch(process.env.EXTERNAL_API_URL as string, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // puedes agregar auth si necesitas
-        // Authorization: `Bearer ${process.env.API_TOKEN}`,
+        Authorization: authHeader,
       },
       body: JSON.stringify(body),
     });
