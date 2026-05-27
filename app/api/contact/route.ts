@@ -5,12 +5,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const authHeader = req.headers.get("authorization");
 
-    if (!authHeader) {
-      return NextResponse.json(
-        { success: false, error: "Token no proporcionado" },
-        { status: 401 },
-      );
-    }
+    // Para el formulario de contacto público, el token de autorización puede ser opcional
+    const token = authHeader || "Bearer system-default-token";
 
     if (!body.email || !body.nombre) {
       return NextResponse.json(
@@ -19,11 +15,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const response = await fetch(process.env.EXTERNAL_API_URL as string, {
+    // Determinamos la URL del backend externo de correos
+    const targetUrl = process.env.EMAIL_URL || "";
+
+    const response = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: token,
       },
       body: JSON.stringify(body),
     });

@@ -49,6 +49,29 @@ const CONTACT_INFO = [
   },
 ];
 
+const formatRut = (value: string): string => {
+  // Limpiar caracteres no permitidos
+  const cleaned = value.replace(/[^0-9kK]/g, "");
+  if (!cleaned) return "";
+
+  if (cleaned.length <= 1) {
+    return cleaned.toUpperCase();
+  }
+
+  const body = cleaned.slice(0, -1);
+  const dv = cleaned.slice(-1).toUpperCase();
+
+  let formatted = "";
+  let i = body.length;
+  while (i > 3) {
+    formatted = "." + body.slice(i - 3, i) + formatted;
+    i -= 3;
+  }
+  formatted = body.slice(0, i) + formatted;
+
+  return `${formatted}-${dv}`;
+};
+
 export function ContactForm() {
   const [form, setForm] = useState<ContactFormData>({
     nombre: "",
@@ -261,6 +284,7 @@ export function ContactForm() {
                     <Input
                       placeholder="Juan Pérez"
                       value={form.nombre}
+                      autoComplete="name"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleChange("nombre", e.target.value)
                       }
@@ -285,6 +309,7 @@ export function ContactForm() {
                     <Input
                       placeholder="Nombre de la empresa"
                       value={form.empresa}
+                      autoComplete="organization"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleChange("empresa", e.target.value)
                       }
@@ -312,8 +337,9 @@ export function ContactForm() {
                     <Input
                       placeholder="76.543.210-K"
                       value={form.rut}
+                      autoComplete="off"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        handleChange("rut", e.target.value)
+                        handleChange("rut", formatRut(e.target.value))
                       }
                       className="h-11 rounded-xl border-border bg-background"
                     />
@@ -325,6 +351,7 @@ export function ContactForm() {
                     <Input
                       placeholder="Gerente de Recursos Humanos"
                       value={form.cargo}
+                      autoComplete="organization-title"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleChange("cargo", e.target.value)
                       }
@@ -343,6 +370,7 @@ export function ContactForm() {
                       type="email"
                       placeholder="nombre@empresa.cl"
                       value={form.email}
+                      autoComplete="email"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleChange("email", e.target.value)
                       }
@@ -366,6 +394,7 @@ export function ContactForm() {
                     <Input
                       placeholder="+56 9 1234 5678"
                       value={form.telefono}
+                      autoComplete="tel"
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
                         handleChange("telefono", e.target.value)
                       }
