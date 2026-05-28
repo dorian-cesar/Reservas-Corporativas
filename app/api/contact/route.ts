@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     // Determinamos la URL del backend externo de correos
-    const targetUrl = process.env.EMAIL_URL || "";
+    const targetUrl = process.env.NEXT_PUBLIC_EMAIL_URL || "";
 
     const response = await fetch(targetUrl, {
       method: "POST",
