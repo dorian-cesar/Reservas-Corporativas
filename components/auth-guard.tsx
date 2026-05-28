@@ -20,7 +20,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     if (!hasHydrated) return;
 
     if (!isAuthenticated) {
-      router.push("/login");
+      router.push("/");
       return;
     }
 

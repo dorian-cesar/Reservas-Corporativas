@@ -36,7 +36,7 @@ export default function AdminPage() {
       localStorage.removeItem("admin-page-active-tab")
     }
     logout()
-    router.push("/login")
+    router.push("/")
   }
 
   return (

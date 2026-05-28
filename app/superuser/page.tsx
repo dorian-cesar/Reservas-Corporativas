@@ -32,7 +32,7 @@ export default function SuperUserPage() {
       localStorage.removeItem("superuser-page-active-tab")
     }
     logout()
-    router.push("/login")
+    router.push("/")
   }
 
   return (

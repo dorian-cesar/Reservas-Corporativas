@@ -32,7 +32,7 @@ export function Header({ onLogout }: HeaderProps) {
     logout();
     clearUser();
     if (onLogout) onLogout();
-    else router.push("/login");
+    else router.push("/");
   };
 
   const allowedRoles = ["user", "subusuario"];

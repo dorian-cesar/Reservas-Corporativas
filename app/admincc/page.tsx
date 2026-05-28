@@ -32,7 +32,7 @@ export default function SuperUserPage() {
       localStorage.removeItem("admincc-page-active-tab")
     }
     logout()
-    router.push("/login")
+    router.push("/")
   }
 
   return (

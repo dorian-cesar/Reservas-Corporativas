@@ -26,7 +26,7 @@ export default function AuditoriaPage() {
 
   const handleLogout = () => {
     logout()
-    router.push("/login")
+    router.push("/")
   }
 
   return (

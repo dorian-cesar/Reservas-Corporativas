@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LogIn, User2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,38 @@ function scrollToSection(id: string) {
   if (el) el.scrollIntoView({ behavior: "smooth" });
 }
 
+/** Decodifica el JWT localmente y verifica que no esté vencido. */
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1])) as { exp?: number };
+    if (!payload?.exp) return false;
+    return payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function getRoleDestination(role: string): string {
+  if (role === "superuser") return "/superuser";
+  if (role === "admin") return "/admin";
+  if (role === "empresa") return "/empresa";
+  if (role === "auditoria") return "/auditoria";
+  if (role === "contralor") return "/controller";
+  if (role === "admincc") return "/admincc";
+  return "/dashboard";
+}
+
+function getRoleLabel(role: string): string {
+  if (role === "superuser") return "Super Usuario";
+  if (role === "admin") return "Administrador";
+  if (role === "empresa") return "Empresa";
+  if (role === "auditoria") return "Auditoría";
+  if (role === "contralor") return "Contralor";
+  if (role === "admincc") return "Admin Centro de Costos";
+  return "Usuario";
+}
+
 export function Hero() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +54,18 @@ export function Hero() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, _hasHydrated, token, logout } =
+    useAuth();
+
+  // Verificar token de forma síncrona para evitar flash de card con sesión inválida
+  const isValidSession = _hasHydrated && isAuthenticated && isTokenValid(token);
+
+  // Limpiar store si el token venció o está corrupto
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated && !isTokenValid(token)) {
+      logout();
+    }
+  }, [_hasHydrated, isAuthenticated, token, logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,27 +93,17 @@ export function Hero() {
 
       const currentUser = useAuth.getState().user;
       const role = currentUser?.role ?? "user";
-
-      if (role === "superuser") {
-        router.push("/superuser");
-      } else if (role === "admin") {
-        router.push("/admin");
-      } else if (role === "empresa") {
-        router.push("/empresa");
-      } else if (role === "auditoria") {
-        router.push("/auditoria");
-      } else if (role === "contralor") {
-        router.push("/controller");
-      } else if (role === "admincc") {
-        router.push("/admincc");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push(getRoleDestination(role));
     } catch (err) {
       setError("Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleContinue = () => {
+    const role = user?.role ?? "user";
+    router.push(getRoleDestination(role));
   };
 
   return (
@@ -103,97 +136,141 @@ export function Hero() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Button
                 size="lg"
-                // className="rounded-full bg-white text-primary hover:bg-white/90 font-semibold px-8 gap-2 cursor-pointer"
                 className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white font-semibold px-8 cursor-pointer"
                 onClick={() => scrollToSection("contacto")}
               >
                 Solicitar información
                 <ArrowRight className="w-4 h-4" />
               </Button>
-              {/* <Button
-                asChild
-                size="lg"
-                className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white font-semibold px-8"
-              >
-                <a href="/portal">Acceder al portal</a>
-              </Button> */}
             </div>
           </div>
 
-          {/* Columna derecha - Login con fondo transparente */}
+          {/* Columna derecha - Card de login o bienvenida */}
           <div className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto">
             <div className="backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/30 bg-white/10 shadow-xl">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-white">
-                  Iniciar Sesión
-                </h2>
-                <p className="text-sm text-white/80 mt-1">
-                  Ingresa tus credenciales para acceder al sistema
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <Alert
-                    variant="destructive"
-                    className="animate-in fade-in slide-in-from-top-2 bg-red-500/10 border-red-500/30 text-white"
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white/90">
-                    Correo Electrónico
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="tu@empresa.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="transition-all duration-200 focus:scale-[1.01] bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30"
-                  />
+              {/* Estado: aún hidratando el store → skeleton sutil */}
+              {!_hasHydrated && (
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-7 bg-white/20 rounded-lg w-3/4 mx-auto" />
+                  <div className="h-4 bg-white/10 rounded w-2/3 mx-auto" />
+                  <div className="h-10 bg-white/20 rounded-lg mt-6" />
+                  <div className="h-10 bg-white/20 rounded-lg" />
+                  <div className="h-10 bg-white/20 rounded-lg" />
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-white/90">
-                    Contraseña
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="transition-all duration-200 focus:scale-[1.01] pr-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
+              {/* Estado: hidratado y autenticado con token válido → card de bienvenida */}
+              {isValidSession && user && (
+                <div className="flex flex-col items-center text-center gap-5">
+                  {/* Avatar / icono */}
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/20 border border-white/30 shadow-inner">
+                    <User2 className="w-8 h-8 text-white/90" />
                   </div>
-                </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-primary-pullman hover:bg-primary-pullman/90 text-white font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                  disabled={loading}
-                >
-                  {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                </Button>
-              </form>
+                  <div>
+                    <p className="text-sm text-white/70 uppercase tracking-widest font-medium">
+                      Sesión activa
+                    </p>
+                    <h2 className="text-2xl font-bold text-white mt-1 leading-tight">
+                      {user.name}
+                    </h2>
+                    <span className="inline-block mt-2 text-xs font-semibold px-3 py-1 rounded-full bg-white/20 border border-white/25 text-white/80">
+                      {getRoleLabel(user.role)}
+                    </span>
+                    {user.companyName && (
+                      <p className="mt-2 text-sm text-white/60">
+                        {user.companyName}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    size="lg"
+                    onClick={handleContinue}
+                    className="w-full bg-primary-pullman hover:bg-primary-pullman/90 text-white font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] gap-2"
+                  >
+                    Ingresar a la plataforma
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Estado: hidratado y sin sesión válida (no autenticado o token vencido) → formulario de login */}
+              {_hasHydrated && !isValidSession && (
+                <>
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-white">
+                      Iniciar Sesión
+                    </h2>
+                    <p className="text-sm text-white/80 mt-1">
+                      Ingresa tus credenciales para acceder al sistema
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                      <Alert
+                        variant="destructive"
+                        className="animate-in fade-in slide-in-from-top-2 bg-red-500/10 border-red-500/30 text-white"
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-white/90">
+                        Correo Electrónico
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="tu@empresa.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="transition-all duration-200 focus:scale-[1.01] bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-white/90">
+                        Contraseña
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="transition-all duration-200 focus:scale-[1.01] pr-10 bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:bg-white/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-primary-pullman hover:bg-primary-pullman/90 text-white font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      disabled={loading}
+                    >
+                      {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+                    </Button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>
