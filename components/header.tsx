@@ -43,13 +43,15 @@ export function Header({ onLogout }: HeaderProps) {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-center">
-            <Image
-              src="/logo-pullman.png"
-              alt="Logo Pullman"
-              width={200}
-              height={100}
-              className="object-contain"
-            />
+            <Link href="/">
+              <Image
+                src="/logo-pullman.png"
+                alt="Logo Pullman"
+                width={200}
+                height={100}
+                className="object-contain hover:opacity-80 transition-opacity"
+              />
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">

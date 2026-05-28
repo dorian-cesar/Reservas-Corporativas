@@ -47,7 +47,7 @@ export function Navbar() {
             alt="ReservasCorp"
             width={190}
             height={60}
-            className="object-contain hover:scale-105 transition-transform"
+            className="object-contain hover:scale-102 transition-transform"
             priority
           />
         </a>
