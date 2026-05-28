@@ -51,8 +51,6 @@ export const useUserStore = create<UserStore>((set) => ({
 
       if (!res.ok) {
         console.error("Error fetching user from API:", res.status);
-        // Limpiar también el storage de autenticación para evitar sesión inconsistente
-        localStorage.removeItem("auth-storage");
         set({ user: null, loading: false });
         return;
       }
