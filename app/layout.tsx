@@ -13,7 +13,33 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Reservas Corporativas - Pullman Bus",
   description:
-    "Compra pasajes de bus, selecciona tu asiento, revisa servicios y reserva de forma rápida y segura.",
+    "Plataforma integral para gestionar viajes y reservas de tu empresa. Control presupuestario, reportes en tiempo real y beneficios exclusivos.",
+  keywords:
+    "transporte buses, pullman, reservas corporativas, viajes corporativos, empresas, pasajes, buses premium",
+  authors: [{ name: "Pullman Bus" }],
+  openGraph: {
+    title: "Reservas Corporativas - Pullman Bus",
+    description:
+      "Tu socio confiable en transporte corporativo. Seguridad, comodidad y control en cada viaje.",
+    type: "website",
+    locale: "es_CL",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Reservas Corporativas - Pullman Bus",
+    description:
+      "Tu socio confiable en transporte corporativo. Seguridad, comodidad y control en cada viaje.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
