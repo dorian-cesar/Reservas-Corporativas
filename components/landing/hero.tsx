@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useUserStore } from "@/lib/user-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -57,8 +58,17 @@ export function Hero() {
   const { login, isAuthenticated, user, _hasHydrated, token, logout } =
     useAuth();
 
+  // Estado de la verificación remota del usuario (API)
+  const { user: verifiedUser, loading: userLoading } = useUserStore();
+
   // Verificar token de forma síncrona para evitar flash de card con sesión inválida
-  const isValidSession = _hasHydrated && isAuthenticated && isTokenValid(token);
+  // Y además esperar a que la verificación remota haya finalizado con éxito
+  const isValidSession =
+    _hasHydrated &&
+    isAuthenticated &&
+    isTokenValid(token) &&
+    !userLoading &&
+    verifiedUser !== null;
 
   // Limpiar store si el token venció o está corrupto
   useEffect(() => {
