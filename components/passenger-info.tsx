@@ -9,7 +9,7 @@ import {
   Search,
   UserPlus,
   Loader2,
-  Pencil
+  Pencil,
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -41,9 +41,9 @@ export function PassengerInfo({
   requireCentroCosto = true,
   initialPassenger,
 }: PassengerInfoProps) {
-  const [modoPasajero, setModoPasajero] = useState<"buscar" | "crear" | "editar">(
-    initialMode
-  );
+  const [modoPasajero, setModoPasajero] = useState<
+    "buscar" | "crear" | "editar"
+  >(initialMode);
   const [rutBusqueda, setRutBusqueda] = useState("");
   const [buscandoPasajero, setBuscandoPasajero] = useState(false);
   const [pasajeroEncontrado, setPasajeroEncontrado] = useState<any>(null);
@@ -229,10 +229,164 @@ export function PassengerInfo({
         const userCompanyId = getCompanyId();
 
         if (pasajero.id_empresa.toString() !== userCompanyId) {
-          setErrorPasajero(
-            "Este pasajero no pertenece a su empresa. Solo puede buscar pasajeros de su propia empresa."
+          // Pasajero pertenece a otra empresa → preguntar si desea reasignarlo
+          setBuscandoPasajero(false);
+
+          const confirm = await Swal.fire({
+            icon: "warning",
+            title: "Pasajero de otra empresa",
+            html: `
+              <div style="text-align:left; font-size:0.95rem; line-height:1.6;">
+                <p>El pasajero <strong>${pasajero.nombre}</strong> (RUT: ${pasajero.rut}) 
+                pertenece actualmente a la empresa <strong>${pasajero.empresa?.nombre || "otra empresa"}</strong>.</p>
+                <br/>
+                <p>¿Desea reasignarlo a su empresa (<strong>${user?.companyName || "su empresa"}</strong>)?</p>
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: "Sí, reasignar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#2563eb",
+            cancelButtonColor: "#6b7280",
+            ...swalConfig,
+          });
+
+          if (!confirm.isConfirmed) {
+            setErrorPasajero(
+              "Operación cancelada. El pasajero no fue reasignado.",
+            );
+            return null;
+          }
+
+          // Actualizar empresa del pasajero vía PUT
+          setBuscandoPasajero(true);
+
+          let primerCentroCostoId = null;
+          try {
+            const ccResponse = await fetch(
+              `/api/centros-costo/empresa/${userCompanyId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              },
+            );
+            if (ccResponse.ok) {
+              const ccData = await ccResponse.json();
+              if (Array.isArray(ccData) && ccData.length > 0) {
+                primerCentroCostoId = ccData[0].id;
+              } else if (requireCentroCosto) {
+                setBuscandoPasajero(false);
+                const errMsg = "Debe crear centros de costo como administrador antes de reasignar un pasajero.";
+                setErrorPasajero(errMsg);
+                Swal.fire({
+                  icon: "error",
+                  title: "Faltan Centros de Costo",
+                  text: errMsg,
+                  confirmButtonColor: "#2563eb",
+                  ...swalConfig,
+                });
+                return null;
+              }
+            }
+          } catch (e) {
+            console.error(
+              "Error obteniendo centros de costo para reasignación",
+              e,
+            );
+          }
+
+          const updateResponse = await fetch(`/api/pasajeros/${pasajero.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              nombre: pasajero.nombre,
+              rut: pasajero.rut,
+              correo: pasajero.correo,
+              telefono: pasajero.telefono,
+              id_empresa: userCompanyId,
+              id_centro_costo: primerCentroCostoId,
+            }),
+          });
+
+          const updateResult = await updateResponse.json();
+
+          if (!updateResponse.ok) {
+            const updateError =
+              updateResult.error ||
+              `Error ${updateResponse.status}: no se pudo reasignar el pasajero.`;
+            setErrorPasajero(updateError);
+            Swal.fire({
+              icon: "error",
+              title: "Error al reasignar",
+              text: updateError,
+              confirmButtonColor: "#2563eb",
+              ...swalConfig,
+            });
+            return null;
+          }
+
+          await Swal.fire({
+            icon: "success",
+            title: "Pasajero reasignado",
+            html: `
+              <div style="text-align:center; padding:8px;">
+                <p style="font-size:1.1rem; font-weight:600; color:#059669;">
+                  ${pasajero.nombre}
+                </p>
+                <p style="color:#6b7280; font-size:0.9rem; margin-top:6px;">
+                  Ahora pertenece a <strong>${user?.companyName || "su empresa"}</strong>
+                </p>
+                <p style="color:#2563eb; font-size:0.9rem; margin-top:10px;">
+                  <strong>Por favor asigne su centro de costo en el formulario.</strong>
+                </p>
+              </div>
+            `,
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            ...swalConfig,
+          });
+
+          // Re-buscar el pasajero para obtener datos actualizados
+          const refreshResponse = await fetch(
+            `/api/pasajeros?rut=${cleanRut(rut)}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            },
           );
-          return null;
+          const refreshData = await refreshResponse.json();
+          const pasajeroActualizado =
+            Array.isArray(refreshData) && refreshData.length > 0
+              ? refreshData[0]
+              : updateResult.pasajero || pasajero;
+
+          setModoPasajero("editar");
+          setPasajeroEncontrado(pasajeroActualizado);
+          setPasajeroSeleccionado(true);
+          setPassengerErrors({});
+          setErrorPasajero(null);
+          setPassengerName(pasajeroActualizado.nombre);
+          setPassengerRut(pasajeroActualizado.rut);
+          setPassengerEmail(pasajeroActualizado.correo || "");
+          setPassengerPhone(pasajeroActualizado.telefono || "");
+
+          if (pasajeroActualizado.id_centro_costo) {
+            setCentroCostoSeleccionado({
+              id: pasajeroActualizado.id_centro_costo,
+              nombre:
+                pasajeroActualizado.centroCosto?.nombre || "Centro de costo",
+            });
+          }
+
+          // Deseleccionamos temporalmente para obligar al usuario a darle "Guardar pasajero"
+          onPassengerSelected(null);
+
+          return pasajeroActualizado;
         }
 
         setModoPasajero("buscar");
@@ -381,11 +535,17 @@ export function PassengerInfo({
           correo: result.correo || passengerEmail,
           telefono: result.telefono || passengerPhone,
           id_empresa: result.id_empresa || pasajeroEncontrado?.id_empresa,
-          id_centro_costo: result.id_centro_costo || centroCostoSeleccionado?.id,
+          id_centro_costo:
+            result.id_centro_costo || centroCostoSeleccionado?.id,
           empresa: result.empresa || pasajeroEncontrado?.empresa,
-          centroCosto: result.centroCosto || (centroCostoSeleccionado
-            ? { id: centroCostoSeleccionado.id, nombre: centroCostoSeleccionado.nombre }
-            : pasajeroEncontrado?.centroCosto)
+          centroCosto:
+            result.centroCosto ||
+            (centroCostoSeleccionado
+              ? {
+                  id: centroCostoSeleccionado.id,
+                  nombre: centroCostoSeleccionado.nombre,
+                }
+              : pasajeroEncontrado?.centroCosto),
         };
 
         setPasajeroEncontrado(pasajeroActualizado);
@@ -574,7 +734,7 @@ export function PassengerInfo({
       } else if (result.encontrado === false) {
         setErrorPasajero(
           result.mensaje ||
-          "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'"
+            "Pasajero no encontrado. Complete los datos y haga clic en 'Crear pasajero'",
         );
         return null;
       }
@@ -741,15 +901,16 @@ export function PassengerInfo({
           {/* Mostrar errores en modo búsqueda */}
           {errorPasajero && modoPasajero === "buscar" && (
             <div
-              className={`p-3 rounded-md ${errorPasajero.includes("no encontrado") ||
+              className={`p-3 rounded-md ${
+                errorPasajero.includes("no encontrado") ||
                 errorPasajero.includes("Puede crear")
-                ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
-                : "bg-red-50 border border-red-200 text-red-600"
-                }`}
+                  ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                  : "bg-red-50 border border-red-200 text-red-600"
+              }`}
             >
               <div className="flex items-start">
                 {errorPasajero.includes("no encontrado") ||
-                  errorPasajero.includes("Puede crear") ? (
+                errorPasajero.includes("Puede crear") ? (
                   <Search className="h-4 w-4 mt-0.5 shrink-0" />
                 ) : (
                   <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
@@ -758,11 +919,11 @@ export function PassengerInfo({
                   <p className="text-sm font-medium">{errorPasajero}</p>
                   {(errorPasajero.includes("401") ||
                     errorPasajero.includes("autorizado")) && (
-                      <p className="text-xs mt-1">
-                        Contacte al administrador del sistema para obtener
-                        permisos.
-                      </p>
-                    )}
+                    <p className="text-xs mt-1">
+                      Contacte al administrador del sistema para obtener
+                      permisos.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -862,15 +1023,16 @@ export function PassengerInfo({
             !errorPasajero.includes("no encontrado") &&
             !errorPasajero.includes("Puede crear") && (
               <div
-                className={`p-3 rounded-md ${errorPasajero.includes("creado") ||
+                className={`p-3 rounded-md ${
+                  errorPasajero.includes("creado") ||
                   errorPasajero.includes("actualizado")
-                  ? "bg-green-50 border border-green-200 text-green-800"
-                  : "bg-red-50 border border-red-200 text-red-600"
-                  }`}
+                    ? "bg-green-50 border border-green-200 text-green-800"
+                    : "bg-red-50 border border-red-200 text-red-600"
+                }`}
               >
                 <div className="flex items-start">
                   {errorPasajero.includes("creado") ||
-                    errorPasajero.includes("actualizado") ? (
+                  errorPasajero.includes("actualizado") ? (
                     <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                   ) : (
                     <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
@@ -879,11 +1041,11 @@ export function PassengerInfo({
                     <p className="text-sm font-medium">{errorPasajero}</p>
                     {(errorPasajero.includes("401") ||
                       errorPasajero.includes("autorizado")) && (
-                        <p className="text-xs mt-1">
-                          Contacte al administrador del sistema para obtener
-                          permisos.
-                        </p>
-                      )}
+                      <p className="text-xs mt-1">
+                        Contacte al administrador del sistema para obtener
+                        permisos.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1029,7 +1191,9 @@ export function PassengerInfo({
                       const id = parseInt(e.target.value);
                       const centro = centrosCosto.find((c) => c.id === id);
                       setCentroCostoSeleccionado(
-                        centro ? { id: centro.id, nombre: centro.nombre } : null
+                        centro
+                          ? { id: centro.id, nombre: centro.nombre }
+                          : null,
                       );
                     }}
                     className="w-full px-3 py-2 border rounded-md bg-background"
@@ -1104,12 +1268,17 @@ export function PassengerInfo({
       {modoPasajero === "editar" && (
         <div className="space-y-3">
           {errorPasajero && (
-            <div className={`p-3 rounded-md ${errorPasajero.includes("actualizado") || errorPasajero.includes("creado")
-              ? "bg-green-50 border border-green-200 text-green-800"
-              : "bg-red-50 border border-red-200 text-red-600"
-              }`}>
+            <div
+              className={`p-3 rounded-md ${
+                errorPasajero.includes("actualizado") ||
+                errorPasajero.includes("creado")
+                  ? "bg-green-50 border border-green-200 text-green-800"
+                  : "bg-red-50 border border-red-200 text-red-600"
+              }`}
+            >
               <div className="flex items-start">
-                {errorPasajero.includes("actualizado") || errorPasajero.includes("creado") ? (
+                {errorPasajero.includes("actualizado") ||
+                errorPasajero.includes("creado") ? (
                   <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
                 ) : (
                   <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
@@ -1129,7 +1298,8 @@ export function PassengerInfo({
                   Editando pasajero
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
-                  Modifique los datos del pasajero. Los cambios se guardarán en el sistema.
+                  Modifique los datos del pasajero. Los cambios se guardarán en
+                  el sistema.
                 </p>
               </div>
             </div>
@@ -1255,7 +1425,9 @@ export function PassengerInfo({
                       const id = parseInt(e.target.value);
                       const centro = centrosCosto.find((c) => c.id === id);
                       setCentroCostoSeleccionado(
-                        centro ? { id: centro.id, nombre: centro.nombre } : null
+                        centro
+                          ? { id: centro.id, nombre: centro.nombre }
+                          : null,
                       );
                     }}
                     className="w-full px-3 py-2 border rounded-md bg-background"
