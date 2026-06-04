@@ -45,11 +45,12 @@ export function Header({ onLogout }: HeaderProps) {
           <div className="flex flex-col items-center">
             <Link href="/">
               <Image
-                src="/logo-pullman.png"
-                alt="Logo Pullman"
-                width={200}
-                height={100}
-                className="object-contain hover:opacity-80 transition-opacity"
+                src="/logo-reservas-corporativas.png"
+                alt="Reservas Corporativas"
+                width={190}
+                height={60}
+                className="object-contain hover:scale-102 transition-transform"
+                priority
               />
             </Link>
           </div>
@@ -85,6 +86,16 @@ export function Header({ onLogout }: HeaderProps) {
               <Button variant="outline" size="icon" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
+            </div>
+
+            <div className="border-l border-border pl-4 ml-2">
+              <Image
+                src="/logo-wit-dark.png"
+                alt="WIT Logo"
+                width={40}
+                height={40}
+                className="object-contain opacity-80 hover:opacity-100 transition-opacity duration-300"
+              />
             </div>
           </div>
         </div>
