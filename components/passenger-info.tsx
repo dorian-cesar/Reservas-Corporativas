@@ -339,7 +339,7 @@ export function PassengerInfo({
                   Ahora pertenece a <strong>${user?.companyName || "su empresa"}</strong>
                 </p>
                 <p style="color:#2563eb; font-size:0.9rem; margin-top:10px;">
-                  <strong>Por favor asigne su centro de costo en el formulario.</strong>
+                  <strong>Por favor recuerde actualizar el correo electrónico del pasajero y asignar su nuevo centro de costo.</strong>
                 </p>
               </div>
             `,
@@ -365,6 +365,11 @@ export function PassengerInfo({
               ? refreshData[0]
               : updateResult.pasajero || pasajero;
 
+          // Forzar correo vacío para obligar al usuario a actualizarlo
+          if (pasajeroActualizado) {
+            pasajeroActualizado.correo = "";
+          }
+
           setModoPasajero("editar");
           setPasajeroEncontrado(pasajeroActualizado);
           setPasajeroSeleccionado(true);
@@ -372,7 +377,7 @@ export function PassengerInfo({
           setErrorPasajero(null);
           setPassengerName(pasajeroActualizado.nombre);
           setPassengerRut(pasajeroActualizado.rut);
-          setPassengerEmail(pasajeroActualizado.correo || "");
+          setPassengerEmail("");
           setPassengerPhone(pasajeroActualizado.telefono || "");
 
           if (pasajeroActualizado.id_centro_costo) {
