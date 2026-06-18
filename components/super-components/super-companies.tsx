@@ -698,6 +698,63 @@ export function SuperCompanies() {
       });
     }
   };
+
+  const exportAllCompaniesToXLSX = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/export/companies", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al obtener las empresas para exportar");
+      }
+
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No hay empresas para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const worksheetData = data.map((company: any) => ({
+        ID: company.id,
+        "Nombre Empresa": company.nombre,
+        "Porcentaje Recargo (%)": company.recargo || 0,
+        "Porcentaje Devolución (%)": parseFloat(percentToBackend(backendToPercent(company.porcentaje_devolucion) || 0).toFixed(2)),
+        "Día Facturación": company.dia_facturacion,
+        "Día Vencimiento": company.dia_vencimiento,
+        "Monto Máximo": company.monto_maximo || 0,
+        "Monto Acumulado": company.monto_acumulado || 0,
+        RUT: company.rut || "-",
+        "Cuenta Corriente": company.cuenta_corriente || "-",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
+      XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${data.length} empresas a Excel`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "No se pudieron exportar las empresas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openEditDialog = (company: Company) => {
     setSelectedCompany(company);
     setFormData({
@@ -755,6 +812,18 @@ export function SuperCompanies() {
             label: "Detalles",
             onClick: openDetailsDialog,
           }
+        }
+        secondaryActions={
+          user?.role === "superuser"
+            ? [
+                {
+                  label: "Exportar Excel",
+                  icon: <Download className="h-4 w-4" />,
+                  onClick: exportAllCompaniesToXLSX,
+                  disabled: loading,
+                },
+              ]
+            : []
         }
       />
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>

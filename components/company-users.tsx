@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react"
+import * as XLSX from "xlsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,7 @@ import {
   Badge,
   FolderTree,
   Upload,
+  Download,
   MoreHorizontal,
   Check,
   X,
@@ -118,6 +120,59 @@ export function CompanyUsers() {
 
   const [superUser, setSuperUser] = useState(false);
   const currentUser = user;
+
+  const exportUsersToXLSX = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/export/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al obtener los usuarios para exportar");
+      }
+
+      const data = await res.json();
+
+      if (!data || data.length === 0) {
+        toast({
+          title: "Sin datos",
+          description: "No hay usuarios para exportar",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const worksheetData = data.map((u: any) => ({
+        ID: u.id,
+        Nombre: u.nombre,
+        RUT: u.rut,
+        Email: u.email,
+        Rol: u.rol,
+        Empresa: u.nombre_empresa || "-",
+        "Centro de Costo": u.nombre_centro_costo || "-",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+      XLSX.writeFile(workbook, `usuarios_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se exportaron ${data.length} usuarios a Excel`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "No se pudieron exportar los usuarios",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { setSuperUser(user?.role === "superuser") }, []);
 
@@ -731,6 +786,18 @@ export function CompanyUsers() {
               onClick: sendCSV,
             }
             : undefined
+        }
+        secondaryActions={
+          user?.role === "superuser"
+            ? [
+                {
+                  label: "Exportar Excel",
+                  icon: <Download className="h-4 w-4" />,
+                  onClick: exportUsersToXLSX,
+                  disabled: loading,
+                },
+              ]
+            : []
         }
       />
 
