@@ -1,47 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDbPool } from "@/lib/db";
+
+const API_BASE = process.env.NEXT_PUBLIC_URL_BACKEND ?? "";
 
 export async function GET(req: NextRequest) {
   try {
-    const tokenHeader = req.headers.get("authorization");
-    if (!tokenHeader) {
+    const token = req.headers.get("authorization");
+    if (!token) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    const token = tokenHeader.startsWith("Bearer ") ? tokenHeader.slice(7) : tokenHeader;
-    let payload;
-    try {
-      const payloadStr = Buffer.from(token.split(".")[1], "base64").toString("utf-8");
-      payload = JSON.parse(payloadStr);
-    } catch (e) {
-      return NextResponse.json({ message: "Token inválido" }, { status: 401 });
-    }
+    const backendRes = await fetch(`${API_BASE}/api/empresas/export`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      cache: "no-store",
+    });
 
-    if (payload.rol !== "superuser") {
-      return NextResponse.json({ message: "Prohibido: Solo superusuario" }, { status: 403 });
-    }
-
-    const pool = getDbPool();
-    const query = `
-      SELECT 
-        id, 
-        nombre, 
-        recargo, 
-        porcentaje_devolucion, 
-        dia_facturacion, 
-        dia_vencimiento, 
-        monto_maximo, 
-        monto_acumulado, 
-        rut, 
-        cuenta_corriente 
-      FROM empresas
-    `;
-
-    const [rows] = await pool.query(query);
-
-    return NextResponse.json(rows, { status: 200 });
+    const respBody = await backendRes.json().catch(() => ({ message: "Respuesta no JSON del backend" }));
+    return NextResponse.json(respBody, { status: backendRes.status });
   } catch (err: any) {
-    console.error("Error al exportar empresas:", err);
+    console.error("Error al exportar empresas (proxy):", err);
     return NextResponse.json(
       { message: "Error interno del servidor", error: err.message },
       { status: 500 }
