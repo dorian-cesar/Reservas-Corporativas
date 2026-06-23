@@ -31,7 +31,8 @@ export async function GET(
       headers: {
         "Authorization": token,
         "Content-Type": "application/json"
-      }
+      },
+      cache: 'no-store'
     });
 
     if (!res.ok) {
