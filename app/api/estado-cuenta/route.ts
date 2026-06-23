@@ -29,6 +29,17 @@ export async function GET(req: NextRequest) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`Backend error: ${res.status} - ${errorText}`);
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson && errorJson.message) {
+          return NextResponse.json(
+            { message: errorJson.message },
+            { status: res.status }
+          );
+        }
+      } catch (e) {
+        // Ignorar si no es JSON
+      }
       return NextResponse.json(
         { message: `Error del backend: ${res.status}` },
         { status: res.status }
@@ -72,6 +83,17 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`Backend error: ${res.status} - ${errorText}`);
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson && errorJson.message) {
+          return NextResponse.json(
+            { message: errorJson.message },
+            { status: res.status }
+          );
+        }
+      } catch (e) {
+        // Ignorar si no es JSON
+      }
       return NextResponse.json(
         { message: `Error del backend: ${res.status}` },
         { status: res.status }

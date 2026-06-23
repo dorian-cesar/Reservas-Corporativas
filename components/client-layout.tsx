@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Header } from "@/components/header";
 import { FooterLanding } from "@/components/landing/footer-landing";
 import { TravelProvider } from "@/components/context/travel-context";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function ClientLayout({
   children,
@@ -25,6 +26,7 @@ export default function ClientLayout({
         <main className="flex-1 bg-blue-50 min-h-screen">{children}</main>
         {!hideLayout && <FooterLanding />}
       </div>
+      <Toaster />
     </TravelProvider>
   );
 }

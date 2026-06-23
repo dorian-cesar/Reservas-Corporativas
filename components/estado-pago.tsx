@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import ToolBar from "./tool-bar";
+import Swal from "sweetalert2";
+import { swalErrorConfig, swalSuccessConfig } from "@/lib/swal-config";
 
 import { Eye } from "lucide-react";
 import {
@@ -236,10 +238,10 @@ export function EstadoPago() {
       !formData.fecha_desde ||
       !formData.fecha_hasta
     ) {
-      toast({
+      Swal.fire({
+        ...swalErrorConfig,
         title: "Error",
-        description: "Complete todos los campos",
-        variant: "destructive",
+        text: "Complete todos los campos",
       });
       return;
     }
@@ -260,19 +262,36 @@ export function EstadoPago() {
         }),
       });
 
-      if (!res.ok) throw new Error("Error al crear estado de cuenta");
+      if (!res.ok) {
+        let errorMsg = "Error al crear estado de cuenta";
+        try {
+          const errData = await res.json();
+          if (errData && errData.message) {
+            errorMsg = errData.message;
+          }
+        } catch (_) {
+          // Fallback al mensaje por defecto si no es JSON
+        }
+        Swal.fire({
+          ...swalErrorConfig,
+          title: "Error al crear estado de cuenta",
+          text: errorMsg,
+        });
+        return;
+      }
 
       setIsAddDialogOpen(false);
       resetForm();
-      toast({
+      Swal.fire({
+        ...swalSuccessConfig,
         title: "Estado de cuenta creado",
-        description: `Estado de cuenta creado exitosamente`,
+        text: "Estado de cuenta creado exitosamente",
       });
     } catch (err) {
-      toast({
+      Swal.fire({
+        ...swalErrorConfig,
         title: "Error",
-        description: (err as Error).message,
-        variant: "destructive",
+        text: (err as Error).message,
       });
       console.error("Error al crear estado de cuenta:", err);
     } finally {
