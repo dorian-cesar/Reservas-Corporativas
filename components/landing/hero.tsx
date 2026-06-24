@@ -139,7 +139,7 @@ export function Hero() {
                 className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white font-semibold px-8 cursor-pointer"
                 onClick={() => scrollToSection("contacto")}
               >
-                Solicitar información
+                Abre tu cuenta corporativa ahora
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
