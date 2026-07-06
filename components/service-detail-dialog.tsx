@@ -171,6 +171,27 @@ export function ServiceDetailDialog({
     return finalPrice.toLocaleString("es-CL");
   };
 
+  const getDisplayPrice = (): string => {
+    if (!serviceDetail) return "0";
+    if (selectedSeats.length === 0) {
+      return extractPrice(serviceDetail.cost);
+    }
+    const availableSeats = parseSeats();
+    const prices = selectedSeats
+      .map((seatNum) => {
+        const seat = availableSeats.find((s) => s.number === seatNum);
+        return seat ? seat.price : null;
+      })
+      .filter((p): p is number => p !== null);
+
+    if (prices.length === 0) {
+      return extractPrice(serviceDetail.cost);
+    }
+
+    const uniquePrices = Array.from(new Set(prices));
+    return uniquePrices.map((p) => p.toLocaleString("es-CL")).join(" / ");
+  };
+
   const getMainBusType = (busType: string | null | undefined): string => {
     if (!busType) return "";
     const parts = busType.split(",").map((p) => p.trim());
@@ -1071,7 +1092,7 @@ export function ServiceDetailDialog({
                   </span>
                   <div className="flex items-center gap-1 text-lg sm:text-xl font-bold text-primary">
                     <DollarSign className="h-4 w-4" />
-                    {extractPrice(serviceDetail.cost)}
+                    {getDisplayPrice()}
                   </div>
                 </div>
               </div>
