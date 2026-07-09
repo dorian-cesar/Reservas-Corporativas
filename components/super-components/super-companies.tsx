@@ -1,13 +1,19 @@
-"use client"
+"use client";
 import { Download, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import * as XLSX from "xlsx";
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Building2,
   Plus,
@@ -23,9 +29,9 @@ import {
   Trash2,
   Percent,
   RefreshCcw,
-  Search
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+  Search,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table as UITable,
   TableBody,
@@ -33,7 +39,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 import Swal from "sweetalert2";
 
@@ -60,11 +66,11 @@ const formatPercent = (n: number) => {
 
 export function SuperCompanies() {
   const { token, user } = useAuth.getState();
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,10 +104,23 @@ export function SuperCompanies() {
     billingDay: number;
     expirationDay: number;
     max: number;
-    count: number
+    count: number;
     saldo_actual?: number;
     saldo_restante?: number;
     fact_manual?: boolean;
+    tipo_facturacion?: "Masiva" | "Especial";
+    contacto_fact_nombre?: string;
+    contacto_fact_email?: string;
+    contacto_fact_telefono?: string;
+    ejecutivo_com_nombre?: string;
+    ejecutivo_com_email?: string;
+    ejecutivo_com_telefono?: string;
+    tramos?: Array<{
+      id?: number;
+      monto_desde: number;
+      monto_hasta: number | null;
+      porcentaje_descuento: number;
+    }>;
   };
 
   const swalConfig = {
@@ -131,7 +150,7 @@ export function SuperCompanies() {
   };
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     rut: "",
@@ -144,11 +163,30 @@ export function SuperCompanies() {
     expirationDay: "15",
     max: "100000",
     count: "0",
-    fact_manual: false
-  })
+    fact_manual: false,
+    tipo_facturacion: "Masiva",
+    contacto_fact_nombre: "",
+    contacto_fact_email: "",
+    contacto_fact_telefono: "",
+    ejecutivo_com_nombre: "",
+    ejecutivo_com_email: "",
+    ejecutivo_com_telefono: "",
+  });
+
+  const [tramosData, setTramosData] = useState<
+    Array<{
+      monto_desde: string;
+      monto_hasta: string;
+      porcentaje_descuento: string;
+    }>
+  >([]);
 
   useEffect(() => {
-    fetchCompanies({ page: 1, limit: pagination.limit, includeInactives: showInactives });
+    fetchCompanies({
+      page: 1,
+      limit: pagination.limit,
+      includeInactives: showInactives,
+    });
   }, []);
 
   const reloadCompanies = () => {
@@ -156,7 +194,7 @@ export function SuperCompanies() {
       page: pagination.page,
       limit: pagination.limit,
       search: searchQuery,
-      includeInactives: showInactives
+      includeInactives: showInactives,
     });
   };
 
@@ -172,7 +210,7 @@ export function SuperCompanies() {
       const limit = opts?.limit ?? pagination.limit;
       const search = opts?.search ?? searchQuery;
 
-      const includeInactives = opts?.includeInactives ?? false
+      const includeInactives = opts?.includeInactives ?? false;
 
       const params = new URLSearchParams({
         page: String(page),
@@ -184,7 +222,7 @@ export function SuperCompanies() {
       }
 
       if (includeInactives === true) {
-        params.set("includeInactives", 'true')
+        params.set("includeInactives", "true");
       }
 
       const res = await fetch(`/api/companies?${params.toString()}`, {
@@ -221,9 +259,17 @@ export function SuperCompanies() {
           expirationDay: empresa.dia_vencimiento,
           max: empresa.monto_maximo,
           count: empresa.monto_acumulado,
-          saldo_actual: empresa.saldo_actual || 0,          // Añadir esto
-          saldo_restante: empresa.saldo_restante || 0,       // Añadir esto
-          fact_manual: empresa.fact_manual || false
+          saldo_actual: empresa.saldo_actual || 0,
+          saldo_restante: empresa.saldo_restante || 0,
+          fact_manual: empresa.fact_manual || false,
+          tipo_facturacion: empresa.tipo_facturacion || "Masiva",
+          contacto_fact_nombre: empresa.contacto_fact_nombre || "",
+          contacto_fact_email: empresa.contacto_fact_email || "",
+          contacto_fact_telefono: empresa.contacto_fact_telefono || "",
+          ejecutivo_com_nombre: empresa.ejecutivo_com_nombre || "",
+          ejecutivo_com_email: empresa.ejecutivo_com_email || "",
+          ejecutivo_com_telefono: empresa.ejecutivo_com_telefono || "",
+          tramos: empresa.tramos || [],
         }));
 
         setCompanies(empresas);
@@ -232,7 +278,9 @@ export function SuperCompanies() {
           page: pag.page ?? page,
           limit: pag.limit ?? limit,
           total: pag.total ?? empresas.length,
-          totalPages: pag.totalPages ?? Math.ceil((pag.total ?? empresas.length) / (pag.limit ?? limit)),
+          totalPages:
+            pag.totalPages ??
+            Math.ceil((pag.total ?? empresas.length) / (pag.limit ?? limit)),
           hasNextPage: Boolean(pag.hasNextPage),
           hasPrevPage: Boolean(pag.hasPrevPage),
         });
@@ -250,26 +298,46 @@ export function SuperCompanies() {
   };
 
   const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchCompanies({ page: 1, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    fetchCompanies({
+      page: 1,
+      limit: pagination.limit,
+      search: searchQuery,
+      includeInactives: showInactives,
+    });
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
     fetchCompanies({ page: 1, limit: pagination.limit });
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage === pagination.page || newPage > pagination.totalPages) return;
-    setPagination(prev => ({ ...prev, page: newPage }));
-    fetchCompanies({ page: newPage, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
+    if (
+      newPage < 1 ||
+      newPage === pagination.page ||
+      newPage > pagination.totalPages
+    )
+      return;
+    setPagination((prev) => ({ ...prev, page: newPage }));
+    fetchCompanies({
+      page: newPage,
+      limit: pagination.limit,
+      search: searchQuery,
+      includeInactives: showInactives,
+    });
   };
 
   const handleLimitChange = (newLimit: number) => {
     if (newLimit === pagination.limit) return;
-    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
-    fetchCompanies({ page: 1, limit: newLimit, search: searchQuery, includeInactives: showInactives });
+    setPagination((prev) => ({ ...prev, page: 1, limit: newLimit }));
+    fetchCompanies({
+      page: 1,
+      limit: newLimit,
+      search: searchQuery,
+      includeInactives: showInactives,
+    });
   };
 
   const resetForm = () => {
@@ -284,22 +352,37 @@ export function SuperCompanies() {
       expirationDay: "15",
       max: "100000",
       count: "0",
-      fact_manual: false
+      fact_manual: false,
+      tipo_facturacion: "Masiva",
+      contacto_fact_nombre: "",
+      contacto_fact_email: "",
+      contacto_fact_telefono: "",
+      ejecutivo_com_nombre: "",
+      ejecutivo_com_email: "",
+      ejecutivo_com_telefono: "",
     });
+    setTramosData([]);
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
+  const formatMiles = (val: string | number) => {
+    if (val === undefined || val === null) return "";
+    const clean = val.toString().replace(/\D/g, "");
+    if (!clean) return "";
+    return new Intl.NumberFormat("es-CL").format(Number(clean));
+  };
+
   const handleAdd = async () => {
     if (!formData.name) {
-      setAddError("Por favor complete todos los campos requeridos");
+      setAddError("Por favor ingrese el nombre de la empresa");
       return;
     }
 
@@ -318,12 +401,26 @@ export function SuperCompanies() {
           cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
-          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
+          porcentaje_devolucion: String(
+            percentToBackend(formData.returnPercentage),
+          ),
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
           monto_acumulado: Number(formData.count),
-          fact_manual: formData.fact_manual
+          fact_manual: formData.fact_manual,
+          tipo_facturacion: formData.tipo_facturacion,
+          contacto_fact_nombre: formData.contacto_fact_nombre,
+          contacto_fact_email: formData.contacto_fact_email,
+          contacto_fact_telefono: formData.contacto_fact_telefono,
+          ejecutivo_com_nombre: formData.ejecutivo_com_nombre,
+          ejecutivo_com_email: formData.ejecutivo_com_email,
+          ejecutivo_com_telefono: formData.ejecutivo_com_telefono,
+          tramos: tramosData.map((t) => ({
+            monto_desde: Number(t.monto_desde) || 0,
+            monto_hasta: t.monto_hasta ? Number(t.monto_hasta) : null,
+            porcentaje_descuento: Number(t.porcentaje_descuento) || 0,
+          })),
         }),
       });
 
@@ -345,9 +442,8 @@ export function SuperCompanies() {
         page: pagination.page,
         limit: pagination.limit,
         search: searchQuery,
-        includeInactives: showInactives
+        includeInactives: showInactives,
       });
-
     } catch (err: any) {
       setAddError(err.message);
     }
@@ -359,7 +455,7 @@ export function SuperCompanies() {
     if (!formData.name) {
       toast({
         title: "Error",
-        description: "Por favor complete todos los campos requeridos",
+        description: "Por favor ingrese el nombre de la empresa",
         variant: "destructive",
       });
       return;
@@ -378,11 +474,25 @@ export function SuperCompanies() {
           cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
-          porcentaje_devolucion: String(percentToBackend(formData.returnPercentage)),
+          porcentaje_devolucion: String(
+            percentToBackend(formData.returnPercentage),
+          ),
           dia_facturacion: Number(formData.billingDay),
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
-          fact_manual: formData.fact_manual
+          fact_manual: formData.fact_manual,
+          tipo_facturacion: formData.tipo_facturacion,
+          contacto_fact_nombre: formData.contacto_fact_nombre,
+          contacto_fact_email: formData.contacto_fact_email,
+          contacto_fact_telefono: formData.contacto_fact_telefono,
+          ejecutivo_com_nombre: formData.ejecutivo_com_nombre,
+          ejecutivo_com_email: formData.ejecutivo_com_email,
+          ejecutivo_com_telefono: formData.ejecutivo_com_telefono,
+          tramos: tramosData.map((t) => ({
+            monto_desde: Number(t.monto_desde) || 0,
+            monto_hasta: t.monto_hasta ? Number(t.monto_hasta) : null,
+            porcentaje_descuento: Number(t.porcentaje_descuento) || 0,
+          })),
         }),
       });
 
@@ -392,7 +502,12 @@ export function SuperCompanies() {
       setSelectedCompany(null);
       resetForm();
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
+      fetchCompanies({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        includeInactives: showInactives,
+      });
 
       toast({
         title: "Empresa actualizada",
@@ -443,7 +558,12 @@ export function SuperCompanies() {
 
       if (!res.ok) throw new Error("Error al reestablecer el monto acumulado");
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
+      fetchCompanies({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        includeInactives: showInactives,
+      });
 
       toast({
         title: "Monto Reestablecido",
@@ -503,8 +623,12 @@ export function SuperCompanies() {
         description: `Se procesaron ${data.result?.success || 0} empresas exitosamente`,
       });
 
-      fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives });
-
+      fetchCompanies({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        includeInactives: showInactives,
+      });
     } catch (err: any) {
       toast({
         title: "Error",
@@ -524,14 +648,17 @@ export function SuperCompanies() {
   };
 
   const openDetailsDialog = () => {
-    setDetailsDialogOpen(true)
-  }
+    setDetailsDialogOpen(true);
+  };
 
   const exportToCSV = async () => {
     try {
-      const res = await fetch(`/api/companies?includeInactives=${showInactives}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `/api/companies?includeInactives=${showInactives}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (!res.ok) {
         throw new Error("Error al obtener empresas para exportar");
@@ -568,7 +695,7 @@ export function SuperCompanies() {
         max: empresa.monto_maximo,
         count: empresa.monto_acumulado,
         rut: empresa.rut || "-",
-        current_account: empresa.cuenta_corriente || "-"
+        current_account: empresa.cuenta_corriente || "-",
       }));
 
       const headers = [
@@ -582,7 +709,7 @@ export function SuperCompanies() {
         "monto_maximo",
         "monto_acumulado",
         "rut_empresa",
-        "cuenta_corriente"
+        "cuenta_corriente",
       ];
 
       const csvData = companiesForExport.map((company: Company) => [
@@ -596,22 +723,24 @@ export function SuperCompanies() {
         company.max?.toString() || "0",
         company.count?.toString() || "0",
         company.rut || "-",
-        company.current_account || "-"
+        company.current_account || "-",
       ]);
 
-      const csvContent = [headers.join(","), ...csvData.map((row: any[]) => row.join(","))].join("\n");
+      const csvContent = [
+        headers.join(","),
+        ...csvData.map((row: any[]) => row.join(",")),
+      ].join("\n");
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `empresas_${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `empresas_${new Date().toISOString().split("T")[0]}.csv`;
       link.click();
 
       setIsExportDialogOpen(false);
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${companiesForExport.length} empresas a CSV`
+        description: `Se exportaron ${companiesForExport.length} empresas a CSV`,
       });
-
     } catch (err) {
       console.error("Error en exportación CSV:", err);
       toast({
@@ -623,11 +752,13 @@ export function SuperCompanies() {
   };
 
   const exportToXLSX = async () => {
-
     try {
-      const res = await fetch(`/api/companies?includeInactives=${showInactives}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `/api/companies?includeInactives=${showInactives}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       if (!res.ok) {
         throw new Error("Error al obtener empresas para exportar");
@@ -664,7 +795,7 @@ export function SuperCompanies() {
         max: empresa.monto_maximo,
         count: empresa.monto_acumulado,
         rut: empresa.rut || "-",
-        current_account: empresa.cuenta_corriente || "-"
+        current_account: empresa.cuenta_corriente || "-",
       }));
 
       const data = companiesForExport.map((company: Company) => ({
@@ -672,22 +803,27 @@ export function SuperCompanies() {
         nombre_empresa: company.name,
         estado: company.state ? 1 : 0,
         porcentaje_recargo: company.surchargePercentage || 0,
-        porcentaje_devolucion: parseFloat(percentToBackend(company.returnPercentage || 0).toFixed(2)),
+        porcentaje_devolucion: parseFloat(
+          percentToBackend(company.returnPercentage || 0).toFixed(2),
+        ),
         dia_facturacion: company.billingDay,
         dia_vencimiento: company.expirationDay,
         monto_maximo: company.max || 0,
         monto_acumulado: company.count || 0,
         rut_empresa: company.rut || "-",
-        cuenta_corriente: company.current_account || "-"
+        cuenta_corriente: company.current_account || "-",
       }));
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
-      XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(
+        workbook,
+        `empresas_${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
       setIsExportDialogOpen(false);
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`
+        description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`,
       });
     } catch (err) {
       console.error("Error en exportación XLSX:", err);
@@ -725,7 +861,11 @@ export function SuperCompanies() {
         ID: company.id,
         "Nombre Empresa": company.nombre,
         "Porcentaje Recargo (%)": company.recargo || 0,
-        "Porcentaje Devolución (%)": parseFloat(percentToBackend(backendToPercent(company.porcentaje_devolucion) || 0).toFixed(2)),
+        "Porcentaje Devolución (%)": parseFloat(
+          percentToBackend(
+            backendToPercent(company.porcentaje_devolucion) || 0,
+          ).toFixed(2),
+        ),
         "Día Facturación": company.dia_facturacion,
         "Día Vencimiento": company.dia_vencimiento,
         "Monto Máximo": company.monto_maximo || 0,
@@ -737,7 +877,10 @@ export function SuperCompanies() {
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
-      XLSX.writeFile(workbook, `empresas_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(
+        workbook,
+        `empresas_${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
 
       toast({
         title: "Exportación exitosa",
@@ -768,8 +911,27 @@ export function SuperCompanies() {
       expirationDay: company.expirationDay?.toString() ?? "0",
       max: company.max?.toString() ?? "0",
       count: company.count?.toString() ?? "0",
-      fact_manual: Boolean(company.fact_manual)
+      fact_manual: Boolean(company.fact_manual),
+      tipo_facturacion: company.tipo_facturacion || "Masiva",
+      contacto_fact_nombre: company.contacto_fact_nombre || "",
+      contacto_fact_email: company.contacto_fact_email || "",
+      contacto_fact_telefono: company.contacto_fact_telefono || "",
+      ejecutivo_com_nombre: company.ejecutivo_com_nombre || "",
+      ejecutivo_com_email: company.ejecutivo_com_email || "",
+      ejecutivo_com_telefono: company.ejecutivo_com_telefono || "",
     });
+    setTramosData(
+      company.tramos
+        ? company.tramos.map((t: any) => ({
+            monto_desde: t.monto_desde.toString(),
+            monto_hasta:
+              t.monto_hasta !== null && t.monto_hasta !== undefined
+                ? t.monto_hasta.toString()
+                : "",
+            porcentaje_descuento: t.porcentaje_descuento.toString(),
+          }))
+        : [],
+    );
     setIsEditDialogOpen(true);
   };
 
@@ -781,9 +943,13 @@ export function SuperCompanies() {
 
   const getStatusBadge = (state: boolean) => {
     return state ? (
-      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Activa</span>
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+        Activa
+      </span>
     ) : (
-      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Inactiva</span>
+      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+        Inactiva
+      </span>
     );
   };
 
@@ -801,18 +967,29 @@ export function SuperCompanies() {
         description="Gestione las empresas y sus porcentajes de recargo"
         viewMode={viewMode}
         setViewMode={setViewMode}
-        refreshAction={() => fetchCompanies({ page: pagination.page, limit: pagination.limit, search: searchQuery, includeInactives: showInactives })}
-        primaryAction={(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") ? {
-          label: "Agregar Empresa",
-          icon: <Plus className="h-4 w-4" />,
-          onClick: openAddDialog,
-        } : undefined}
-        secondaryAction={
-          {
-            label: "Detalles",
-            onClick: openDetailsDialog,
-          }
+        refreshAction={() =>
+          fetchCompanies({
+            page: pagination.page,
+            limit: pagination.limit,
+            search: searchQuery,
+            includeInactives: showInactives,
+          })
         }
+        primaryAction={
+          user?.role !== "admin" &&
+          user?.role !== "contralor" &&
+          user?.role !== "admincc"
+            ? {
+                label: "Agregar Empresa",
+                icon: <Plus className="h-4 w-4" />,
+                onClick: openAddDialog,
+              }
+            : undefined
+        }
+        secondaryAction={{
+          label: "Detalles",
+          onClick: openDetailsDialog,
+        }}
         secondaryActions={
           user?.role === "superuser"
             ? [
@@ -831,11 +1008,9 @@ export function SuperCompanies() {
           <DialogHeader>
             <DialogTitle>Herramientas</DialogTitle>
             <DialogDescription>
-              {loading ? (
-                "Cargando..."
-              ) : (
-                `Utilice la opcion de carga por CSV o ver centros de costo inactivos`
-              )}
+              {loading
+                ? "Cargando..."
+                : `Utilice la opcion de carga por CSV o ver centros de costo inactivos`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -890,7 +1065,7 @@ export function SuperCompanies() {
                           page: 1,
                           limit: pagination.limit,
                           search: searchQuery,
-                          includeInactives: checked
+                          includeInactives: checked,
                         });
                       }
 
@@ -925,7 +1100,9 @@ export function SuperCompanies() {
         <CardContent className="p-4">
           <div className="grid md:grid-cols-3 gap-4 items-end">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="search">Buscar empresa (nombre o cuenta corriente)</Label>
+              <Label htmlFor="search">
+                Buscar empresa (nombre o cuenta corriente)
+              </Label>
               <Input
                 id="search"
                 placeholder="Ej: ABCD-4"
@@ -1021,35 +1198,40 @@ export function SuperCompanies() {
 
             {/* páginas numeradas (máx 5 visibles) */}
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
-                let pageNum;
-                const totalPages = pagination.totalPages || 1;
+              {Array.from(
+                { length: Math.min(5, pagination.totalPages || 1) },
+                (_, i) => {
+                  let pageNum;
+                  const totalPages = pagination.totalPages || 1;
 
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (pagination.page <= 3) {
-                  pageNum = i + 1;
-                } else if (pagination.page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = pagination.page - 2 + i;
-                }
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (pagination.page <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = pagination.page - 2 + i;
+                  }
 
-                if (pageNum < 1 || pageNum > totalPages) return null;
+                  if (pageNum < 1 || pageNum > totalPages) return null;
 
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={pagination.page === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(pageNum)}
-                    disabled={isSearching}
-                    className="h-8 w-8 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={
+                        pagination.page === pageNum ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => handlePageChange(pageNum)}
+                      disabled={isSearching}
+                      className="h-8 w-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                },
+              )}
             </div>
 
             <Button
@@ -1082,177 +1264,211 @@ export function SuperCompanies() {
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Agregar Nueva Empresa</DialogTitle>
-            <DialogDescription>Complete los datos de la empresa en convenio</DialogDescription>
+            <DialogDescription>
+              Complete los datos de la empresa en convenio
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            {/* Columna 1 */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la Empresa *</Label>
-                <Input
-                  id="name"
-                  placeholder="Ej: Empresa Ejemplo S.A."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+          <div className="max-h-[60vh] overflow-y-auto px-1 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Columna 1 */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre de la Empresa *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Ej: Empresa Ejemplo S.A."
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado</Label>
+                  <select
+                    name="estado"
+                    id="state"
+                    value={formData.state.toString()}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        state: e.target.value === "true",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="true">Activa</option>
+                    <option value="false">Inactiva</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
+                  <Input
+                    id="surcharge"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    required
+                    value={formData.surchargePercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        surchargePercentage: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
+                  <Input
+                    id="return"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    required
+                    value={formData.returnPercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        returnPercentage: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rut">Rut Empresa</Label>
+                  <Input
+                    id="rut"
+                    type="text"
+                    placeholder="123456789-0"
+                    required
+                    value={formData.rut}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        rut: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <select
-                  name="estado"
-                  id="state"
-                  value={formData.state.toString()}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="true">Activa</option>
-                  <option value="false">Inactiva</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
-                <Input
-                  id="surcharge"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  required
-                  value={formData.surchargePercentage}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      surchargePercentage: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="return">Porcentaje de Devolución (%)</Label>
-                <Input
-                  id="return"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  required
-                  value={formData.returnPercentage}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      returnPercentage: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rut">Rut Empresa</Label>
-                <Input
-                  id="rut"
-                  type="text"
-                  placeholder="123456789-0"
-                  required
-                  value={formData.rut}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      rut: e.target.value,
-                    });
-                  }}
-                />
+
+              {/* Columna 2 */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="billingDay">Día de Facturación</Label>
+                  <Input
+                    id="billingDay"
+                    type="number"
+                    min="0"
+                    max="31"
+                    placeholder="5"
+                    required
+                    value={formData.billingDay}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        billingDay: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expirationDay">Día de Vencimiento</Label>
+                  <Input
+                    id="expirationDay"
+                    type="number"
+                    min="0"
+                    max="31"
+                    placeholder="15"
+                    required
+                    value={formData.expirationDay}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        expirationDay: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="max">Monto Máximo</Label>
+                  <Input
+                    id="max"
+                    type="number"
+                    min="0"
+                    placeholder="100000"
+                    required
+                    value={formData.max}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        max: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="count">Monto Acumulado</Label>
+                  <Input
+                    id="count"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    required
+                    value={formData.count}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        count: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="current_account">Cuenta Corriente</Label>
+                  <Input
+                    id="current_account"
+                    type="text"
+                    placeholder="ABCD-0"
+                    required
+                    value={formData.current_account}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        current_account: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Columna 2 */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="billingDay">Día de Facturación</Label>
-                <Input
-                  id="billingDay"
-                  type="number"
-                  min="0"
-                  max="31"
-                  placeholder="5"
-                  required
-                  value={formData.billingDay}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      billingDay: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expirationDay">Día de Vencimiento</Label>
-                <Input
-                  id="expirationDay"
-                  type="number"
-                  min="0"
-                  max="31"
-                  placeholder="15"
-                  required
-                  value={formData.expirationDay}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      expirationDay: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="max">Monto Máximo</Label>
-                <Input
-                  id="max"
-                  type="number"
-                  min="0"
-                  placeholder="100000"
-                  required
-                  value={formData.max}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      max: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="count">Monto Acumulado</Label>
-                <Input
-                  id="count"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  required
-                  value={formData.count}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      count: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="current_account">Cuenta Corriente</Label>
-                <Input
-                  id="current_account"
-                  type="text"
-                  placeholder="ABCD-0"
-                  required
-                  value={formData.current_account}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      current_account: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
-                <div className="flex items-center space-x-2">
+            <div className="border-t pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_facturacion">
+                    Tipo de Facturación *
+                  </Label>
+                  <select
+                    id="tipo_facturacion"
+                    value={formData.tipo_facturacion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tipo_facturacion: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background"
+                  >
+                    <option value="Masiva">Masiva</option>
+                    <option value="Especial">Especial</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-8">
                   <Switch
                     id="fact-manual-add"
                     checked={formData.fact_manual}
@@ -1269,6 +1485,234 @@ export function SuperCompanies() {
                 </div>
               </div>
             </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold text-sm text-primary">
+                Contacto de Facturación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="contacto_fact_nombre">Nombre</Label>
+                  <Input
+                    id="contacto_fact_nombre"
+                    placeholder="Ej: Juan Pérez"
+                    value={formData.contacto_fact_nombre}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_nombre: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="contacto_fact_email">Email</Label>
+                  <Input
+                    id="contacto_fact_email"
+                    type="email"
+                    placeholder="juan.perez@empresa.com"
+                    value={formData.contacto_fact_email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="contacto_fact_telefono">Teléfono</Label>
+                  <Input
+                    id="contacto_fact_telefono"
+                    placeholder="Ej: +56912345678"
+                    value={formData.contacto_fact_telefono}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_telefono: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold text-sm text-primary">
+                Ejecutivo Comercial
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="ejecutivo_com_nombre">Nombre</Label>
+                  <Input
+                    id="ejecutivo_com_nombre"
+                    placeholder="Ej: Maria Silva"
+                    value={formData.ejecutivo_com_nombre}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_nombre: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ejecutivo_com_email">Email</Label>
+                  <Input
+                    id="ejecutivo_com_email"
+                    type="email"
+                    placeholder="maria.silva@pullman.cl"
+                    value={formData.ejecutivo_com_email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ejecutivo_com_telefono">Teléfono</Label>
+                  <Input
+                    id="ejecutivo_com_telefono"
+                    placeholder="Ej: +56987654321"
+                    value={formData.ejecutivo_com_telefono}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_telefono: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-sm text-primary">
+                  Estrategia de Negocios (Tramos de Descuento)
+                </h3>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    let nextDesde = 0;
+                    if (tramosData.length > 0) {
+                      const lastHasta =
+                        tramosData[tramosData.length - 1].monto_hasta;
+                      if (lastHasta && !isNaN(Number(lastHasta))) {
+                        nextDesde = Number(lastHasta) + 1;
+                      }
+                    }
+                    setTramosData([
+                      ...tramosData,
+                      {
+                        monto_desde: nextDesde.toString(),
+                        monto_hasta: "",
+                        porcentaje_descuento: "0",
+                      },
+                    ]);
+                  }}
+                  className="h-8 bg-accent text-white hover:bg-accent/90"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agregar Tramo
+                </Button>
+              </div>
+
+              {tramosData.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4 border rounded-md border-dashed">
+                  No hay tramos definidos. Define al menos un tramo para aplicar
+                  descuentos por tramo.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {tramosData.map((tramo, index) => (
+                    <div
+                      key={index}
+                      className="flex items-end gap-3 p-3 border rounded-md bg-muted/20"
+                    >
+                      <div className="grid grid-cols-3 gap-2 flex-1">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Desde ($)</Label>
+                          <Input
+                            type="text"
+                            value={formatMiles(tramo.monto_desde)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(
+                                /\D/g,
+                                "",
+                              );
+                              const updated = [...tramosData];
+                              updated[index].monto_desde = rawValue;
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Hasta ($) (vacío = en adelante)
+                          </Label>
+                          <Input
+                            type="text"
+                            placeholder="Sin límite"
+                            value={formatMiles(tramo.monto_hasta)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(
+                                /\D/g,
+                                "",
+                              );
+                              const updated = [...tramosData];
+                              updated[index].monto_hasta = rawValue;
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Descuento (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            value={tramo.porcentaje_descuento}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (raw === "") {
+                                const updated = [...tramosData];
+                                updated[index].porcentaje_descuento = "";
+                                setTramosData(updated);
+                                return;
+                              }
+                              let val = Number(raw);
+                              if (val < 0) val = 0;
+                              if (val > 100) val = 100;
+                              const updated = [...tramosData];
+                              updated[index].porcentaje_descuento = isNaN(val)
+                                ? "0"
+                                : val.toString();
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/20 hover:text-destructive h-10 px-2"
+                        onClick={() => {
+                          setTramosData(
+                            tramosData.filter((_, i) => i !== index),
+                          );
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           {addError && (
             <div className="mb-4 p-3 rounded-md bg-red-100 text-red-800 border border-red-300 text-sm">
@@ -1279,7 +1723,10 @@ export function SuperCompanies() {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+            <Button
+              onClick={handleAdd}
+              className="bg-accent hover:bg-accent/90"
+            >
               Agregar
             </Button>
           </DialogFooter>
@@ -1304,8 +1751,12 @@ export function SuperCompanies() {
                       <CardTitle className="text-lg">{company.name}</CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">
                         {getStatusBadge(company.state)}
-                        <span className="text-xs text-muted-foreground">ID: {company.id}</span>
-                        <span className="text-xs text-muted-foreground">Rut: {company.rut || "-"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ID: {company.id}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Rut: {company.rut || "-"}
+                        </span>
                       </CardDescription>
                     </div>
                   </div>
@@ -1320,14 +1771,19 @@ export function SuperCompanies() {
                           <Percent className="h-3 w-3" />
                           Recargo
                         </div>
-                        <p className="text-2xl font-bold">{company.surchargePercentage}%</p>
+                        <p className="text-2xl font-bold">
+                          {company.surchargePercentage}%
+                        </p>
                       </div>
                       <div className="p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                           <Percent className="h-3 w-3" />
                           Devolución
                         </div>
-                        <p className="text-2xl font-bold">{formatPercent(Number(company.returnPercentage) || 0)}%</p>
+                        <p className="text-2xl font-bold">
+                          {formatPercent(Number(company.returnPercentage) || 0)}
+                          %
+                        </p>
                       </div>
                     </>
                   )}
@@ -1341,52 +1797,62 @@ export function SuperCompanies() {
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Día de Vencimiento
                     </div>
-                    <p className="text-2xl font-bold">{company.expirationDay}</p>
+                    <p className="text-2xl font-bold">
+                      {company.expirationDay}
+                    </p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Monto Máximo
                     </div>
-                    <p className="text-xl font-bold">{formatNumber(company.max) || "0"}</p>
+                    <p className="text-xl font-bold">
+                      {formatNumber(company.max) || "0"}
+                    </p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Monto Acumulado
                     </div>
-                    <p className="text-xl font-bold">{formatNumber(company.count) || "0"}</p>
+                    <p className="text-xl font-bold">
+                      {formatNumber(company.count) || "0"}
+                    </p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
                       Cuenta Corriente
                     </div>
-                    <p className="text-lg font-bold">{company.current_account || "-"}</p>
+                    <p className="text-lg font-bold">
+                      {company.current_account || "-"}
+                    </p>
                   </div>
                 </div>
 
-                {(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                      onClick={() => openEditDialog(company)}
-                    >
-                      <Pencil className="h-3 w-3 mr-2" />
-                      Editar
-                    </Button>
-                    {user?.role === "superuser" && (
+                {user?.role !== "admin" &&
+                  user?.role !== "contralor" &&
+                  user?.role !== "admincc" && (
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
-                        onClick={() => handleReset(company.id)}
+                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                        onClick={() => openEditDialog(company)}
                       >
-                        <RefreshCcw className="h-3 w-3 mr-2" />
-                        Reestablecer
+                        <Pencil className="h-3 w-3 mr-2" />
+                        Editar
                       </Button>
-                    )}
-                  </div>
-                )}
+                      {user?.role === "superuser" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-destructive hover:bg-destructive/10 hover:text-red-500 transition-all hover:scale-[1.02] bg-transparent"
+                          onClick={() => handleReset(company.id)}
+                        >
+                          <RefreshCcw className="h-3 w-3 mr-2" />
+                          Reestablecer
+                        </Button>
+                      )}
+                    </div>
+                  )}
               </CardContent>
             </Card>
           ))}
@@ -1410,7 +1876,9 @@ export function SuperCompanies() {
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
                   <TableHead>Saldo disponible</TableHead>
-                  {(user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (<TableHead>Acciones</TableHead>)}
+                  {user?.role !== "admin" &&
+                    user?.role !== "contralor" &&
+                    user?.role !== "admincc" && <TableHead>Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1429,14 +1897,14 @@ export function SuperCompanies() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {getStatusBadge(company.state)}
-                    </TableCell>
+                    <TableCell>{getStatusBadge(company.state)}</TableCell>
                     {user?.role !== "admin" && (
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Percent className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{company.surchargePercentage}</span>
+                          <span className="font-medium">
+                            {company.surchargePercentage}
+                          </span>
                         </div>
                       </TableCell>
                     )}
@@ -1444,40 +1912,55 @@ export function SuperCompanies() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Percent className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{formatPercent(Number(company.returnPercentage) || 0)}</span>
+                          <span className="font-medium">
+                            {formatPercent(
+                              Number(company.returnPercentage) || 0,
+                            )}
+                          </span>
                         </div>
                       </TableCell>
                     )}
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{company.billingDay || 0}</span>
+                        <span className="font-medium">
+                          {company.billingDay || 0}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{company.expirationDay || 0}</span>
+                        <span className="font-medium">
+                          {company.expirationDay || 0}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(company.max) || 0}</span>
+                        <span className="font-medium">
+                          {formatCurrency(company.max) || 0}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(company.count) || 0}</span>
+                        <span className="font-medium">
+                          {formatCurrency(company.count) || 0}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(company.saldo_restante || 0)}</span>
+                        <span className="font-medium">
+                          {formatCurrency(company.saldo_restante || 0)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        {
-                          (user?.role !== "admin" && user?.role !== "contralor" && user?.role !== "admincc") && (
+                        {user?.role !== "admin" &&
+                          user?.role !== "contralor" &&
+                          user?.role !== "admincc" && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -1486,20 +1969,17 @@ export function SuperCompanies() {
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
-                          )
-                        }
-                        {
-                          user?.role === "superuser" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleReset(company.id)}
-                              className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
-                            >
-                              <RefreshCcw className="h-3 w-3" />
-                            </Button>
-                          )
-                        }
+                          )}
+                        {user?.role === "superuser" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReset(company.id)}
+                            className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
+                          >
+                            <RefreshCcw className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1516,189 +1996,226 @@ export function SuperCompanies() {
         </Card>
       )}
 
-
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle>Editar Empresa</DialogTitle>
-            <DialogDescription>Modifique los datos de la empresa en convenio</DialogDescription>
+            <DialogDescription>
+              Modifique los datos de la empresa en convenio
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            {/* Columna 1 */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
-                <Input
-                  id="edit-name"
-                  placeholder="Ej: Empresa Ejemplo S.A."
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+          <div className="max-h-[60vh] overflow-y-auto px-1 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Columna 1 */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
+                  <Input
+                    id="edit-name"
+                    placeholder="Ej: Empresa Ejemplo S.A."
+                    required
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-state">Estado</Label>
+                  <select
+                    name="estado"
+                    id="edit-state"
+                    value={formData.state.toString()}
+                    required
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        state: e.target.value === "true",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="true">Activa</option>
+                    <option value="false">Inactiva</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-surcharge">
+                    Porcentaje de Recargo (%)
+                  </Label>
+                  <Input
+                    id="edit-surcharge"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.surchargePercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        surchargePercentage: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-return">
+                    Porcentaje de Devolución (%)
+                  </Label>
+                  <Input
+                    id="edit-return"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.returnPercentage}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        returnPercentage: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rut">Rut Empresa</Label>
+                  <Input
+                    id="rut"
+                    type="text"
+                    placeholder="123456789-0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.rut}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        rut: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-state">Estado</Label>
-                <select
-                  name="estado"
-                  id="edit-state"
-                  value={formData.state.toString()}
-                  required
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value === "true" })}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="true">Activa</option>
-                  <option value="false">Inactiva</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-surcharge">Porcentaje de Recargo (%)</Label>
-                <Input
-                  id="edit-surcharge"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.surchargePercentage}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      surchargePercentage: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-return">Porcentaje de Devolución (%)</Label>
-                <Input
-                  id="edit-return"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.returnPercentage}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      returnPercentage: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rut">Rut Empresa</Label>
-                <Input
-                  id="rut"
-                  type="text"
-                  placeholder="123456789-0"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.rut}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      rut: e.target.value,
-                    });
-                  }}
-                />
+
+              {/* Columna 2 */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-billingDay">Día de Facturación</Label>
+                  <Input
+                    id="edit-billingDay"
+                    type="number"
+                    min="0"
+                    max="31"
+                    placeholder="5"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.billingDay}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        billingDay: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-expirationDay">Día de Vencimiento</Label>
+                  <Input
+                    id="edit-expirationDay"
+                    type="number"
+                    min="0"
+                    max="31"
+                    placeholder="15"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.expirationDay}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        expirationDay: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-max">Monto Máximo</Label>
+                  <Input
+                    id="edit-max"
+                    type="number"
+                    min="0"
+                    placeholder="100000"
+                    required
+                    value={formData.max}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        max: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="count">Monto Acumulado</Label>
+                  <Input
+                    id="count"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    required
+                    value={formData.count}
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="current_account">Cuenta Corriente</Label>
+                  <Input
+                    id="current_account"
+                    type="text"
+                    placeholder="ABCD-0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.current_account}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        current_account: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Columna 2 */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-billingDay">Día de Facturación</Label>
-                <Input
-                  id="edit-billingDay"
-                  type="number"
-                  min="0"
-                  max="31"
-                  placeholder="5"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.billingDay}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      billingDay: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-expirationDay">Día de Vencimiento</Label>
-                <Input
-                  id="edit-expirationDay"
-                  type="number"
-                  min="0"
-                  max="31"
-                  placeholder="15"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.expirationDay}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      expirationDay: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-max">Monto Máximo</Label>
-                <Input
-                  id="edit-max"
-                  type="number"
-                  min="0"
-                  placeholder="100000"
-                  required
-                  value={formData.max}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      max: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="count">Monto Acumulado</Label>
-                <Input
-                  id="count"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  required
-                  value={formData.count}
-                  disabled  // Campo bloqueado
-                  className="bg-gray-100 cursor-not-allowed"
-                  readOnly
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="current_account">Cuenta Corriente</Label>
-                <Input
-                  id="current_account"
-                  type="text"
-                  placeholder="ABCD-0"
-                  disabled={user?.role !== "superuser"}
-                  value={formData.current_account}
-                  onChange={(e) => {
-                    setFormData({
-                      ...formData,
-                      current_account: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-              <div className="col-span-1 md:col-span-2 border-t pt-4 mt-2">
-                <div className="flex items-center space-x-2">
+            <div className="border-t pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tipo_facturacion">
+                    Tipo de Facturación *
+                  </Label>
+                  <select
+                    id="edit-tipo_facturacion"
+                    value={formData.tipo_facturacion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tipo_facturacion: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background"
+                  >
+                    <option value="Masiva">Masiva</option>
+                    <option value="Especial">Especial</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-8">
                   <Switch
                     id="fact-manual-edit"
                     checked={formData.fact_manual}
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, fact_manual: checked })
                     }
-                    disabled={user?.role !== "superuser"} // Solo superuser puede cambiar esto
+                    disabled={user?.role !== "superuser"}
                   />
                   <Label htmlFor="fact-manual-edit" className="cursor-pointer">
                     Facturación Manual
@@ -1709,12 +2226,246 @@ export function SuperCompanies() {
                 </div>
               </div>
             </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold text-sm text-primary">
+                Contacto de Facturación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="edit-contacto_fact_nombre">Nombre</Label>
+                  <Input
+                    id="edit-contacto_fact_nombre"
+                    placeholder="Ej: Juan Pérez"
+                    value={formData.contacto_fact_nombre}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_nombre: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-contacto_fact_email">Email</Label>
+                  <Input
+                    id="edit-contacto_fact_email"
+                    type="email"
+                    placeholder="juan.perez@empresa.com"
+                    value={formData.contacto_fact_email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-contacto_fact_telefono">Teléfono</Label>
+                  <Input
+                    id="edit-contacto_fact_telefono"
+                    placeholder="Ej: +56912345678"
+                    value={formData.contacto_fact_telefono}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        contacto_fact_telefono: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold text-sm text-primary">
+                Ejecutivo Comercial
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="edit-ejecutivo_com_nombre">Nombre</Label>
+                  <Input
+                    id="edit-ejecutivo_com_nombre"
+                    placeholder="Ej: Maria Silva"
+                    value={formData.ejecutivo_com_nombre}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_nombre: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-ejecutivo_com_email">Email</Label>
+                  <Input
+                    id="edit-ejecutivo_com_email"
+                    type="email"
+                    placeholder="maria.silva@pullman.cl"
+                    value={formData.ejecutivo_com_email}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_email: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="edit-ejecutivo_com_telefono">Teléfono</Label>
+                  <Input
+                    id="edit-ejecutivo_com_telefono"
+                    placeholder="Ej: +56987654321"
+                    value={formData.ejecutivo_com_telefono}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ejecutivo_com_telefono: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-sm text-primary">
+                  Estrategia de Negocios (Tramos de Descuento)
+                </h3>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    let nextDesde = 0;
+                    if (tramosData.length > 0) {
+                      const lastHasta =
+                        tramosData[tramosData.length - 1].monto_hasta;
+                      if (lastHasta && !isNaN(Number(lastHasta))) {
+                        nextDesde = Number(lastHasta) + 1;
+                      }
+                    }
+                    setTramosData([
+                      ...tramosData,
+                      {
+                        monto_desde: nextDesde.toString(),
+                        monto_hasta: "",
+                        porcentaje_descuento: "0",
+                      },
+                    ]);
+                  }}
+                  className="h-8 bg-accent text-white hover:bg-accent/90"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agregar Tramo
+                </Button>
+              </div>
+
+              {tramosData.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4 border rounded-md border-dashed">
+                  No hay tramos definidos. Define al menos un tramo para aplicar
+                  descuentos por tramo.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {tramosData.map((tramo, index) => (
+                    <div
+                      key={index}
+                      className="flex items-end gap-3 p-3 border rounded-md bg-muted/20"
+                    >
+                      <div className="grid grid-cols-3 gap-2 flex-1">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Desde ($)</Label>
+                          <Input
+                            type="text"
+                            value={formatMiles(tramo.monto_desde)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(
+                                /\D/g,
+                                "",
+                              );
+                              const updated = [...tramosData];
+                              updated[index].monto_desde = rawValue;
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Hasta ($) (vacío = en adelante)
+                          </Label>
+                          <Input
+                            type="text"
+                            placeholder="Sin límite"
+                            value={formatMiles(tramo.monto_hasta)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(
+                                /\D/g,
+                                "",
+                              );
+                              const updated = [...tramosData];
+                              updated[index].monto_hasta = rawValue;
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Descuento (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="0"
+                            value={tramo.porcentaje_descuento}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (raw === "") {
+                                const updated = [...tramosData];
+                                updated[index].porcentaje_descuento = "";
+                                setTramosData(updated);
+                                return;
+                              }
+                              let val = Number(raw);
+                              if (val < 0) val = 0;
+                              if (val > 100) val = 100;
+                              const updated = [...tramosData];
+                              updated[index].porcentaje_descuento = isNaN(val)
+                                ? "0"
+                                : val.toString();
+                              setTramosData(updated);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/20 hover:text-destructive h-10 px-2"
+                        onClick={() => {
+                          setTramosData(
+                            tramosData.filter((_, i) => i !== index),
+                          );
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
+            <Button
+              onClick={handleEdit}
+              className="bg-accent hover:bg-accent/90"
+            >
               Guardar Cambios
             </Button>
           </DialogFooter>
@@ -1783,10 +2534,7 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
           )}
 
           <DialogFooter className="mt-4">
-            <Button
-              variant="secondary"
-              onClick={() => setCsvModalOpen(false)}
-            >
+            <Button variant="secondary" onClick={() => setCsvModalOpen(false)}>
               Cancelar
             </Button>
             <Button
@@ -1838,12 +2586,15 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(false)}
+            >
               Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
