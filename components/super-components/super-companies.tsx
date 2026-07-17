@@ -696,6 +696,7 @@ export function SuperCompanies() {
         count: empresa.monto_acumulado,
         rut: empresa.rut || "-",
         current_account: empresa.cuenta_corriente || "-",
+        fact_manual: empresa.fact_manual || false,
       }));
 
       const headers = [
@@ -710,9 +711,10 @@ export function SuperCompanies() {
         "monto_acumulado",
         "rut_empresa",
         "cuenta_corriente",
+        "facturacion_automatica",
       ];
 
-      const csvData = companiesForExport.map((company: Company) => [
+      const csvData = companiesForExport.map((company: any) => [
         company.id,
         company.name,
         company.state ? "1" : "0",
@@ -724,6 +726,7 @@ export function SuperCompanies() {
         company.count?.toString() || "0",
         company.rut || "-",
         company.current_account || "-",
+        company.fact_manual ? "No" : "Sí",
       ]);
 
       const csvContent = [
@@ -796,9 +799,10 @@ export function SuperCompanies() {
         count: empresa.monto_acumulado,
         rut: empresa.rut || "-",
         current_account: empresa.cuenta_corriente || "-",
+        fact_manual: empresa.fact_manual || false,
       }));
 
-      const data = companiesForExport.map((company: Company) => ({
+      const data = companiesForExport.map((company: any) => ({
         id: company.id,
         nombre_empresa: company.name,
         estado: company.state ? 1 : 0,
@@ -812,6 +816,7 @@ export function SuperCompanies() {
         monto_acumulado: company.count || 0,
         rut_empresa: company.rut || "-",
         cuenta_corriente: company.current_account || "-",
+        facturacion_automatica: company.fact_manual ? "No" : "Sí",
       }));
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
@@ -872,6 +877,7 @@ export function SuperCompanies() {
         "Monto Acumulado": company.monto_acumulado || 0,
         RUT: company.rut || "-",
         "Cuenta Corriente": company.cuenta_corriente || "-",
+        "Facturación Automática": company.fact_manual ? "No" : "Sí",
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
