@@ -87,6 +87,7 @@ type EstadoCuentaType = {
   fecha_pago?: string;
   suma_devoluciones?: number; // NUEVO: Campo añadido
   reclamos_descuento?: number;
+  devoluciones_fuera_periodo?: number;
   porcentaje_descuento?: number;
   empresa?: {
     id: number;
@@ -282,7 +283,13 @@ export function EstadoPago() {
       }
 
       setIsAddDialogOpen(false);
+      const createdEmpresaId = formData.empresa_id;
       resetForm();
+      setEmpresaId(createdEmpresaId);
+      fetchEstadosCuenta(Number(createdEmpresaId), {
+        desde: dateDesde,
+        hasta: dateHasta,
+      });
       Swal.fire({
         ...swalSuccessConfig,
         title: "Estado de cuenta creado",
