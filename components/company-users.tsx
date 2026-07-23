@@ -1,12 +1,18 @@
-"use client"
+"use client";
 
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   User,
   Plus,
@@ -35,15 +41,15 @@ import {
   Check,
   X,
   ChevronRight,
-  ChevronsUpDown
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+  ChevronsUpDown,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Command,
   CommandEmpty,
@@ -64,17 +70,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import ToolBar from "./tool-bar";
 
 export function CompanyUsers() {
   const { user, token } = useAuth.getState();
-  const [users, setUsers] = useState<User[]>([])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table")
-  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
-  const [costCenters, setCostCenters] = useState<{ id: string; nombre: string; empresa_id: string }[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>(
+    [],
+  );
+  const [costCenters, setCostCenters] = useState<
+    { id: string; nombre: string; empresa_id: string }[]
+  >([]);
   const [isLoadingCostCenters, setIsLoadingCostCenters] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [csvModalOpen, setCsvModalOpen] = useState(false);
@@ -85,13 +95,14 @@ export function CompanyUsers() {
   // Nuevos estados para el diálogo de asignación de empresas
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [userToAssign, setUserToAssign] = useState<User | null>(null);
-  const [availableCompanies, setAvailableCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [availableCompanies, setAvailableCompanies] = useState<
+    { id: string; nombre: string }[]
+  >([]);
   const [assignedCompanies, setAssignedCompanies] = useState<string[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [companyPopoverOpen, setCompanyPopoverOpen] = useState(false);
   const [costCenterPopoverOpen, setCostCenterPopoverOpen] = useState(false);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -116,7 +127,7 @@ export function CompanyUsers() {
   };
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const [superUser, setSuperUser] = useState(false);
   const currentUser = user;
@@ -156,7 +167,10 @@ export function CompanyUsers() {
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
-      XLSX.writeFile(workbook, `usuarios_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(
+        workbook,
+        `usuarios_${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
 
       toast({
         title: "Exportación exitosa",
@@ -174,7 +188,9 @@ export function CompanyUsers() {
     }
   };
 
-  useEffect(() => { setSuperUser(user?.role === "superuser") }, []);
+  useEffect(() => {
+    setSuperUser(user?.role === "superuser");
+  }, []);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -184,8 +200,8 @@ export function CompanyUsers() {
     rol: "subusuario",
     estado: true,
     empresa_id: "",
-    centro_costo_id: ""
-  })
+    centro_costo_id: "",
+  });
 
   useEffect(() => {
     fetchCompanies();
@@ -197,7 +213,7 @@ export function CompanyUsers() {
       fetchCostCentersByCompany(formData.empresa_id);
     } else {
       setCostCenters([]);
-      setFormData(prev => ({ ...prev, centro_costo_id: "" }));
+      setFormData((prev) => ({ ...prev, centro_costo_id: "" }));
     }
   }, [formData.empresa_id]);
 
@@ -206,19 +222,23 @@ export function CompanyUsers() {
     if (selectedCompany === "") {
       // opcional: limpiar lista si no hay compañía seleccionada
       setUsers([]);
-      setPagination(prev => ({ ...prev, page: 1, total: 0, totalPages: 0 }));
+      setPagination((prev) => ({ ...prev, page: 1, total: 0, totalPages: 0 }));
       return;
     }
 
     // poner página 1 y pedir usuarios de la nueva compañía
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
     // pasar company explícito para evitar depender del estado interno dentro de fetchUsers
-    fetchUsers({ page: 1, limit: pagination.limit, company: Number(selectedCompany) });
+    fetchUsers({
+      page: 1,
+      limit: pagination.limit,
+      company: Number(selectedCompany),
+    });
   }, [selectedCompany]);
 
   const fetchCompanies = async () => {
     try {
-      setLoadingCompanies(true)
+      setLoadingCompanies(true);
       const res = await fetch("/api/companies", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -229,13 +249,17 @@ export function CompanyUsers() {
         nombre: c.nombre,
       }));
       setCompanies(mapped);
-      setLoadingCompanies(false)
+      setLoadingCompanies(false);
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
-      setLoadingCompanies(false)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
+      setLoadingCompanies(false);
     } finally {
-      setLoadingCompanies(false)
+      setLoadingCompanies(false);
     }
   };
 
@@ -255,7 +279,11 @@ export function CompanyUsers() {
       return mapped;
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
       return [];
     } finally {
       setIsLoadingCompanies(false);
@@ -278,8 +306,8 @@ export function CompanyUsers() {
       const data = await res.json();
 
       if (data && Array.isArray(data.empresas)) {
-        return data.empresas.map((empresa: any) =>
-          empresa.id?.toString() || empresa.id
+        return data.empresas.map(
+          (empresa: any) => empresa.id?.toString() || empresa.id,
         );
       }
 
@@ -323,7 +351,12 @@ export function CompanyUsers() {
     }
   };
 
-  const fetchUsers = async (opts?: { page?: number; limit?: number; email?: string; company?: number; }) => {
+  const fetchUsers = async (opts?: {
+    page?: number;
+    limit?: number;
+    email?: string;
+    company?: number;
+  }) => {
     try {
       const page = opts?.page ?? pagination.page;
       const limit = opts?.limit ?? pagination.limit;
@@ -341,7 +374,7 @@ export function CompanyUsers() {
       }
 
       if (company && String(company).trim() !== "") {
-        params.set("empresa_id", String(company))
+        params.set("empresa_id", String(company));
       }
 
       const res = await fetch(`/api/users?${params.toString()}`, {
@@ -384,11 +417,12 @@ export function CompanyUsers() {
         page: pag.page ?? page,
         limit: pag.limit ?? limit,
         total: pag.total ?? usersMapped.length,
-        totalPages: pag.totalPages ?? Math.ceil((pag.total ?? usersMapped.length) / (pag.limit ?? limit)),
+        totalPages:
+          pag.totalPages ??
+          Math.ceil((pag.total ?? usersMapped.length) / (pag.limit ?? limit)),
         hasNextPage: Boolean(pag.hasNextPage),
         hasPrevPage: Boolean(pag.hasPrevPage),
       });
-
     } catch (err: any) {
       console.error("Error fetching users:", err);
       toast({
@@ -408,7 +442,7 @@ export function CompanyUsers() {
       rol: "subusuario",
       estado: true,
       empresa_id: "",
-      centro_costo_id: ""
+      centro_costo_id: "",
     });
     setCostCenters([]);
   };
@@ -418,7 +452,12 @@ export function CompanyUsers() {
       e.preventDefault();
     }
 
-    if (!formData.nombre || !formData.rut || !formData.email || !formData.password) {
+    if (
+      !formData.nombre ||
+      !formData.rut ||
+      !formData.email ||
+      !formData.password
+    ) {
       toast({
         title: "Error",
         description: "Por favor complete todos los campos requeridos",
@@ -552,10 +591,10 @@ export function CompanyUsers() {
   const toggleCompanyAssignment = (companyId: string) => {
     if (assignedCompanies.includes(companyId)) {
       // Quitar empresa
-      setAssignedCompanies(prev => prev.filter(id => id !== companyId));
+      setAssignedCompanies((prev) => prev.filter((id) => id !== companyId));
     } else {
       // Agregar empresa
-      setAssignedCompanies(prev => [...prev, companyId]);
+      setAssignedCompanies((prev) => [...prev, companyId]);
     }
   };
 
@@ -567,7 +606,7 @@ export function CompanyUsers() {
       const payload = {
         bulk: true,
         user_id: userToAssign.id.toString(),
-        empresa_ids: assignedCompanies
+        empresa_ids: assignedCompanies,
       };
 
       const res = await fetch("/api/assign", {
@@ -581,7 +620,9 @@ export function CompanyUsers() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Error al actualizar asignaciones");
+        throw new Error(
+          errorData.message || "Error al actualizar asignaciones",
+        );
       }
 
       setAssignDialogOpen(false);
@@ -638,7 +679,6 @@ export function CompanyUsers() {
       const data = await response.json();
       setResult(data);
       console.log("Resultado CSV:", data);
-
     } catch (err: any) {
       alert(err.message || "Error inesperado");
     } finally {
@@ -676,19 +716,28 @@ export function CompanyUsers() {
   };
 
   const openAddDialog = () => {
-    resetForm()
-    setIsAddDialogOpen(true)
-  }
+    resetForm();
+    setIsAddDialogOpen(true);
+  };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage === pagination.page || (pagination.totalPages && newPage > pagination.totalPages)) return;
-    setPagination(prev => ({ ...prev, page: newPage }));
-    fetchUsers({ page: newPage, limit: pagination.limit, email: emailSearch || undefined });
+    if (
+      newPage < 1 ||
+      newPage === pagination.page ||
+      (pagination.totalPages && newPage > pagination.totalPages)
+    )
+      return;
+    setPagination((prev) => ({ ...prev, page: newPage }));
+    fetchUsers({
+      page: newPage,
+      limit: pagination.limit,
+      email: emailSearch || undefined,
+    });
   };
 
   const handleLimitChange = (newLimit: number) => {
     if (newLimit === pagination.limit) return;
-    setPagination(prev => ({ ...prev, page: 1, limit: newLimit }));
+    setPagination((prev) => ({ ...prev, page: 1, limit: newLimit }));
     fetchUsers({ page: 1, limit: newLimit, email: emailSearch || undefined });
   };
 
@@ -712,6 +761,9 @@ export function CompanyUsers() {
       case "contralor":
         return "px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full";
 
+      case "soporte":
+        return "px-2 py-1 text-xs bg-pink-100 text-pink-700 rounded-full";
+
       default:
         return "px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full";
     }
@@ -719,29 +771,39 @@ export function CompanyUsers() {
 
   const getRoleDisplayName = (rol: string) => {
     switch (rol) {
-      case "superuser": return "Super Usuario";
-      case "admin": return "Administrador";
-      case "subusuario": return "Usuario";
-      default: return rol;
+      case "superuser":
+        return "Super Usuario";
+      case "admin":
+        return "Administrador";
+      case "subusuario":
+        return "Usuario";
+      case "soporte":
+        return "Soporte (SAC)";
+      default:
+        return rol;
     }
   };
 
   const getStatusBadge = (estado: boolean) => {
     return estado ? (
-      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Activo</span>
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+        Activo
+      </span>
     ) : (
-      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Inactivo</span>
+      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+        Inactivo
+      </span>
     );
   };
 
   // Filtrar empresas disponibles (las que no están asignadas)
   const unassignedCompanies = availableCompanies.filter(
-    company => !assignedCompanies.includes(company.id)
+    (company) => !assignedCompanies.includes(company.id),
   );
 
   // Obtener empresas asignadas con su información completa
-  const assignedCompaniesFull = availableCompanies.filter(
-    company => assignedCompanies.includes(company.id)
+  const assignedCompaniesFull = availableCompanies.filter((company) =>
+    assignedCompanies.includes(company.id),
   );
 
   function canEditUser(editorRol: string, targetRol: string) {
@@ -752,7 +814,6 @@ export function CompanyUsers() {
     return true;
   }
 
-
   return (
     <div className="space-y-6">
       <ToolBar
@@ -760,7 +821,6 @@ export function CompanyUsers() {
         description="Administre los usuarios del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
-
         showCompanySelect
         companies={companies}
         selectedCompany={selectedCompany}
@@ -768,23 +828,23 @@ export function CompanyUsers() {
         companySelectMode="combobox"
         companySelectPlaceholder="Selecciona una empresa..."
         loadingCompanies={loadingCompanies}
-
         refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={
           user?.role !== "auditoria"
             ? {
-              label: "Agregar Usuario",
-              icon: <Plus className="h-4 w-4" />,
-              onClick: openAddDialog,
-            } : undefined
+                label: "Agregar Usuario",
+                icon: <Plus className="h-4 w-4" />,
+                onClick: openAddDialog,
+              }
+            : undefined
         }
         secondaryAction={
           user?.role === "superuser"
             ? {
-              label: "Subir CSV",
-              icon: <Upload className="h-4 w-4" />,
-              onClick: sendCSV,
-            }
+                label: "Subir CSV",
+                icon: <Upload className="h-4 w-4" />,
+                onClick: sendCSV,
+              }
             : undefined
         }
         secondaryActions={
@@ -804,24 +864,25 @@ export function CompanyUsers() {
       {isAddDialogOpen && (
         <div className="space-y-4 p-4 border rounded-lg bg-card mb-6 animate-in fade-in slide-in-from-top-2">
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Agregar Nuevo Usuario</h3> {/* Cambiado el título */}
+            <h3 className="text-lg font-semibold">Agregar Nuevo Usuario</h3>{" "}
+            {/* Cambiado el título */}
             <p className="text-sm text-muted-foreground">
               Complete los datos del usuario
             </p>
           </div>
 
           <form onSubmit={handleAdd} className="space-y-6">
-
             {/* GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre Completo *</Label>
                 <Input
                   id="nombre"
                   placeholder="Ej: Juan Pérez"
                   value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nombre: e.target.value })
+                  }
                 />
               </div>
 
@@ -831,7 +892,9 @@ export function CompanyUsers() {
                   id="rut"
                   placeholder="Ej: 12345678-9"
                   value={formData.rut}
-                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rut: e.target.value })
+                  }
                 />
               </div>
 
@@ -842,7 +905,9 @@ export function CompanyUsers() {
                   type="email"
                   placeholder="Ej: usuario@empresa.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                 />
               </div>
 
@@ -853,7 +918,9 @@ export function CompanyUsers() {
                   type="password"
                   placeholder="Ingrese la contraseña"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                 />
               </div>
 
@@ -862,21 +929,39 @@ export function CompanyUsers() {
                 <select
                   id="rol"
                   value={formData.rol}
-                  onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rol: e.target.value })
+                  }
                   className="w-full p-2 border rounded-md"
                 >
-                  {user?.role !== "admin" && <option value="admin">Administrador</option>}
-                  {user?.role !== "admin" && <option value="empresa">Empresa</option>}
-                  {user?.role !== "admin" && <option value="auditoria">Auditoría</option>}
-                  {user?.role !== "admin" && <option value="contralor">Contralor</option>}
-                  {user?.role !== "admin" && <option value="admincc">AdminCC</option>}
+                  {user?.role !== "admin" && (
+                    <option value="admin">Administrador</option>
+                  )}
+                  {user?.role !== "admin" && (
+                    <option value="empresa">Empresa</option>
+                  )}
+                  {user?.role !== "admin" && (
+                    <option value="auditoria">Auditoría</option>
+                  )}
+                  {user?.role !== "admin" && (
+                    <option value="contralor">Contralor</option>
+                  )}
+                  {user?.role !== "admin" && (
+                    <option value="admincc">AdminCC</option>
+                  )}
+                  {user?.role === "superuser" && (
+                    <option value="soporte">Soporte (SAC)</option>
+                  )}
                   <option value="subusuario">Usuario</option>
                 </select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="empresa_id">Empresa</Label>
-                <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                <Popover
+                  open={companyPopoverOpen}
+                  onOpenChange={setCompanyPopoverOpen}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -884,7 +969,7 @@ export function CompanyUsers() {
                       className="w-full justify-between bg-white"
                     >
                       {formData.empresa_id
-                        ? `${companies.find(c => c.id === formData.empresa_id)?.id || ""} - ${companies.find(c => c.id === formData.empresa_id)?.nombre || ""}`
+                        ? `${companies.find((c) => c.id === formData.empresa_id)?.id || ""} - ${companies.find((c) => c.id === formData.empresa_id)?.nombre || ""}`
                         : "Selecciona una empresa"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -900,7 +985,10 @@ export function CompanyUsers() {
                               key={company.id}
                               value={`${company.id} ${company.nombre}`}
                               onSelect={() => {
-                                setFormData({ ...formData, empresa_id: company.id });
+                                setFormData({
+                                  ...formData,
+                                  empresa_id: company.id,
+                                });
                                 setCompanyPopoverOpen(false);
                               }}
                               className="cursor-pointer"
@@ -929,7 +1017,9 @@ export function CompanyUsers() {
                       className="w-full justify-between bg-white"
                     >
                       {formData.centro_costo_id
-                        ? costCenters.find(cc => cc.id === formData.centro_costo_id)?.nombre
+                        ? costCenters.find(
+                            (cc) => cc.id === formData.centro_costo_id,
+                          )?.nombre
                         : isLoadingCostCenters
                           ? "Cargando centros de costo..."
                           : "Selecciona un centro de costo"}
@@ -941,14 +1031,19 @@ export function CompanyUsers() {
                     <Command>
                       <CommandInput placeholder="Buscar centro de costo..." />
                       <CommandList>
-                        <CommandEmpty>No se encontró el centro de costo.</CommandEmpty>
+                        <CommandEmpty>
+                          No se encontró el centro de costo.
+                        </CommandEmpty>
                         <CommandGroup>
                           {costCenters.map((cc) => (
                             <CommandItem
                               key={cc.id}
                               value={`${cc.id} ${cc.nombre}`}
                               onSelect={() => {
-                                setFormData({ ...formData, centro_costo_id: cc.id });
+                                setFormData({
+                                  ...formData,
+                                  centro_costo_id: cc.id,
+                                });
                                 setCostCenterPopoverOpen(false);
                               }}
                             >
@@ -974,7 +1069,10 @@ export function CompanyUsers() {
                   id="estado"
                   value={formData.estado.toString()}
                   onChange={(e) =>
-                    setFormData({ ...formData, estado: e.target.value === "true" })
+                    setFormData({
+                      ...formData,
+                      estado: e.target.value === "true",
+                    })
                   }
                   className="w-full p-2 border rounded-md"
                 >
@@ -982,7 +1080,6 @@ export function CompanyUsers() {
                   <option value="false">Inactivo</option>
                 </select>
               </div>
-
             </div>
 
             {/* BOTONES */}
@@ -1002,33 +1099,39 @@ export function CompanyUsers() {
                 Agregar
               </Button>
             </div>
-
           </form>
-
         </div>
       )}
 
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-150">
           <DialogHeader>
             <DialogTitle>Asignar Empresas</DialogTitle>
-            <DialogDescription>Gestiona las empresas asignadas a {userToAssign?.nombre}</DialogDescription>
+            <DialogDescription>
+              Gestiona las empresas asignadas a {userToAssign?.nombre}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             {isLoadingCompanies ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCcw className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Cargando empresas...</span>
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Cargando empresas...
+                </span>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Empresas Asignadas */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Empresas Asignadas ({assignedCompanies.length})</Label>
-                  <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                  <Label className="text-sm font-medium">
+                    Empresas Asignadas ({assignedCompanies.length})
+                  </Label>
+                  <div className="border rounded-lg divide-y max-h-50 overflow-y-auto">
                     {assignedCompanies.length === 0 ? (
-                      <div className="text-center py-8 text-sm text-muted-foreground">No hay empresas asignadas</div>
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        No hay empresas asignadas
+                      </div>
                     ) : (
                       assignedCompaniesFull.map((company) => (
                         <div
@@ -1040,8 +1143,12 @@ export function CompanyUsers() {
                               <Check className="h-4 w-4 text-green-600" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{company.nombre}</p>
-                              <p className="text-xs text-muted-foreground">ID: {company.id}</p>
+                              <p className="text-sm font-medium">
+                                {company.nombre}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ID: {company.id}
+                              </p>
                             </div>
                           </div>
                           <Button
@@ -1060,8 +1167,10 @@ export function CompanyUsers() {
 
                 {/* Empresas Disponibles */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Empresas Disponibles ({unassignedCompanies.length})</Label>
-                  <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                  <Label className="text-sm font-medium">
+                    Empresas Disponibles ({unassignedCompanies.length})
+                  </Label>
+                  <div className="border rounded-lg divide-y max-h-50 overflow-y-auto">
                     {unassignedCompanies.length === 0 ? (
                       <div className="text-center py-8 text-sm text-muted-foreground">
                         Todas las empresas están asignadas
@@ -1078,16 +1187,20 @@ export function CompanyUsers() {
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium">{company.nombre}</p>
-                              <p className="text-xs text-muted-foreground">ID: {company.id}</p>
+                              <p className="text-sm font-medium">
+                                {company.nombre}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                ID: {company.id}
+                              </p>
                             </div>
                           </div>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
-                              e.stopPropagation()
-                              toggleCompanyAssignment(company.id)
+                              e.stopPropagation();
+                              toggleCompanyAssignment(company.id);
                             }}
                             className="h-8 w-8 p-0"
                           >
@@ -1103,17 +1216,21 @@ export function CompanyUsers() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setAssignDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleSaveAssignments} className="bg-accent hover:bg-accent/90">
+            <Button
+              onClick={handleSaveAssignments}
+              className="bg-accent hover:bg-accent/90"
+            >
               Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
 
       {selectedCompany ? (
         <>
@@ -1121,7 +1238,9 @@ export function CompanyUsers() {
             <CardContent className="p-4">
               <div className="grid md:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="search">Buscar por email (búsqueda exacta)</Label>
+                  <Label htmlFor="search">
+                    Buscar por email (búsqueda exacta)
+                  </Label>
                   <Input
                     id="search"
                     placeholder="Ej: usuario@empresa.com"
@@ -1129,8 +1248,12 @@ export function CompanyUsers() {
                     onChange={(e) => setEmailSearch(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        setPagination(prev => ({ ...prev, page: 1 }));
-                        fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                        setPagination((prev) => ({ ...prev, page: 1 }));
+                        fetchUsers({
+                          page: 1,
+                          limit: pagination.limit,
+                          email: emailSearch,
+                        });
                       }
                     }}
                   />
@@ -1139,8 +1262,12 @@ export function CompanyUsers() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
-                      setPagination(prev => ({ ...prev, page: 1 }));
-                      fetchUsers({ page: 1, limit: pagination.limit, email: emailSearch });
+                      setPagination((prev) => ({ ...prev, page: 1 }));
+                      fetchUsers({
+                        page: 1,
+                        limit: pagination.limit,
+                        email: emailSearch,
+                      });
                     }}
                     className="bg-accent hover:bg-accent/90"
                   >
@@ -1152,7 +1279,7 @@ export function CompanyUsers() {
                     onClick={() => {
                       setEmailSearch("");
                       // traer primera página sin filtro email
-                      setPagination(prev => ({ ...prev, page: 1 }));
+                      setPagination((prev) => ({ ...prev, page: 1 }));
                       fetchUsers({ page: 1, limit: pagination.limit });
                     }}
                   >
@@ -1163,7 +1290,6 @@ export function CompanyUsers() {
             </CardContent>
           </Card>
 
-
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-sm text-muted-foreground">
               {pagination.total > 0 ? (
@@ -1172,7 +1298,10 @@ export function CompanyUsers() {
                   <strong>
                     {(pagination.page - 1) * pagination.limit + 1}
                     {" - "}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total,
+                    )}
                   </strong>{" "}
                   de <strong>{pagination.total}</strong> usuarios
                 </>
@@ -1206,8 +1335,7 @@ export function CompanyUsers() {
                   disabled={!pagination.hasPrevPage}
                   className="h-8 w-8 p-0"
                 >
-                  {/* icon o texto */}
-                  «
+                  {/* icon o texto */}«
                 </Button>
 
                 <Button
@@ -1222,34 +1350,39 @@ export function CompanyUsers() {
 
                 {/* páginas numeradas (máx 5 visibles) */}
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, pagination.totalPages || 1) }, (_, i) => {
-                    let pageNum;
-                    const totalPages = pagination.totalPages || 1;
+                  {Array.from(
+                    { length: Math.min(5, pagination.totalPages || 1) },
+                    (_, i) => {
+                      let pageNum;
+                      const totalPages = pagination.totalPages || 1;
 
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (pagination.page <= 3) {
-                      pageNum = i + 1;
-                    } else if (pagination.page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = pagination.page - 2 + i;
-                    }
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.page >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.page - 2 + i;
+                      }
 
-                    if (pageNum < 1 || pageNum > totalPages) return null;
+                      if (pageNum < 1 || pageNum > totalPages) return null;
 
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={pagination.page === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(pageNum)}
-                        className="h-8 w-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={
+                            pagination.page === pageNum ? "default" : "outline"
+                          }
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className="h-8 w-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    },
+                  )}
                 </div>
 
                 <Button
@@ -1314,7 +1447,9 @@ export function CompanyUsers() {
                           <Mail className="h-3 w-3" />
                           Email
                         </div>
-                        <p className="text-sm font-medium truncate">{user.email}</p>
+                        <p className="text-sm font-medium truncate">
+                          {user.email}
+                        </p>
                       </div>
                       <div className="p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -1329,7 +1464,9 @@ export function CompanyUsers() {
                             <Building2 className="h-3 w-3" />
                             Empresa ID
                           </div>
-                          <p className="text-sm font-medium">{user.empresa_id}</p>
+                          <p className="text-sm font-medium">
+                            {user.empresa_id}
+                          </p>
                         </div>
                       )}
                       {user.centro_costo_id && (
@@ -1338,7 +1475,9 @@ export function CompanyUsers() {
                             <FolderTree className="h-3 w-3" />
                             Centro de Costo ID
                           </div>
-                          <p className="text-sm font-medium">{user.centro_costo_id}</p>
+                          <p className="text-sm font-medium">
+                            {user.centro_costo_id}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1357,8 +1496,7 @@ export function CompanyUsers() {
                           </Button>
                         )}
 
-
-                        {(superUser && user.rol === "admin") && (
+                        {superUser && user.rol === "admin" && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1391,7 +1529,9 @@ export function CompanyUsers() {
                       <TableHead>Estado</TableHead>
                       <TableHead>Empresa ID</TableHead>
                       <TableHead>Centro Costo ID</TableHead>
-                      {currentUser?.role !== "auditoria" && <TableHead className="text-right">Acciones</TableHead>}
+                      {currentUser?.role !== "auditoria" && (
+                        <TableHead className="text-right">Acciones</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1424,9 +1564,7 @@ export function CompanyUsers() {
                             {getRoleDisplayName(user.rol)}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          {getStatusBadge(user.estado)}
-                        </TableCell>
+                        <TableCell>{getStatusBadge(user.estado)}</TableCell>
                         <TableCell>
                           {user.empresa_id ? (
                             <div className="flex items-center gap-2">
@@ -1462,7 +1600,10 @@ export function CompanyUsers() {
                                     </Button>
                                   </DropdownMenuTrigger>
 
-                                  <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="w-44"
+                                  >
                                     <DropdownMenuItem
                                       onClick={() => openEditDialog(user)}
                                       className="cursor-pointer"
@@ -1471,7 +1612,7 @@ export function CompanyUsers() {
                                       Editar
                                     </DropdownMenuItem>
 
-                                    {(superUser && user.rol === "admin") && (
+                                    {superUser && user.rol === "admin" && (
                                       <DropdownMenuItem
                                         onClick={() => openAssignDialog(user)}
                                         className="cursor-pointer"
@@ -1486,8 +1627,6 @@ export function CompanyUsers() {
                             )}
                           </TableCell>
                         )}
-
-
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1511,12 +1650,13 @@ export function CompanyUsers() {
         </Card>
       )}
 
-
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-125 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
-            <DialogDescription>Modifique los datos del usuario</DialogDescription>
+            <DialogDescription>
+              Modifique los datos del usuario
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
@@ -1525,7 +1665,9 @@ export function CompanyUsers() {
                 id="edit-nombre"
                 placeholder="Ej: Juan Pérez"
                 value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, nombre: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -1534,7 +1676,9 @@ export function CompanyUsers() {
                 id="edit-rut"
                 placeholder="Ej: 12345678-9"
                 value={formData.rut}
-                onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, rut: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -1544,7 +1688,9 @@ export function CompanyUsers() {
                 type="email"
                 placeholder="Ej: usuario@empresa.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -1554,7 +1700,9 @@ export function CompanyUsers() {
                 type="password"
                 placeholder="Dejar vacío para mantener la actual"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -1562,34 +1710,29 @@ export function CompanyUsers() {
               <select
                 id="edit-rol"
                 value={formData.rol}
-                onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, rol: e.target.value })
+                }
                 className="w-full p-2 border rounded-md"
               >
-                {
-                  user?.role !== "admin" && (
-                    <option value="admin">Administrador</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="empresa">Empresa</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="auditoria">Auditoria</option>
-                  )
-                }
-                {
-                  user?.role !== "admin" && (
-                    <option value="contralor">Contralor</option>
-                  )
-                }
-                                {
-                  user?.role !== "admin" && (
-                    <option value="admincc">AdminCC</option>
-                  )
-                }
+                {user?.role !== "admin" && (
+                  <option value="admin">Administrador</option>
+                )}
+                {user?.role !== "admin" && (
+                  <option value="empresa">Empresa</option>
+                )}
+                {user?.role !== "admin" && (
+                  <option value="auditoria">Auditoria</option>
+                )}
+                {user?.role !== "admin" && (
+                  <option value="contralor">Contralor</option>
+                )}
+                {user?.role !== "admin" && (
+                  <option value="admincc">AdminCC</option>
+                )}
+                {user?.role === "superuser" && (
+                  <option value="soporte">Soporte (SAC)</option>
+                )}
                 <option value="subusuario">usuario</option>
               </select>
             </div>
@@ -1598,7 +1741,9 @@ export function CompanyUsers() {
               <select
                 id="edit-empresa_id"
                 value={formData.empresa_id}
-                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, empresa_id: e.target.value })
+                }
                 className="w-full p-2 border rounded-md"
               >
                 <option value="">Selecciona una empresa</option>
@@ -1614,13 +1759,17 @@ export function CompanyUsers() {
               <select
                 id="edit-centro_costo_id"
                 value={formData.centro_costo_id}
-                onChange={(e) => setFormData({ ...formData, centro_costo_id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, centro_costo_id: e.target.value })
+                }
                 disabled={!formData.empresa_id || isLoadingCostCenters}
                 className="w-full p-2 border rounded-md"
               >
                 <option value="">Selecciona un centro de costo</option>
                 {isLoadingCostCenters ? (
-                  <option value="" disabled>Cargando centros de costo...</option>
+                  <option value="" disabled>
+                    Cargando centros de costo...
+                  </option>
                 ) : (
                   costCenters.map((costCenter) => (
                     <option key={costCenter.id} value={costCenter.id}>
@@ -1630,7 +1779,9 @@ export function CompanyUsers() {
                 )}
               </select>
               {!formData.empresa_id && (
-                <p className="text-xs text-muted-foreground">Selecciona una empresa primero</p>
+                <p className="text-xs text-muted-foreground">
+                  Selecciona una empresa primero
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -1638,7 +1789,12 @@ export function CompanyUsers() {
               <select
                 id="edit-estado"
                 value={formData.estado.toString()}
-                onChange={(e) => setFormData({ ...formData, estado: e.target.value === "true" })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    estado: e.target.value === "true",
+                  })
+                }
                 className="w-full p-2 border rounded-md"
               >
                 <option value="true">Activo</option>
@@ -1647,10 +1803,16 @@ export function CompanyUsers() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleEdit} className="bg-accent hover:bg-accent/90">
+            <Button
+              onClick={handleEdit}
+              className="bg-accent hover:bg-accent/90"
+            >
               Guardar Cambios
             </Button>
           </DialogFooter>
@@ -1699,9 +1861,7 @@ export function CompanyUsers() {
 
               {result.result?.errors?.length > 0 && (
                 <>
-                  <p className="mt-2 font-medium text-red-600">
-                    Errores:
-                  </p>
+                  <p className="mt-2 font-medium text-red-600">Errores:</p>
                   <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
                     {result.result.errors.map((e: string, i: number) => (
                       <li key={i}>{e}</li>
@@ -1713,10 +1873,7 @@ export function CompanyUsers() {
           )}
 
           <DialogFooter className="mt-4">
-            <Button
-              variant="secondary"
-              onClick={() => setCsvModalOpen(false)}
-            >
+            <Button variant="secondary" onClick={() => setCsvModalOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleUploadCSV} disabled={loading || !csvFile}>
@@ -1727,5 +1884,5 @@ export function CompanyUsers() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

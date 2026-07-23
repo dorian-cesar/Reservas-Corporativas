@@ -704,6 +704,15 @@ export function AdminBookings() {
               : b,
           ),
         );
+
+        if (empresaId) {
+          fetchTickets({
+            targetEmpresaId: Number(empresaId),
+            page: pagination.page,
+            limit: pagination.limit,
+            ticketNumber: searchTerm.trim() || undefined,
+          });
+        }
       } else {
         throw new Error(cancelResult.error || "Error al anular la reserva");
       }
@@ -1073,7 +1082,7 @@ export function AdminBookings() {
       )}
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Exportar Tickets</DialogTitle>
             <DialogDescription>

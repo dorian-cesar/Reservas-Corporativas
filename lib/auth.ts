@@ -12,7 +12,8 @@ export type UserRole =
   | "subusuario"
   | "auditoria"
   | "contralor"
-  | "admincc";
+  | "admincc"
+  | "soporte";
 
 export interface User {
   id: string;
@@ -47,7 +48,7 @@ export interface AuthState {
 
   login: (
     email: string,
-    password: string
+    password: string,
   ) => Promise<{
     success: boolean;
     requiresVerification?: boolean;
@@ -58,9 +59,7 @@ export interface AuthState {
     message?: string;
   }>;
 
-  verifyOtp: (
-    code: string
-  ) => Promise<{ success: boolean; message?: string }>;
+  verifyOtp: (code: string) => Promise<{ success: boolean; message?: string }>;
 
   resendOtp: () => Promise<{ success: boolean; message?: string }>;
 
@@ -166,7 +165,7 @@ export const useAuth = create<AuthState>()(
             return {
               success: true,
               requiresVerification: true,
-              message: "Código de verificación enviado"
+              message: "Código de verificación enviado",
             };
           }
 
@@ -337,7 +336,7 @@ export const useAuth = create<AuthState>()(
         if (!token || !user) {
           return {
             success: false,
-            message: "Usuario no autenticado"
+            message: "Usuario no autenticado",
           };
         }
 
@@ -348,7 +347,9 @@ export const useAuth = create<AuthState>()(
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ nueva_empresa_id: parseInt(nuevaEmpresaId) }),
+            body: JSON.stringify({
+              nueva_empresa_id: parseInt(nuevaEmpresaId),
+            }),
           });
 
           const data = await res.json();
@@ -356,7 +357,7 @@ export const useAuth = create<AuthState>()(
           if (!res.ok) {
             return {
               success: false,
-              message: data.message || "Error al cambiar empresa"
+              message: data.message || "Error al cambiar empresa",
             };
           }
 
@@ -364,7 +365,7 @@ export const useAuth = create<AuthState>()(
           if (!data.token) {
             return {
               success: false,
-              message: "No se recibió un token válido del servidor"
+              message: "No se recibió un token válido del servidor",
             };
           }
 
@@ -375,10 +376,15 @@ export const useAuth = create<AuthState>()(
             companyName: data.empresa?.nombre || user.companyName,
             companyEstado: data.empresa?.estado || user.companyEstado,
             companyRecargo: data.empresa?.recargo || user.companyRecargo,
-            companyPorcentajeDevolucion: data.empresa?.porcentaje_devolucion || user.companyPorcentajeDevolucion,
-            centroCostoId: data.centroCosto ? String(data.centroCosto.id) : user.centroCostoId,
+            companyPorcentajeDevolucion:
+              data.empresa?.porcentaje_devolucion ||
+              user.companyPorcentajeDevolucion,
+            centroCostoId: data.centroCosto
+              ? String(data.centroCosto.id)
+              : user.centroCostoId,
             centroCostoName: data.centroCosto?.nombre || user.centroCostoName,
-            centroCostoEstado: data.centroCosto?.estado || user.centroCostoEstado,
+            centroCostoEstado:
+              data.centroCosto?.estado || user.centroCostoEstado,
           };
 
           set({
@@ -392,13 +398,13 @@ export const useAuth = create<AuthState>()(
             user: updatedUser,
             token: data.token,
             empresa: data.empresa,
-            centroCosto: data.centroCosto
+            centroCosto: data.centroCosto,
           };
         } catch (err) {
           console.error("Error al cambiar empresa:", err);
           return {
             success: false,
-            message: "Error al conectar con el servidor"
+            message: "Error al conectar con el servidor",
           };
         }
       },
@@ -417,13 +423,13 @@ export const useAuth = create<AuthState>()(
         _hasHydrated: state._hasHydrated,
         // No persistimos los estados temporales
       }),
-    }
-  )
+    },
+  ),
 );
 
 export const useTokenExpiration = (
   checkInterval = 30_000,
-  logoutThresholdMs = 15 * 60 * 1000
+  logoutThresholdMs = 15 * 60 * 1000,
 ) => {
   const { token, logout, getToken } = useAuth();
 
@@ -454,8 +460,7 @@ export const useTokenExpiration = (
   }, [token, logout, getToken, checkInterval, logoutThresholdMs]);
 };
 
-export const useAuthHydration = () =>
-  useAuth((state) => state._hasHydrated);
+export const useAuthHydration = () => useAuth((state) => state._hasHydrated);
 
 // Hook adicional para facilitar el uso
 export const useVerificationState = () => {
@@ -463,7 +468,9 @@ export const useVerificationState = () => {
   const pendingUserId = useAuth((state) => state.pendingUserId);
   const pendingUserEmail = useAuth((state) => state.pendingUserEmail);
   const verificationEmailSent = useAuth((state) => state.verificationEmailSent);
-  const clearVerificationState = useAuth((state) => state.clearVerificationState);
+  const clearVerificationState = useAuth(
+    (state) => state.clearVerificationState,
+  );
   const resendOtp = useAuth((state) => state.resendOtp);
 
   return {
@@ -491,11 +498,15 @@ export const useRequireAuth = (redirectTo = "/login") => {
 };
 
 export const usePasswordUpdateState = () => {
-  const requiresPasswordUpdate = useAuth((state) => state.requiresPasswordUpdate);
+  const requiresPasswordUpdate = useAuth(
+    (state) => state.requiresPasswordUpdate,
+  );
   const passwordUpdateReason = useAuth((state) => state.passwordUpdateReason);
   const passwordUpdateUserId = useAuth((state) => state.passwordUpdateUserId);
   const validationError = useAuth((state) => state.validationError);
-  const clearPasswordUpdateState = useAuth((state) => state.clearPasswordUpdateState);
+  const clearPasswordUpdateState = useAuth(
+    (state) => state.clearPasswordUpdateState,
+  );
 
   return {
     requiresPasswordUpdate,

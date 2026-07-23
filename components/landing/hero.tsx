@@ -34,6 +34,7 @@ function getRoleDestination(role: string): string {
   if (role === "auditoria") return "/auditoria";
   if (role === "contralor") return "/controller";
   if (role === "admincc") return "/admincc";
+  if (role === "soporte") return "/soporte";
   return "/dashboard";
 }
 
@@ -44,6 +45,7 @@ function getRoleLabel(role: string): string {
   if (role === "auditoria") return "Auditoría";
   if (role === "contralor") return "Contralor";
   if (role === "admincc") return "Admin Centro de Costos";
+  if (role === "soporte") return "Soporte (SAC)";
   return "Usuario";
 }
 

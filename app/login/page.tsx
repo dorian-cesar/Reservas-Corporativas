@@ -66,6 +66,8 @@ export default function LoginPage() {
         router.push("/controller");
       } else if (role === "admincc") {
         router.push("/admincc");
+      } else if (role === "soporte") {
+        router.push("/soporte");
       } else {
         router.push("/dashboard");
       }
