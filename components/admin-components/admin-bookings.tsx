@@ -1082,7 +1082,7 @@ export function AdminBookings() {
       )}
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Exportar Tickets</DialogTitle>
             <DialogDescription>
