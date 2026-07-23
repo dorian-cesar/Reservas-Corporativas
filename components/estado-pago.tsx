@@ -86,6 +86,7 @@ type EstadoCuentaType = {
   pagado: boolean;
   fecha_pago?: string;
   suma_devoluciones?: number; // NUEVO: Campo añadido
+  reclamos_descuento?: number;
   porcentaje_descuento?: number;
   empresa?: {
     id: number;
@@ -687,7 +688,9 @@ export function EstadoPago() {
       ec.total_tickets,
       ec.total_tickets_anulados,
       formatCurrency(ec.monto_facturado),
-      formatCurrency(ec.suma_devoluciones || 0),
+      formatCurrency(
+        (ec.suma_devoluciones || 0) - (ec.reclamos_descuento || 0),
+      ),
       // ec.pagado ? "Sí" : "No",
       formatDate(ec.fecha_pago),
     ]);
@@ -720,7 +723,9 @@ export function EstadoPago() {
       "Total Tickets": ec.total_tickets,
       "Total Anulados": ec.total_tickets_anulados,
       "Monto Facturado": formatCurrency(ec.monto_facturado),
-      Devoluciones: formatCurrency(ec.suma_devoluciones || 0),
+      Devoluciones: formatCurrency(
+        (ec.suma_devoluciones || 0) - (ec.reclamos_descuento || 0),
+      ),
       // "Pagado": ec.pagado ? "Sí" : "No",
       "Fecha Pago": formatDate(ec.fecha_pago),
     }));
@@ -764,7 +769,10 @@ export function EstadoPago() {
     const csvData = ticketsData.map((ticket) => [
       ticket.pnrNumber || "",
       formatDate(ticket.confirmedAt) || "-",
-      ticket.ticketStatus,
+      ticket.reclamos &&
+      ticket.reclamos.some((r: any) => r.estado === "Aceptado")
+        ? "Reclamado"
+        : ticket.ticketStatus,
       ticket.terminal_origen || "",
       ticket.terminal_destino || "",
       `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
@@ -804,7 +812,11 @@ export function EstadoPago() {
     const data = ticketsData.map((ticket) => ({
       "Ticket #": ticket.pnrNumber || "",
       "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
-      Estado: ticket.ticketStatus,
+      Estado:
+        ticket.reclamos &&
+        ticket.reclamos.some((r: any) => r.estado === "Aceptado")
+          ? "Reclamado"
+          : ticket.ticketStatus,
       Origen: ticket.terminal_origen || "",
       Destino: ticket.terminal_destino || "",
       "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
@@ -877,7 +889,10 @@ export function EstadoPago() {
       const csvData = allTickets.map((ticket: any) => [
         ticket.pnrNumber || "",
         formatDate(ticket.confirmedAt) || "-",
-        ticket.ticketStatus,
+        ticket.reclamos &&
+        ticket.reclamos.some((r: any) => r.estado === "Aceptado")
+          ? "Reclamado"
+          : ticket.ticketStatus,
         ticket.terminal_origen || "",
         ticket.terminal_destino || "",
         `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
@@ -945,7 +960,11 @@ export function EstadoPago() {
       const data = allTickets.map((ticket: any) => ({
         "Ticket #": ticket.pnrNumber || "",
         "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
-        Estado: ticket.ticketStatus,
+        Estado:
+          ticket.reclamos &&
+          ticket.reclamos.some((r: any) => r.estado === "Aceptado")
+            ? "Reclamado"
+            : ticket.ticketStatus,
         Origen: ticket.terminal_origen || "",
         Destino: ticket.terminal_destino || "",
         "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
@@ -1098,7 +1117,7 @@ export function EstadoPago() {
       )}
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Exportar Estados de Cuenta</DialogTitle>
             <DialogDescription>
@@ -1272,7 +1291,10 @@ export function EstadoPago() {
                     <TableCell>{ec.total_tickets_anulados}</TableCell>
                     <TableCell>{formatCurrency(ec.monto_facturado)}</TableCell>
                     <TableCell>
-                      {formatCurrency(ec.suma_devoluciones ?? 0)}
+                      {formatCurrency(
+                        (ec.suma_devoluciones ?? 0) -
+                          (ec.reclamos_descuento ?? 0),
+                      )}
                     </TableCell>
                     {(user?.role === "superuser" ||
                       user?.role === "admincc") && (
@@ -1352,7 +1374,7 @@ export function EstadoPago() {
       )}
 
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-[1200px] max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-300 max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               Tickets del Estado de Cuenta
@@ -1406,12 +1428,22 @@ export function EstadoPago() {
                           <TableCell>
                             <span
                               className={`px-2 py-1 rounded text-xs ${
-                                ticket.ticketStatus === "Confirmed"
+                                ticket.reclamos &&
+                                ticket.reclamos.some(
+                                  (r: any) => r.estado === "Aceptado",
+                                )
+                                  ? "bg-amber-100 text-amber-800"
+                                  : ticket.ticketStatus === "Confirmed"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {ticket.ticketStatus}
+                              {ticket.reclamos &&
+                              ticket.reclamos.some(
+                                (r: any) => r.estado === "Aceptado",
+                              )
+                                ? "Reclamado"
+                                : ticket.ticketStatus}
                             </span>
                           </TableCell>
                           <TableCell>{ticket.terminal_origen ?? "-"}</TableCell>
