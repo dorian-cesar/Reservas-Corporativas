@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import {
   Ticket,
@@ -36,6 +43,7 @@ interface MyBookingsProps {
   showActiveOnly?: boolean;
   limit?: number;
   showCard?: boolean;
+  hideReclamo?: boolean;
 }
 
 interface Booking {
@@ -92,11 +100,17 @@ export function MyBookings({
   showActiveOnly = false,
   limit,
   showCard = true,
+  hideReclamo = false,
 }: MyBookingsProps) {
   const { user, token } = useAuth();
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [isReclamoDialogOpen, setIsReclamoDialogOpen] = useState(false);
+  const [reclamoBooking, setReclamoBooking] = useState<Booking | null>(null);
+  const [reclamoMotivo, setReclamoMotivo] = useState("");
+  const [reclamoDescripcion, setReclamoDescripcion] = useState("");
+  const [isSubmittingReclamo, setIsSubmittingReclamo] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -552,6 +566,61 @@ export function MyBookings({
     return Math.round(amount);
   };
 
+  const submitReclamo = async () => {
+    if (!reclamoBooking || !reclamoMotivo || !reclamoDescripcion.trim()) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Debe seleccionar un motivo e ingresar una descripción.",
+        ...swalConfig,
+      });
+      return;
+    }
+
+    setIsSubmittingReclamo(true);
+    try {
+      const res = await fetch("/api/reclamos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticket_id: reclamoBooking.id,
+          motivo: reclamoMotivo,
+          descripcion: reclamoDescripcion,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Error al ingresar el reclamo");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Éxito",
+        text: "Reclamo ingresado correctamente.",
+        ...swalConfig,
+      });
+
+      setIsReclamoDialogOpen(false);
+      setReclamoMotivo("");
+      setReclamoDescripcion("");
+      setReclamoBooking(null);
+    } catch (error: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "Ocurrió un problema al enviar el reclamo.",
+        ...swalConfig,
+      });
+    } finally {
+      setIsSubmittingReclamo(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -779,7 +848,7 @@ export function MyBookings({
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                     <TicketPDFButton ticketNumber={booking.ticketNumber} />
 
-                    {!isPastTrip(booking) && (
+                     {!isPastTrip(booking) && (
                       <Button
                         size="sm"
                         variant="outline"

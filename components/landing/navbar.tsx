@@ -19,6 +19,7 @@ function getRoleDestination(role: string): string {
   if (role === "auditoria") return "/auditoria";
   if (role === "contralor") return "/controller";
   if (role === "admincc") return "/admincc";
+  if (role === "soporte") return "/soporte";
   return "/dashboard";
 }
 
@@ -40,7 +41,7 @@ export function Navbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white backdrop-blur-md">
-      <div className="mx-auto flex h-18 max-w-7xl 2xl:max-w-[1600px] min-[2000px]:max-w-none items-center justify-between px-4 lg:px-8">
+      <div className="mx-auto flex h-18 max-w-7xl 2xl:max-w-400 min-[2000px]:max-w-none items-center justify-between px-4 lg:px-8">
         <a href="/" className="flex items-center">
           <Image
             src="/logo-reservas-corporativas.png"

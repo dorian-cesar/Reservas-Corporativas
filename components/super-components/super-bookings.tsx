@@ -33,6 +33,7 @@ import {
   Search,
   Building2,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -58,6 +59,11 @@ export function SuperAllBookings() {
   const [searchTerm, setSearchTerm] = useState(""); // será ticketNumber (string)
   const [empresaId, setEmpresaId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isReclamoDialogOpen, setIsReclamoDialogOpen] = useState(false);
+  const [reclamoTicket, setReclamoTicket] = useState<Ticket | null>(null);
+  const [reclamoMotivo, setReclamoMotivo] = useState("");
+  const [reclamoDescripcion, setReclamoDescripcion] = useState("");
+  const [isSubmittingReclamo, setIsSubmittingReclamo] = useState(false);
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>(
     [],
   );
@@ -122,6 +128,7 @@ export function SuperAllBookings() {
     updated_at: string;
     user: User;
     pasajero?: Pasajero;
+    reclamos?: any[];
   };
 
   type User = {
@@ -320,12 +327,6 @@ export function SuperAllBookings() {
         toast({
           title: "Información",
           description: message,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Éxito",
-          description: `${ticketsArray.length} tickets cargados`,
           variant: "default",
         });
       }
@@ -933,6 +934,58 @@ export function SuperAllBookings() {
     });
   };
 
+  const submitReclamo = async () => {
+    if (!reclamoTicket || !reclamoMotivo || !reclamoDescripcion.trim()) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un motivo e ingresar una descripción.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingReclamo(true);
+    try {
+      const res = await fetch("/api/reclamos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticket_id: reclamoTicket.id,
+          motivo: reclamoMotivo,
+          descripcion: reclamoDescripcion,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Error al ingresar el reclamo");
+      }
+
+      toast({
+        title: "Éxito",
+        description: "Reclamo ingresado correctamente.",
+      });
+
+      setIsReclamoDialogOpen(false);
+      setReclamoMotivo("");
+      setReclamoDescripcion("");
+      setReclamoTicket(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description:
+          error.message || "Ocurrió un problema al enviar el reclamo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingReclamo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -1165,7 +1218,7 @@ export function SuperAllBookings() {
       )}
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Exportar Tickets</DialogTitle>
             <DialogDescription>
@@ -1354,31 +1407,71 @@ export function SuperAllBookings() {
                     </div>
                   </div>
 
-                  {/* Botón de anular */}
-                  {ticket.ticketStatus === "Confirmed" &&
-                    user?.role !== "contralor" &&
-                    user?.role !== "auditoria" &&
-                    !isPastTrip(ticket) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
-                        onClick={() => handleCancelBooking(ticket)}
-                        disabled={isCanceling}
+                  <div className="pt-4 flex flex-col gap-2">
+                    {ticket.ticketStatus === "Confirmed" && (
+                      <div
+                        title={
+                          ticket.reclamos && ticket.reclamos.length > 0
+                            ? "Este ticket ya tiene un reclamo ingresado"
+                            : undefined
+                        }
+                        className="w-full"
                       >
-                        {isCanceling ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Anulando...
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-4 w-4" />
-                            Anular Reserva
-                          </>
-                        )}
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400"
+                          onClick={() => {
+                            setReclamoTicket(ticket);
+                            setIsReclamoDialogOpen(true);
+                          }}
+                          disabled={
+                            !!(ticket.reclamos && ticket.reclamos.length > 0)
+                          }
+                        >
+                          <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
+                        </Button>
+                      </div>
                     )}
+
+                    {/* Botón de anular */}
+                    {ticket.ticketStatus === "Confirmed" &&
+                      user?.role !== "contralor" &&
+                      user?.role !== "auditoria" &&
+                      !isPastTrip(ticket) && (
+                        <div
+                          title={
+                            ticket.reclamos && ticket.reclamos.length > 0
+                              ? "No se puede anular porque el ticket ya tiene un reclamo ingresado"
+                              : undefined
+                          }
+                          className="w-full"
+                        >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
+                            onClick={() => handleCancelBooking(ticket)}
+                            disabled={
+                              isCanceling ||
+                              !!(ticket.reclamos && ticket.reclamos.length > 0)
+                            }
+                          >
+                            {isCanceling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Anulando...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4" />
+                                Anular Reserva
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -1487,29 +1580,71 @@ export function SuperAllBookings() {
                         {ticket.ticketStatus === "Confirmed" && (
                           <TicketPDFButton ticketNumber={ticket.ticketNumber} />
                         )}
+                        {ticket.ticketStatus === "Confirmed" && (
+                          <div
+                            title={
+                              ticket.reclamos && ticket.reclamos.length > 0
+                                ? "Este ticket ya tiene un reclamo ingresado"
+                                : undefined
+                            }
+                            className="inline-block"
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400 ml-2"
+                              onClick={() => {
+                                setReclamoTicket(ticket);
+                                setIsReclamoDialogOpen(true);
+                              }}
+                              disabled={
+                                !!(
+                                  ticket.reclamos && ticket.reclamos.length > 0
+                                )
+                              }
+                            >
+                              <AlertCircle className="h-4 w-4" /> Reclamo
+                            </Button>
+                          </div>
+                        )}
                         {ticket.ticketStatus === "Confirmed" &&
                           user?.role !== "contralor" &&
                           user?.role !== "auditoria" &&
                           !isPastTrip(ticket) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
-                              onClick={() => handleCancelBooking(ticket)}
-                              disabled={isCanceling}
+                            <div
+                              title={
+                                ticket.reclamos && ticket.reclamos.length > 0
+                                  ? "No se puede anular porque el ticket ya tiene un reclamo ingresado"
+                                  : undefined
+                              }
+                              className="inline-block"
                             >
-                              {isCanceling ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  Anulando...
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="h-4 w-4" />
-                                  Anular Reserva
-                                </>
-                              )}
-                            </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400 ml-2"
+                                onClick={() => handleCancelBooking(ticket)}
+                                disabled={
+                                  isCanceling ||
+                                  !!(
+                                    ticket.reclamos &&
+                                    ticket.reclamos.length > 0
+                                  )
+                                }
+                              >
+                                {isCanceling ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Anulando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-4 w-4" />
+                                    Anular Reserva
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           )}
                       </TableCell>
                     </TableRow>
@@ -1520,6 +1655,69 @@ export function SuperAllBookings() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isReclamoDialogOpen} onOpenChange={setIsReclamoDialogOpen}>
+        <DialogContent className="sm:max-w-106.25">
+          <DialogHeader>
+            <DialogTitle>Ingresar Reclamo</DialogTitle>
+            <DialogDescription>
+              Complete el formulario para ingresar un reclamo sobre el ticket #
+              {reclamoTicket?.ticketNumber}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="motivo">Motivo (Tipificación)</Label>
+              <select
+                id="motivo"
+                value={reclamoMotivo}
+                onChange={(e) => setReclamoMotivo(e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" disabled>
+                  Seleccione un motivo
+                </option>
+                <option value="Servicio fuera de horario">
+                  Servicio fuera de horario
+                </option>
+                <option value="No ejecutado">No ejecutado</option>
+                <option value="Panne (Falla técnica)">
+                  Panne (Falla técnica)
+                </option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="descripcion">Descripción / Evidencia</Label>
+              <textarea
+                id="descripcion"
+                value={reclamoDescripcion}
+                onChange={(e) => setReclamoDescripcion(e.target.value)}
+                placeholder="Detalle la incidencia y proporcione evidencia si es necesario..."
+                className="flex min-h-25 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReclamoDialogOpen(false)}
+              disabled={isSubmittingReclamo}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={submitReclamo} disabled={isSubmittingReclamo}>
+              {isSubmittingReclamo && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Enviar Reclamo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

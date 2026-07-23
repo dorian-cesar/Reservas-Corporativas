@@ -1139,10 +1139,10 @@ export function EstadoPago() {
       >
         <div className="space-y-2">
           <h3 className="text-lg font-semibold">
-            Agregar Nuevo Centro de Costo
+            Crear Nuevo Estado de Cuenta
           </h3>
           <p className="text-sm text-muted-foreground">
-            Complete los datos del centro de costo
+            Complete los datos del para la creación de un nuevo estado de cuenta
           </p>
         </div>
 
