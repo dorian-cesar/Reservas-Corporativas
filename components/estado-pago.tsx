@@ -496,7 +496,7 @@ export function EstadoPago() {
               : "0.00%"}
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-125">
           <DialogHeader>
             <DialogTitle>Aplicar Descuento</DialogTitle>
             <DialogDescription>
@@ -1434,8 +1434,8 @@ export function EstadoPago() {
                                 )
                                   ? "bg-amber-100 text-amber-800"
                                   : ticket.ticketStatus === "Confirmed"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
                               }`}
                             >
                               {ticket.reclamos &&
