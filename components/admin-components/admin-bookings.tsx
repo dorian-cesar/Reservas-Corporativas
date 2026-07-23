@@ -704,6 +704,15 @@ export function AdminBookings() {
               : b,
           ),
         );
+
+        if (empresaId) {
+          fetchTickets({
+            targetEmpresaId: Number(empresaId),
+            page: pagination.page,
+            limit: pagination.limit,
+            ticketNumber: searchTerm.trim() || undefined,
+          });
+        }
       } else {
         throw new Error(cancelResult.error || "Error al anular la reserva");
       }

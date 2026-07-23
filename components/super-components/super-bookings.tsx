@@ -814,6 +814,15 @@ export function SuperAllBookings() {
               : b,
           ),
         );
+
+        if (empresaId) {
+          fetchTickets({
+            targetEmpresaId: Number(empresaId),
+            page: pagination.page,
+            limit: pagination.limit,
+            ticketNumber: searchTerm.trim() || undefined,
+          });
+        }
       } else {
         throw new Error(cancelResult.error || "Error al anular la reserva");
       }
@@ -974,6 +983,15 @@ export function SuperAllBookings() {
       setReclamoMotivo("");
       setReclamoDescripcion("");
       setReclamoTicket(null);
+
+      if (empresaId) {
+        fetchTickets({
+          targetEmpresaId: Number(empresaId),
+          page: pagination.page,
+          limit: pagination.limit,
+          ticketNumber: searchTerm.trim() || undefined,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -1695,7 +1713,7 @@ export function SuperAllBookings() {
                 id="descripcion"
                 value={reclamoDescripcion}
                 onChange={(e) => setReclamoDescripcion(e.target.value)}
-                placeholder="Detalle la incidencia y proporcione evidencia si es necesario..."
+                placeholder="Detalle la incidencia..."
                 className="flex min-h-25 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
