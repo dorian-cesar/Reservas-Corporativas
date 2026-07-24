@@ -16,6 +16,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import {
@@ -38,6 +39,7 @@ import Swal from "sweetalert2";
 import TicketPDFButton from "@/components/ticket-pdf";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import moment from "moment-timezone";
+import { Label } from "@radix-ui/react-label";
 
 interface MyBookingsProps {
   showActiveOnly?: boolean;
@@ -94,6 +96,7 @@ interface Booking {
     nombre: string;
     email: string;
   };
+  reclamos?: any[];
 }
 
 export function MyBookings({
@@ -233,6 +236,74 @@ export function MyBookings({
 
     loadTickets();
   }, [user, token]);
+
+  const submitReclamo = async () => {
+    if (!reclamoBooking || !reclamoMotivo || !reclamoDescripcion.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Atención",
+        text: "Debe completar todos los campos del formulario.",
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+      return;
+    }
+
+    setIsSubmittingReclamo(true);
+
+    try {
+      const res = await fetch("/api/reclamos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ticket_id: reclamoBooking.id,
+          motivo: reclamoMotivo,
+          descripcion: reclamoDescripcion,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Error al ingresar el reclamo");
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Éxito",
+        text: "Reclamo ingresado correctamente.",
+        confirmButtonText: "Aceptar",
+        ...swalConfig,
+      });
+
+      setIsReclamoDialogOpen(false);
+      setReclamoMotivo("");
+      setReclamoDescripcion("");
+
+      setUserBookings((prev) =>
+        prev.map((b) =>
+          b.id === reclamoBooking.id
+            ? { ...b, reclamos: [...(b.reclamos || []), data] }
+            : b
+        )
+      );
+      setReclamoBooking(null);
+    } catch (error: any) {
+      console.error("Error al ingresar reclamo:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "Ocurrió un problema al enviar el reclamo.",
+        confirmButtonText: "Entendido",
+        ...swalConfig,
+      });
+    } finally {
+      setIsSubmittingReclamo(false);
+    }
+  };
 
   const handleCancelBooking = async (booking: Booking) => {
     if (!canCancelBooking(booking)) {
@@ -566,60 +637,6 @@ export function MyBookings({
     return Math.round(amount);
   };
 
-  const submitReclamo = async () => {
-    if (!reclamoBooking || !reclamoMotivo || !reclamoDescripcion.trim()) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Debe seleccionar un motivo e ingresar una descripción.",
-        ...swalConfig,
-      });
-      return;
-    }
-
-    setIsSubmittingReclamo(true);
-    try {
-      const res = await fetch("/api/reclamos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ticket_id: reclamoBooking.id,
-          motivo: reclamoMotivo,
-          descripcion: reclamoDescripcion,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Error al ingresar el reclamo");
-      }
-
-      Swal.fire({
-        icon: "success",
-        title: "Éxito",
-        text: "Reclamo ingresado correctamente.",
-        ...swalConfig,
-      });
-
-      setIsReclamoDialogOpen(false);
-      setReclamoMotivo("");
-      setReclamoDescripcion("");
-      setReclamoBooking(null);
-    } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.message || "Ocurrió un problema al enviar el reclamo.",
-        ...swalConfig,
-      });
-    } finally {
-      setIsSubmittingReclamo(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -848,26 +865,66 @@ export function MyBookings({
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                     <TicketPDFButton ticketNumber={booking.ticketNumber} />
 
-                     {!isPastTrip(booking) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-2 text-red-600 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-400"
-                        onClick={() => handleCancelBooking(booking)}
-                        disabled={isCanceling}
+                    {!hideReclamo &&
+                      user?.role !== "contralor" &&
+                      user?.role !== "auditoria" &&
+                      !isPastTrip(booking) && (
+                        <div
+                          title={
+                            booking.reclamos && booking.reclamos.length > 0
+                              ? "Este ticket ya tiene un reclamo ingresado"
+                              : undefined
+                          }
+                          className="flex-1"
+                        >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400"
+                            onClick={() => {
+                              setReclamoBooking(booking);
+                              setIsReclamoDialogOpen(true);
+                            }}
+                            disabled={
+                              !!(
+                                booking.reclamos && booking.reclamos.length > 0
+                              )
+                            }
+                          >
+                            <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
+                          </Button>
+                        </div>
+                      )}
+
+                    {!isPastTrip(booking) && (
+                      <div
+                        title={
+                          booking.reclamos && booking.reclamos.length > 0
+                            ? "No se puede anular porque el ticket ya tiene un reclamo ingresado"
+                            : undefined
+                        }
+                        className="flex-1"
                       >
-                        {isCanceling ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Anulando...
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-4 w-4" />
-                            Anular Reserva
-                          </>
-                        )}
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive"
+                          onClick={() => handleCancelBooking(booking)}
+                          disabled={
+                            cancelingId === String(booking.id) ||
+                            !!(booking.reclamos && booking.reclamos.length > 0)
+                          }
+                        >
+                          {cancelingId === String(booking.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <XCircle className="h-4 w-4 mr-2" />
+                          )}
+                          {cancelingId === String(booking.id)
+                            ? "Anulando..."
+                            : "Anular Reserva"}
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1010,6 +1067,71 @@ export function MyBookings({
             </Button>
           </div>
         )}
+        <Dialog
+          open={isReclamoDialogOpen}
+          onOpenChange={setIsReclamoDialogOpen}
+        >
+          <DialogContent className="sm:max-w-106.25">
+            <DialogHeader>
+              <DialogTitle>Ingresar Reclamo</DialogTitle>
+              <DialogDescription>
+                Complete el formulario para ingresar un reclamo sobre el ticket
+                #{reclamoBooking?.ticketNumber}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="motivo">Motivo</Label>
+                <select
+                  id="motivo"
+                  value={reclamoMotivo}
+                  onChange={(e) => setReclamoMotivo(e.target.value)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Seleccione un motivo
+                  </option>
+                  <option value="Servicio fuera de horario">
+                    Servicio fuera de horario
+                  </option>
+                  <option value="No ejecutado">No ejecutado</option>
+                  <option value="Panne (Falla técnica)">
+                    Panne (Falla técnica)
+                  </option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="descripcion">Descripción / Evidencia</Label>
+                <textarea
+                  id="descripcion"
+                  value={reclamoDescripcion}
+                  onChange={(e) => setReclamoDescripcion(e.target.value)}
+                  placeholder="Detalle la incidencia..."
+                  className="flex min-h-25 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsReclamoDialogOpen(false)}
+                disabled={isSubmittingReclamo}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={submitReclamo} disabled={isSubmittingReclamo}>
+                {isSubmittingReclamo && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Enviar Reclamo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     );
   }

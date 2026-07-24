@@ -6,12 +6,10 @@ export const swalConfig: SweetAlertOptions = {
     container: "swal-container",
     popup:
       "swal-popup bg-background border-2 border-border rounded-lg shadow-xl",
-    header: "swal-header",
     title: "swal-title text-foreground font-bold text-xl",
     closeButton: "swal-close",
     icon: "swal-icon",
     image: "swal-image",
-    content: "swal-content text-foreground",
     htmlContainer: "swal-html-container text-foreground",
     input: "swal-input",
     inputLabel: "swal-input-label",
@@ -32,25 +30,25 @@ export const swalSuccessConfig: SweetAlertOptions = {
   ...swalConfig,
   icon: "success",
   iconColor: "#16a34a",
-};
+} as any;
 
 export const swalErrorConfig: SweetAlertOptions = {
   ...swalConfig,
   icon: "error",
   iconColor: "#dc2626",
-};
+} as any;
 
 export const swalWarningConfig: SweetAlertOptions = {
   ...swalConfig,
   icon: "warning",
   iconColor: "#d97706",
-};
+} as any;
 
 export const swalInfoConfig: SweetAlertOptions = {
   ...swalConfig,
   icon: "info",
   iconColor: "#2563eb",
-};
+} as any;
 
 // Función helper para crear alertas con la configuración base
 export const createSwalAlert = (
@@ -58,4 +56,4 @@ export const createSwalAlert = (
 ): SweetAlertOptions => ({
   ...swalConfig,
   ...customConfig,
-});
+} as any);

@@ -1430,30 +1430,30 @@ export function SuperAllBookings() {
                       user?.role !== "contralor" &&
                       user?.role !== "auditoria" &&
                       !isPastTrip(ticket) && (
-                      <div
-                        title={
-                          ticket.reclamos && ticket.reclamos.length > 0
-                            ? "Este ticket ya tiene un reclamo ingresado"
-                            : undefined
-                        }
-                        className="w-full"
-                      >
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400"
-                          onClick={() => {
-                            setReclamoTicket(ticket);
-                            setIsReclamoDialogOpen(true);
-                          }}
-                          disabled={
-                            !!(ticket.reclamos && ticket.reclamos.length > 0)
+                        <div
+                          title={
+                            ticket.reclamos && ticket.reclamos.length > 0
+                              ? "Este ticket ya tiene un reclamo ingresado"
+                              : undefined
                           }
+                          className="w-full"
                         >
-                          <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
-                        </Button>
-                      </div>
-                    )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400"
+                            onClick={() => {
+                              setReclamoTicket(ticket);
+                              setIsReclamoDialogOpen(true);
+                            }}
+                            disabled={
+                              !!(ticket.reclamos && ticket.reclamos.length > 0)
+                            }
+                          >
+                            <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
+                          </Button>
+                        </div>
+                      )}
 
                     {/* Botón de anular */}
                     {ticket.ticketStatus === "Confirmed" &&
@@ -1606,31 +1606,32 @@ export function SuperAllBookings() {
                           user?.role !== "auditoria" &&
                           !isPastTrip(ticket) && (
                             <div
-                            title={
-                              ticket.reclamos && ticket.reclamos.length > 0
-                                ? "Este ticket ya tiene un reclamo ingresado"
-                                : undefined
-                            }
-                            className="inline-block"
-                          >
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400 ml-2"
-                              onClick={() => {
-                                setReclamoTicket(ticket);
-                                setIsReclamoDialogOpen(true);
-                              }}
-                              disabled={
-                                !!(
-                                  ticket.reclamos && ticket.reclamos.length > 0
-                                )
+                              title={
+                                ticket.reclamos && ticket.reclamos.length > 0
+                                  ? "Este ticket ya tiene un reclamo ingresado"
+                                  : undefined
                               }
+                              className="inline-block"
                             >
-                              <AlertCircle className="h-4 w-4" /> Reclamo
-                            </Button>
-                          </div>
-                        )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 gap-2 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white hover:border-amber-400 ml-2"
+                                onClick={() => {
+                                  setReclamoTicket(ticket);
+                                  setIsReclamoDialogOpen(true);
+                                }}
+                                disabled={
+                                  !!(
+                                    ticket.reclamos &&
+                                    ticket.reclamos.length > 0
+                                  )
+                                }
+                              >
+                                <AlertCircle className="h-4 w-4" /> Reclamo
+                              </Button>
+                            </div>
+                          )}
                         {ticket.ticketStatus === "Confirmed" &&
                           user?.role !== "contralor" &&
                           user?.role !== "auditoria" &&
@@ -1692,7 +1693,7 @@ export function SuperAllBookings() {
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="motivo">Motivo (Tipificación)</Label>
+              <Label htmlFor="motivo">Motivo</Label>
               <select
                 id="motivo"
                 value={reclamoMotivo}
