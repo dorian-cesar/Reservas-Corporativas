@@ -867,8 +867,7 @@ export function MyBookings({
 
                     {!hideReclamo &&
                       user?.role !== "contralor" &&
-                      user?.role !== "auditoria" &&
-                      !isPastTrip(booking) && (
+                      user?.role !== "auditoria" && (
                         <div
                           title={
                             booking.reclamos && booking.reclamos.length > 0

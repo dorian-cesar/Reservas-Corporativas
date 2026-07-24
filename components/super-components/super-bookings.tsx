@@ -1428,8 +1428,7 @@ export function SuperAllBookings() {
                   <div className="pt-4 flex flex-col gap-2">
                     {ticket.ticketStatus === "Confirmed" &&
                       user?.role !== "contralor" &&
-                      user?.role !== "auditoria" &&
-                      !isPastTrip(ticket) && (
+                      user?.role !== "auditoria" && (
                         <div
                           title={
                             ticket.reclamos && ticket.reclamos.length > 0
@@ -1603,8 +1602,7 @@ export function SuperAllBookings() {
                         )}
                         {ticket.ticketStatus === "Confirmed" &&
                           user?.role !== "contralor" &&
-                          user?.role !== "auditoria" &&
-                          !isPastTrip(ticket) && (
+                          user?.role !== "auditoria" && (
                             <div
                               title={
                                 ticket.reclamos && ticket.reclamos.length > 0
