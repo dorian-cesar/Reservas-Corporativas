@@ -774,14 +774,14 @@ export function EstadoPago() {
       "Nombre Comprador",
     ];
     const csvData = ticketsData.map((ticket) => [
-      ticket.pnrNumber || "",
+      ticket.ticketNumber || ticket.pnrNumber || "",
       formatDate(ticket.confirmedAt) || "-",
       ticket.reclamos &&
       ticket.reclamos.some((r: any) => r.estado === "Aceptado")
         ? "Reclamado"
         : ticket.ticketStatus,
-      ticket.terminal_origen || "",
-      ticket.terminal_destino || "",
+      ticket.origin || ticket.terminal_origen || "",
+      ticket.destination || ticket.terminal_destino || "",
       `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
       ticket?.pasajero.rut || "",
       ticket?.pasajero.nombre || "",
@@ -817,15 +817,15 @@ export function EstadoPago() {
     if (ticketsData.length === 0) return;
 
     const data = ticketsData.map((ticket) => ({
-      "Ticket #": ticket.pnrNumber || "",
+      "Ticket #": ticket.ticketNumber || ticket.pnrNumber || "",
       "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
       Estado:
         ticket.reclamos &&
         ticket.reclamos.some((r: any) => r.estado === "Aceptado")
           ? "Reclamado"
           : ticket.ticketStatus,
-      Origen: ticket.terminal_origen || "",
-      Destino: ticket.terminal_destino || "",
+      Origen: ticket.origin || ticket.terminal_origen || "",
+      Destino: ticket.destination || ticket.terminal_destino || "",
       "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
       "RUT Pasajero": ticket?.pasajero.rut || "",
       "Nombre Pasajero": ticket?.pasajero.nombre || "",
@@ -894,14 +894,14 @@ export function EstadoPago() {
         "Nombre Comprador",
       ];
       const csvData = allTickets.map((ticket: any) => [
-        ticket.pnrNumber || "",
+        ticket.ticketNumber || ticket.pnrNumber || "",
         formatDate(ticket.confirmedAt) || "-",
         ticket.reclamos &&
         ticket.reclamos.some((r: any) => r.estado === "Aceptado")
           ? "Reclamado"
           : ticket.ticketStatus,
-        ticket.terminal_origen || "",
-        ticket.terminal_destino || "",
+        ticket.origin || ticket.terminal_origen || "",
+        ticket.destination || ticket.terminal_destino || "",
         `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
         ticket?.pasajero?.rut || "",
         ticket?.pasajero?.nombre || "",
@@ -965,15 +965,15 @@ export function EstadoPago() {
       }
 
       const data = allTickets.map((ticket: any) => ({
-        "Ticket #": ticket.pnrNumber || "",
+        "Ticket #": ticket.ticketNumber || ticket.pnrNumber || "",
         "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
         Estado:
           ticket.reclamos &&
           ticket.reclamos.some((r: any) => r.estado === "Aceptado")
             ? "Reclamado"
             : ticket.ticketStatus,
-        Origen: ticket.terminal_origen || "",
-        Destino: ticket.terminal_destino || "",
+        Origen: ticket.origin || ticket.terminal_origen || "",
+        Destino: ticket.destination || ticket.terminal_destino || "",
         "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
         "RUT Pasajero": ticket?.pasajero?.rut || "",
         "Nombre Pasajero": ticket?.pasajero?.nombre || "",
@@ -1423,12 +1423,13 @@ export function EstadoPago() {
                         <TableHead>Cta. Cte</TableHead>
                         <TableHead>RUT Comprador</TableHead>
                         <TableHead>Nombre Comprador</TableHead>
+                        <TableHead>Fecha Actualizado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {tickets.map((ticket) => (
                         <TableRow key={ticket.id}>
-                          <TableCell>{ticket.pnrNumber ?? "-"}</TableCell>
+                          <TableCell>{ticket.ticketNumber || ticket.pnrNumber || "-"}</TableCell>
                           <TableCell>
                             {formatDate(ticket.confirmedAt ?? "-")}
                           </TableCell>
@@ -1453,9 +1454,9 @@ export function EstadoPago() {
                                 : ticket.ticketStatus}
                             </span>
                           </TableCell>
-                          <TableCell>{ticket.terminal_origen ?? "-"}</TableCell>
+                          <TableCell>{ticket.origin || ticket.terminal_origen || "-"}</TableCell>
                           <TableCell>
-                            {ticket.terminal_destino ?? "-"}
+                            {ticket.destination || ticket.terminal_destino || "-"}
                           </TableCell>
                           <TableCell>
                             {formatDate(ticket.travelDate)}{" "}
@@ -1479,6 +1480,11 @@ export function EstadoPago() {
                           </TableCell>
                           <TableCell>{ticket?.user.rut ?? "-"}</TableCell>
                           <TableCell>{ticket?.user.nombre ?? "-"}</TableCell>
+                          <TableCell>
+                            {ticket.updated_at
+                              ? formatDate(ticket.updated_at)
+                              : "-"}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
