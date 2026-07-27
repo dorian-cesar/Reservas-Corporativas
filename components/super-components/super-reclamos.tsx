@@ -23,12 +23,18 @@ import Swal from "sweetalert2";
 interface Reclamo {
   id: number;
   ticket_id: number;
+  user_id?: number | null;
   motivo: string;
   descripcion: string;
   estado: string;
   motivo_rechazo: string | null;
   fecha_creacion: string;
   fecha_resolucion: string | null;
+  user?: {
+    id: number;
+    nombre: string;
+    email: string;
+  };
   ticket: {
     id: number;
     ticketNumber: string;
@@ -349,7 +355,7 @@ export function SuperReclamos() {
                       {getStatusBadge(reclamo.estado)}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground block mb-1">
                           Empresa
@@ -363,16 +369,50 @@ export function SuperReclamos() {
                       </div>
 
                       <div>
-                        <span className="text-muted-foreground block mb-1">
-                          Pasajero / Usuario
+                        <span className="text-muted-foreground block mb-1 font-semibold">
+                          Usuario Reclamante
                         </span>
                         <p className="font-medium">
-                          {reclamo.ticket.pasajero?.nombre ||
-                            reclamo.ticket.user?.nombre}
+                          {reclamo.user?.nombre ||
+                            reclamo.ticket.user?.nombre ||
+                            "N/A"}
+                        </p>
+                        <p
+                          className="text-xs text-muted-foreground truncate"
+                          title={
+                            reclamo.user?.email || reclamo.ticket.user?.email
+                          }
+                        >
+                          {reclamo.user?.email ||
+                            reclamo.ticket.user?.email ||
+                            "—"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-muted-foreground block mb-1">
+                          Comprador Pasaje
+                        </span>
+                        <p className="font-medium">
+                          {reclamo.ticket.user?.nombre || "N/A"}
+                        </p>
+                        <p
+                          className="text-xs text-muted-foreground truncate"
+                          title={reclamo.ticket.user?.email}
+                        >
+                          {reclamo.ticket.user?.email || "—"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-muted-foreground block mb-1">
+                          Pasajero
+                        </span>
+                        <p className="font-medium">
+                          {reclamo.ticket.pasajero?.nombre || "N/A"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {reclamo.ticket.pasajero?.rut ||
-                            reclamo.ticket.user?.email}
+                          {reclamo.ticket.pasajero?.rut || "—"}
                         </p>
                       </div>
 
@@ -443,6 +483,8 @@ export function SuperReclamos() {
 
                     <div className="text-xs text-muted-foreground">
                       Ingresado el {formatDate(reclamo.fecha_creacion)}
+                      {(reclamo.user?.nombre || reclamo.ticket.user?.nombre) &&
+                        ` por ${reclamo.user?.nombre || reclamo.ticket.user?.nombre}`}
                       {reclamo.fecha_resolucion &&
                         ` • Resuelto el ${formatDate(reclamo.fecha_resolucion)}`}
                     </div>
