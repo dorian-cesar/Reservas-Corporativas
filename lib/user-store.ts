@@ -10,6 +10,7 @@ interface UserData {
   companyId: string;
   companyName: string;
   companyEstado: boolean;
+  companyMorosidad: boolean;
   companyRecargo: number;
   companyPorcentajeDevolucion: string;
   centroCostoId: string;
@@ -66,6 +67,7 @@ export const useUserStore = create<UserStore>((set) => ({
         companyId: data.empresa?.id?.toString() || "",
         companyName: data.empresa?.nombre || "",
         companyEstado: data.empresa?.estado || false,
+        companyMorosidad: data.empresa?.morosidad || false,
         companyRecargo: data.empresa?.recargo || 0,
         companyPorcentajeDevolucion:
           data.empresa?.porcentaje_devolucion?.toString() || "0",

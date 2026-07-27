@@ -30,6 +30,7 @@ import {
   Percent,
   RefreshCcw,
   Search,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -65,7 +66,7 @@ const formatPercent = (n: number) => {
 };
 
 export function SuperCompanies() {
-  const { token, user } = useAuth.getState();
+  const { user, token } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -74,6 +75,7 @@ export function SuperCompanies() {
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -108,6 +110,7 @@ export function SuperCompanies() {
     saldo_actual?: number;
     saldo_restante?: number;
     fact_manual?: boolean;
+    morosidad?: boolean;
     tipo_facturacion?: "Masiva" | "Especial";
     contacto_fact_nombre?: string;
     contacto_fact_email?: string;
@@ -164,6 +167,7 @@ export function SuperCompanies() {
     max: "100000",
     count: "0",
     fact_manual: false,
+    morosidad: false,
     tipo_facturacion: "Masiva",
     contacto_fact_nombre: "",
     contacto_fact_email: "",
@@ -262,6 +266,7 @@ export function SuperCompanies() {
           saldo_actual: empresa.saldo_actual || 0,
           saldo_restante: empresa.saldo_restante || 0,
           fact_manual: empresa.fact_manual || false,
+          morosidad: empresa.morosidad || false,
           tipo_facturacion: empresa.tipo_facturacion || "Masiva",
           contacto_fact_nombre: empresa.contacto_fact_nombre || "",
           contacto_fact_email: empresa.contacto_fact_email || "",
@@ -353,6 +358,7 @@ export function SuperCompanies() {
       max: "100000",
       count: "0",
       fact_manual: false,
+      morosidad: false,
       tipo_facturacion: "Masiva",
       contacto_fact_nombre: "",
       contacto_fact_email: "",
@@ -387,6 +393,7 @@ export function SuperCompanies() {
     }
 
     try {
+      setIsSaving(true);
       setAddError(null);
 
       const res = await fetch("/api/companies", {
@@ -409,6 +416,7 @@ export function SuperCompanies() {
           monto_maximo: Number(formData.max),
           monto_acumulado: Number(formData.count),
           fact_manual: formData.fact_manual,
+          morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
@@ -446,6 +454,8 @@ export function SuperCompanies() {
       });
     } catch (err: any) {
       setAddError(err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -462,6 +472,7 @@ export function SuperCompanies() {
     }
 
     try {
+      setIsSaving(true);
       const res = await fetch(`/api/companies/${selectedCompany.id}`, {
         method: "PUT",
         headers: {
@@ -481,6 +492,7 @@ export function SuperCompanies() {
           dia_vencimiento: Number(formData.expirationDay),
           monto_maximo: Number(formData.max),
           fact_manual: formData.fact_manual,
+          morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
@@ -520,6 +532,8 @@ export function SuperCompanies() {
         description: "No se pudo actualizar la empresa",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -918,6 +932,7 @@ export function SuperCompanies() {
       max: company.max?.toString() ?? "0",
       count: company.count?.toString() ?? "0",
       fact_manual: Boolean(company.fact_manual),
+      morosidad: Boolean(company.morosidad),
       tipo_facturacion: company.tipo_facturacion || "Masiva",
       contacto_fact_nombre: company.contacto_fact_nombre || "",
       contacto_fact_email: company.contacto_fact_email || "",
@@ -1010,7 +1025,7 @@ export function SuperCompanies() {
         }
       />
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Herramientas</DialogTitle>
             <DialogDescription>
@@ -1267,7 +1282,7 @@ export function SuperCompanies() {
       <div className="my-4 border-t" />
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-175">
           <DialogHeader>
             <DialogTitle>Agregar Nueva Empresa</DialogTitle>
             <DialogDescription>
@@ -1453,8 +1468,8 @@ export function SuperCompanies() {
             </div>
 
             <div className="border-t pt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <div className="max-w-xs space-y-2">
                   <Label htmlFor="tipo_facturacion">
                     Tipo de Facturación *
                   </Label>
@@ -1474,20 +1489,38 @@ export function SuperCompanies() {
                   </select>
                 </div>
 
-                <div className="flex items-center space-x-2 pt-8">
-                  <Switch
-                    id="fact-manual-add"
-                    checked={formData.fact_manual}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, fact_manual: checked })
-                    }
-                  />
-                  <Label htmlFor="fact-manual-add" className="cursor-pointer">
-                    Facturación Manual
-                  </Label>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    (Si se activa, no se generará facturación automática)
-                  </span>
+                <div className="flex flex-wrap items-center gap-6 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="fact-manual-add"
+                      checked={formData.fact_manual}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, fact_manual: checked })
+                      }
+                    />
+                    <Label htmlFor="fact-manual-add" className="cursor-pointer">
+                      Facturación Manual
+                    </Label>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (Si se activa, no se generará facturación automática)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="morosidad-add"
+                      checked={formData.morosidad}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, morosidad: checked })
+                      }
+                    />
+                    <Label htmlFor="morosidad-add" className="cursor-pointer">
+                      Morosidad
+                    </Label>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (Bloquea compras de pasajes)
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1726,14 +1759,26 @@ export function SuperCompanies() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddDialogOpen(false)}
+              disabled={isSaving}
+            >
               Cancelar
             </Button>
             <Button
               onClick={handleAdd}
-              className="bg-accent hover:bg-accent/90"
+              disabled={isSaving}
+              className="bg-accent hover:bg-accent/90 min-w-27.5"
             >
-              Agregar
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Agregar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2004,7 +2049,7 @@ export function SuperCompanies() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-175">
           <DialogHeader>
             <DialogTitle>Editar Empresa</DialogTitle>
             <DialogDescription>
@@ -2193,8 +2238,8 @@ export function SuperCompanies() {
             </div>
 
             <div className="border-t pt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <div className="max-w-xs space-y-2">
                   <Label htmlFor="edit-tipo_facturacion">
                     Tipo de Facturación *
                   </Label>
@@ -2214,21 +2259,45 @@ export function SuperCompanies() {
                   </select>
                 </div>
 
-                <div className="flex items-center space-x-2 pt-8">
-                  <Switch
-                    id="fact-manual-edit"
-                    checked={formData.fact_manual}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, fact_manual: checked })
-                    }
-                    disabled={user?.role !== "superuser"}
-                  />
-                  <Label htmlFor="fact-manual-edit" className="cursor-pointer">
-                    Facturación Manual
-                  </Label>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    (Si se activa, no se generará facturación automática)
-                  </span>
+                <div className="flex flex-wrap items-center gap-6 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="fact-manual-edit"
+                      checked={formData.fact_manual}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, fact_manual: checked })
+                      }
+                      disabled={user?.role !== "superuser"}
+                    />
+                    <Label
+                      htmlFor="fact-manual-edit"
+                      className="cursor-pointer"
+                    >
+                      Facturación Manual
+                    </Label>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (Si se activa, no se generará facturación automática)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="morosidad-edit"
+                      checked={formData.morosidad}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, morosidad: checked })
+                      }
+                      disabled={
+                        user?.role !== "superuser" && user?.role !== "admin"
+                      }
+                    />
+                    <Label htmlFor="morosidad-edit" className="cursor-pointer">
+                      Morosidad
+                    </Label>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      (Bloquea compras de pasajes)
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2465,14 +2534,23 @@ export function SuperCompanies() {
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
+              disabled={isSaving}
             >
               Cancelar
             </Button>
             <Button
               onClick={handleEdit}
-              className="bg-accent hover:bg-accent/90"
+              disabled={isSaving}
+              className="bg-accent hover:bg-accent/90 min-w-37.5"
             >
-              Guardar Cambios
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2566,7 +2644,7 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
 
       {/* Modal de Exportación */}
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-100">
           <DialogHeader>
             <DialogTitle>Exportar Empresas</DialogTitle>
             <DialogDescription>

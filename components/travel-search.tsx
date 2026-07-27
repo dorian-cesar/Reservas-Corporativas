@@ -20,6 +20,7 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { BusServiceCard } from "@/components/bus-service-card";
 import { useTravel } from "@/components/context/travel-context";
@@ -71,12 +72,12 @@ export function TravelSearch() {
   const [selectedDepartureDate, setSelectedDepartureDate] =
     useState<Date | null>(null);
   const [selectedReturnDate, setSelectedReturnDate] = useState<Date | null>(
-    null
+    null,
   );
   const [departureDateString, setDepartureDateString] = useState("");
   const [returnDateString, setReturnDateString] = useState("");
   const [searchMode, setSearchMode] = useState<"departure" | "return">(
-    "departure"
+    "departure",
   );
 
   // Estados para resultados
@@ -95,6 +96,7 @@ export function TravelSearch() {
 
   const { setOrigin: setGlobalOrigin, setDestination: setGlobalDestination } =
     useTravel();
+  const user = useUserStore((s) => s.user);
   const loadingUser = useUserStore((s) => s.loading);
 
   // Ref para trackear las ciudades originales de ida
@@ -225,7 +227,7 @@ export function TravelSearch() {
   // Función específica para buscar vuelta
   const handleReturnSearch = async (
     returnOrigin: City,
-    returnDestination: City
+    returnDestination: City,
   ) => {
     if (!returnOrigin || !returnDestination || !returnDateString) {
       setReturnServices([]);
@@ -270,7 +272,7 @@ export function TravelSearch() {
       setSearchError(
         error instanceof Error
           ? error.message
-          : "Error al buscar servicios de vuelta"
+          : "Error al buscar servicios de vuelta",
       );
       setReturnServices([]);
     } finally {
@@ -393,7 +395,7 @@ export function TravelSearch() {
     } catch (error) {
       console.error("Error searching services:", error);
       setSearchError(
-        error instanceof Error ? error.message : "Error al buscar servicios"
+        error instanceof Error ? error.message : "Error al buscar servicios",
       );
 
       if (searchMode === "departure") {
@@ -446,10 +448,13 @@ export function TravelSearch() {
 
   const availableDestinations = cities.filter((city) => city.id !== origin?.id);
 
+  const isMoroso = Boolean(user?.companyMorosidad);
+
   const isSearchDisabled =
-    searchMode === "departure"
+    isMoroso ||
+    (searchMode === "departure"
       ? !origin || !destination || !departureDateString || isLoading
-      : !origin || !destination || !returnDateString || isLoadingReturn;
+      : !origin || !destination || !returnDateString || isLoadingReturn);
 
   const isSwapDisabled = !origin && !destination;
 
@@ -474,14 +479,34 @@ export function TravelSearch() {
   }
 
   return (
-    <div className="container 2xl:max-w-[1300px] mx-auto px-4 py-8">
+    <div className="container 2xl:max-w-325 mx-auto px-4 py-8">
       <div className="space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Busca tu Viaje</h1>
-          <p className="text-lg text-muted-foreground">
-            Encuentra los mejores servicios de buses para tu destino
-          </p>
         </div>
+        {/* Banner Alerta de Morosidad */}
+        {user?.companyMorosidad && (
+          <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-200 shadow-md">
+            <CardContent className="flex flex-col sm:flex-row items-center gap-4 py-6">
+              <AlertTriangle className="h-10 w-10 text-red-600 dark:text-red-400 shrink-0" />
+              <div className="space-y-1 text-center sm:text-left">
+                <h3 className="font-bold text-lg text-red-700 dark:text-red-300">
+                  CUENTA CORPORATIVA EN ESTADO DE MOROSIDAD
+                </h3>
+                <p className="text-sm text-red-800 dark:text-red-300">
+                  Estimado usuario, la empresa{" "}
+                  <span className="font-semibold underline">
+                    {user.companyName}
+                  </span>{" "}
+                  presenta pagos pendientes en estado de morosidad. Por esta
+                  razón, la emisión y reserva de pasajes se encuentra
+                  temporalmente restringida. Por favor contacte a la
+                  administración corporativa.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Banner de progreso si es ida y vuelta */}
         {isRoundTrip && (
@@ -505,8 +530,8 @@ export function TravelSearch() {
                       searchMode === "departure"
                         ? "bg-blue-600 text-white"
                         : departureBooked
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-300 text-gray-700"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-300 text-gray-700"
                     }`}
                   >
                     {departureBooked ? (
@@ -524,15 +549,15 @@ export function TravelSearch() {
                       searchMode === "return"
                         ? "bg-blue-600 text-white"
                         : departureBooked
-                        ? "bg-blue-100 text-blue-800 border border-blue-300"
-                        : "bg-gray-300 text-gray-700"
+                          ? "bg-blue-100 text-blue-800 border border-blue-300"
+                          : "bg-gray-300 text-gray-700"
                     }`}
                   >
                     {searchMode === "return"
                       ? "2"
                       : departureBooked
-                      ? "2"
-                      : "2"}
+                        ? "2"
+                        : "2"}
                   </div>
                   <span className="text-sm font-medium">Vuelta</span>
                 </div>
@@ -585,10 +610,11 @@ export function TravelSearch() {
                     isLoadingCities
                       ? "Cargando ciudades..."
                       : searchMode === "departure"
-                      ? "Selecciona origen"
-                      : "Selecciona origen de vuelta"
+                        ? "Selecciona origen"
+                        : "Selecciona origen de vuelta"
                   }
                   disabled={
+                    isMoroso ||
                     isLoadingCities ||
                     (searchMode === "return" && !departureBooked)
                   }
@@ -602,6 +628,7 @@ export function TravelSearch() {
                   size="icon"
                   onClick={swapCities}
                   disabled={
+                    isMoroso ||
                     isSwapDisabled ||
                     (searchMode === "return" && !departureBooked)
                   }
@@ -637,6 +664,7 @@ export function TravelSearch() {
                       : "Selecciona destino de vuelta"
                   }
                   disabled={
+                    isMoroso ||
                     !origin ||
                     isLoadingCities ||
                     (searchMode === "return" && !departureBooked)
@@ -659,7 +687,7 @@ export function TravelSearch() {
                     onChange={handleDepartureDateChange}
                     minDate={todayForMinDate}
                     placeholderText="Seleccionar fecha ida"
-                    disabled={isLoading}
+                    disabled={isMoroso || isLoading}
                     className="w-full"
                   />
                 </div>
@@ -680,11 +708,11 @@ export function TravelSearch() {
                       onChange={handleReturnDateChange}
                       minDate={selectedDepartureDate || todayForMinDate}
                       placeholderText="Opcional"
-                      disabled={isLoading}
+                      disabled={isMoroso || isLoading}
                       className="w-full pr-9"
                     />
 
-                    {selectedReturnDate && (
+                    {selectedReturnDate && !isMoroso && (
                       <button
                         type="button"
                         onClick={() => handleReturnDateChange(null)}
@@ -779,10 +807,10 @@ export function TravelSearch() {
                   {currentLoading
                     ? "Buscando..."
                     : currentServices.length > 0
-                    ? `${currentServices.length} servicio${
-                        currentServices.length > 1 ? "s" : ""
-                      } disponible${currentServices.length > 1 ? "s" : ""}`
-                    : "No hay servicios"}
+                      ? `${currentServices.length} servicio${
+                          currentServices.length > 1 ? "s" : ""
+                        } disponible${currentServices.length > 1 ? "s" : ""}`
+                      : "No hay servicios"}
                 </Badge>
               </div>
 
