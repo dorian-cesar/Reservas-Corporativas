@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface EmpresaDisponible {
@@ -15,6 +15,7 @@ interface EmpresaDisponible {
     estado: boolean;
     es_actual: boolean;
     desde: string;
+    morosidad?: boolean;
 }
 
 export default function Reserve() {
@@ -54,6 +55,7 @@ export default function Reserve() {
                         estado: c.estado,
                         es_actual: c.es_actual || false,
                         desde: c.desde || "empresa_principal",
+                        morosidad: Boolean(c.morosidad),
                     }));
 
                     setCompanies(mapped);
@@ -83,6 +85,7 @@ export default function Reserve() {
                         estado: c.estado,
                         es_actual: c.es_actual || false,
                         desde: c.desde || "empresa_principal",
+                        morosidad: Boolean(c.morosidad),
                     }));
 
                     setCompanies(mapped);
@@ -280,8 +283,21 @@ export default function Reserve() {
                 </CardContent>
             </Card>
 
-            {/* Solo mostrar TravelSearch si hay una empresa seleccionada */}
-            {selectedCompany && user?.companyId === selectedCompany ? (
+            {/* Validar estado de Morosidad de la empresa seleccionada */}
+            {companies.find(c => c.id.toString() === selectedCompany)?.morosidad ? (
+                <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20 text-red-900 dark:text-red-200 shadow-md">
+                    <CardContent className="flex flex-col items-center justify-center py-10 text-center space-y-3">
+                        <AlertTriangle className="h-14 w-14 text-red-600 dark:text-red-400" />
+                        <h3 className="text-xl font-bold text-red-700 dark:text-red-300">
+                            EMPRESA EN ESTADO DE MOROSIDAD
+                        </h3>
+                        <p className="max-w-md text-sm text-red-800 dark:text-red-300">
+                            La empresa <span className="font-semibold underline">{getCompanyName(selectedCompany)}</span> se encuentra morosa.
+                            Se han restringido las búsquedas y compras de nuevos pasajes hasta la regularización de la cuenta.
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : selectedCompany && user?.companyId === selectedCompany ? (
                 <TravelSearch />
             ) : (
                 !loading && companies.length > 0 && (
