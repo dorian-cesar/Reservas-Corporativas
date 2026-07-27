@@ -711,6 +711,7 @@ export function SuperCompanies() {
         rut: empresa.rut || "-",
         current_account: empresa.cuenta_corriente || "-",
         fact_manual: empresa.fact_manual || false,
+        morosidad: empresa.morosidad || false,
       }));
 
       const headers = [
@@ -726,6 +727,7 @@ export function SuperCompanies() {
         "rut_empresa",
         "cuenta_corriente",
         "facturacion_automatica",
+        "morosidad",
       ];
 
       const csvData = companiesForExport.map((company: any) => [
@@ -741,6 +743,7 @@ export function SuperCompanies() {
         company.rut || "-",
         company.current_account || "-",
         company.fact_manual ? "No" : "Sí",
+        company.morosidad ? "Sí" : "No",
       ]);
 
       const csvContent = [
@@ -814,6 +817,7 @@ export function SuperCompanies() {
         rut: empresa.rut || "-",
         current_account: empresa.cuenta_corriente || "-",
         fact_manual: empresa.fact_manual || false,
+        morosidad: empresa.morosidad || false,
       }));
 
       const data = companiesForExport.map((company: any) => ({
@@ -830,7 +834,8 @@ export function SuperCompanies() {
         monto_acumulado: company.count || 0,
         rut_empresa: company.rut || "-",
         cuenta_corriente: company.current_account || "-",
-        facturacion_automatica: company.fact_manual ? "No" : "Sí",
+        "Facturación Automática": company.fact_manual ? "No" : "Sí",
+        Morosidad: company.morosidad ? "Sí" : "No",
       }));
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
@@ -892,6 +897,7 @@ export function SuperCompanies() {
         RUT: company.rut || "-",
         "Cuenta Corriente": company.cuenta_corriente || "-",
         "Facturación Automática": company.fact_manual ? "No" : "Sí",
+        Morosidad: company.morosidad ? "Sí" : "No",
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
