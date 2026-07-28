@@ -94,11 +94,11 @@ export function Benefits() {
   return (
     <>
       {/* Benefits section */}
-      <section id="beneficios" className="py-20 px-4 lg:px-8 bg-background">
-        <div className="mx-auto max-w-6xl">
+      <section id="beneficios" className="py-24 px-4 lg:px-8 bg-background">
+        <div className="mx-auto max-w-7xl">
           {/* Header */}
-          <div className="text-center mb-14 max-w-2xl mx-auto">
-            <span className="inline-block rounded-full bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-secondary mb-4">
+          <div className="text-center mb-16 max-w-3xl mx-auto">
+            <span className="inline-block rounded-full bg-primary-pullman/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary-pullman mb-4">
               Una plataforma, múltiples beneficios
             </span>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
@@ -108,26 +108,26 @@ export function Benefits() {
           </div>
 
           {/* Benefits grid by category */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {/* Para la Empresa */}
-            <div className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Building2 className="w-5 h-5 text-primary" />
+            <div className="rounded-3xl border border-border/60 bg-card p-8 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary-pullman/5">
+              <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-6">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-pullman/10 text-primary-pullman">
+                  <Building2 className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="text-xl font-bold text-foreground">
                   Para la Empresa
                 </h3>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {benefitsForCompany.map(
                   ({ icon: Icon, title, description }) => (
-                    <div key={title} className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
-                        <Icon className="w-4 h-4 text-secondary" />
+                    <div key={title} className="flex gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                        <Icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground">
+                        <h4 className="text-sm font-bold text-foreground mb-1">
                           {title}
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -141,23 +141,23 @@ export function Benefits() {
             </div>
 
             {/* Para el Administrador */}
-            <div className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <UserCheck className="w-5 h-5 text-primary" />
+            <div className="rounded-3xl border border-border/60 bg-card p-8 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary-pullman/5">
+              <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-6">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-pullman/10 text-primary-pullman">
+                  <UserCheck className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
+                <h3 className="text-xl font-bold text-foreground">
                   Para el Administrador
                 </h3>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {benefitsForAdmin.map(({ icon: Icon, title, description }) => (
-                  <div key={title} className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
-                      <Icon className="w-4 h-4 text-secondary" />
+                  <div key={title} className="flex gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                      <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-foreground">
+                      <h4 className="text-sm font-bold text-foreground mb-1">
                         {title}
                       </h4>
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -170,24 +170,24 @@ export function Benefits() {
             </div>
 
             {/* Para los Colaboradores */}
-            <div className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Users className="w-5 h-5 text-primary" />
+            <div className="rounded-3xl border border-border/60 bg-card p-8 transition-shadow duration-300 hover:shadow-xl hover:shadow-primary-pullman/5">
+              <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-6">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-pullman/10 text-primary-pullman">
+                  <Users className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Para los Colaboradores
+                <h3 className="text-xl font-bold text-foreground">
+                  Para Colaboradores
                 </h3>
               </div>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {benefitsForColaborators.map(
                   ({ icon: Icon, title, description }) => (
-                    <div key={title} className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/10">
-                        <Icon className="w-4 h-4 text-secondary" />
+                    <div key={title} className="flex gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+                        <Icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground">
+                        <h4 className="text-sm font-bold text-foreground mb-1">
                           {title}
                         </h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -204,7 +204,7 @@ export function Benefits() {
       </section>
 
       {/* What is section */}
-      <section className="py-20 px-4 lg:px-8 bg-background border-t border-border">
+      <section className="py-20 px-4 lg:px-8 bg-muted/30 border-t border-border">
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -215,11 +215,11 @@ export function Benefits() {
                 ¿Qué es Reservas Corporativas?
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-6">
-                Es el portal de autogestión diseñado para optimizar la logística
+                Es el <strong>portal de autogestión</strong> diseñado para optimizar la logística
                 terrestre de tu organización. Conectamos directamente con los
                 servicios de Pullmanbus, permitiendo que tus colaboradores
                 viajen por todo Chile sin necesidad de reembolsos ni pagos en
-                efectivo, utilizando una línea de crédito corporativa única.
+                efectivo, utilizando una <strong>línea de crédito corporativa</strong> única.
               </p>
               <div className="space-y-3">
                 {[
@@ -254,9 +254,87 @@ export function Benefits() {
                   Diseñamos esta herramienta para eliminar la fricción
                   administrativa de los viajes de negocios. Tu equipo reserva
                   pasajes sin usar dinero propio, el administrador controla
-                  consumos en tiempo real, y la empresa recibe una sola factura
-                  mensual consolidada.
+                  consumos en tiempo real, y la empresa recibe <strong>una sola factura
+                  mensual consolidada</strong>.
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Prepago section */}
+      <section className="py-20 px-4 lg:px-8 bg-background border-t border-border">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="order-2 lg:order-1 relative">
+              <div className="rounded-2xl bg-linear-to-br from-primary-pullman/5 to-secondary-pullman/5 border border-border p-8 lg:p-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-pullman/10">
+                    <Zap className="w-6 h-6 text-primary-pullman" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">
+                      ¿Cómo funciona?
+                    </h3>
+                    <p className="text-sm text-muted-foreground uppercase font-medium">
+                      PROCESO 100% DIGITAL
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    {
+                      step: "01",
+                      text: "Define tu cupo desde $500k (flexible a tu operación)",
+                    },
+                    {
+                      step: "02",
+                      text: "Paga y activamos en 24h con factura inmediata",
+                    },
+                    {
+                      step: "03",
+                      text: "Viaja y controla - el saldo se descuenta automático al reservar",
+                    },
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-4">
+                      <span className="font-bold text-primary-pullman shrink-0">
+                        {item.step}
+                      </span>
+                      <span className="text-muted-foreground text-sm leading-relaxed">
+                        {item.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary mb-4">
+                CUENTA CORPORATIVA PREPAGO
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance mb-6">
+                ¿Qué es Reservas Corporativas Prepago?
+              </h2>
+              <p className="text-muted-foreground leading-relaxed mb-6">
+                Es una <strong>cuenta prepago</strong> para empresas que centraliza tus viajes en
+                un portal único. Abonas desde $500.000, recibes <strong>factura
+                inmediata</strong> y tu equipo reserva descontando del cupo. Sin crédito,
+                sin cobranza. Operación <strong>100% digital</strong> en nuestra plataforma.
+              </p>
+              <div className="space-y-3">
+                {[
+                  "Portal centralizado y 100% digital",
+                  "Factura única consolidada",
+                  "Control por centro de costo con tope duro",
+                  "Datos en tiempo real y cero carga administrativa",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-secondary shrink-0" />
+                    <span className="text-sm text-foreground">{item}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

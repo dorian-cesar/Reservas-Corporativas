@@ -452,6 +452,7 @@ export function ContactForm() {
                     Mensaje
                   </Label>
                   <textarea
+                    id="mensaje"
                     rows={4}
                     placeholder="Cuéntanos sobre las necesidades de viaje de tu empresa, rutas frecuentes, etc."
                     value={form.mensaje}

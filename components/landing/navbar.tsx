@@ -86,12 +86,6 @@ export function Navbar() {
           <nav className="flex flex-col gap-1 pt-2">
             <div className="mt-3 flex flex-col gap-2">
               <Button
-                className="rounded-full bg-primary-pullman hover:bg-primary-pullman/90 text-white px-5 cursor-pointer w-full"
-                onClick={handlePrimaryAction}
-              >
-                {isLoggedIn ? "Ingresar a la plataforma" : "Iniciar sesión"}
-              </Button>
-              <Button
                 className="rounded-full bg-secondary-pullman hover:bg-secondary-pullman/90 text-white w-full"
                 onClick={() => {
                   scrollToSection("contacto");

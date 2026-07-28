@@ -1,6 +1,8 @@
 import { Navbar } from "@/components/landing/navbar";
 import { Hero } from "@/components/landing/hero";
 import { Benefits } from "@/components/landing/benefits";
+import { ComparativeTable } from "@/components/landing/comparative-table";
+import { Plans } from "@/components/landing/plans";
 import { ContactForm } from "@/components/landing/contact-form";
 import { FooterLanding } from "@/components/landing/footer-landing";
 
@@ -10,8 +12,11 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <Benefits />
+      <ComparativeTable />
+      <Plans />
       <ContactForm />
       <FooterLanding />
     </>
   );
 }
+
