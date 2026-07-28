@@ -286,8 +286,8 @@ export function MyBookings({
       setUserBookings((prev) =>
         prev.map((b) =>
           b.id === reclamoBooking.id
-            ? { ...b, reclamos: [...(b.reclamos || []), data] }
-            : b
+              ? { ...b, reclamos: [...(b.reclamos || []), data.reclamo] }
+              : b
         )
       );
       setReclamoBooking(null);
@@ -890,7 +890,13 @@ export function MyBookings({
                               )
                             }
                           >
-                            <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
+                            <AlertCircle className="h-4 w-4" />{" "}
+                            {booking.reclamos && booking.reclamos.length > 0
+                              ? `Reclamo ${
+                                  booking.reclamos[0].estado.charAt(0).toUpperCase() +
+                                  booking.reclamos[0].estado.slice(1)
+                                }`
+                              : "Ingresar Reclamo"}
                           </Button>
                         </div>
                       )}
