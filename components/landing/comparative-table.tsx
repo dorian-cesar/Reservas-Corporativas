@@ -22,7 +22,7 @@ const aspects = [
     icon: Percent,
     title: "Tarifas",
     tradicional: "Estándar por volumen posterior",
-    prepago: "Cupo bonificado por tramo: 20% / 25% / 30% sobre valor pizarra",
+    prepago: "Cupo bonificado por tramo: 5% / 10% / 15% / 20% sobre valor pizarra",
     highlightPrepago: false
   },
   {

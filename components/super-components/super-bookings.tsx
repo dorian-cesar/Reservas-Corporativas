@@ -1449,7 +1449,13 @@ export function SuperAllBookings() {
                               !!(ticket.reclamos && ticket.reclamos.length > 0)
                             }
                           >
-                            <AlertCircle className="h-4 w-4" /> Ingresar Reclamo
+                            <AlertCircle className="h-4 w-4" />{" "}
+                            {ticket.reclamos && ticket.reclamos.length > 0
+                              ? `Reclamo ${
+                                  ticket.reclamos[0].estado.charAt(0).toUpperCase() +
+                                  ticket.reclamos[0].estado.slice(1)
+                                }`
+                              : "Ingresar Reclamo"}
                           </Button>
                         </div>
                       )}
@@ -1626,7 +1632,13 @@ export function SuperAllBookings() {
                                   )
                                 }
                               >
-                                <AlertCircle className="h-4 w-4" /> Reclamo
+                                <AlertCircle className="h-4 w-4" />{" "}
+                                {ticket.reclamos && ticket.reclamos.length > 0
+                                  ? `Reclamo ${
+                                      ticket.reclamos[0].estado.charAt(0).toUpperCase() +
+                                      ticket.reclamos[0].estado.slice(1)
+                                    }`
+                                  : "Reclamo"}
                               </Button>
                             </div>
                           )}
