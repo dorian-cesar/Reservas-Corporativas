@@ -109,7 +109,7 @@ export function Hero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 md:pt-0">
+    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 md:pt-28 lg:pt-0 pb-12 lg:pb-0">
       <div className="absolute inset-0">
         <img
           src="/images/hero-bus.png"
