@@ -712,6 +712,7 @@ export function SuperCompanies() {
         current_account: empresa.cuenta_corriente || "-",
         fact_manual: empresa.fact_manual || false,
         morosidad: empresa.morosidad || false,
+        tipo_facturacion: empresa.tipo_facturacion || "Masiva",
       }));
 
       const headers = [
@@ -728,6 +729,7 @@ export function SuperCompanies() {
         "cuenta_corriente",
         "facturacion_automatica",
         "morosidad",
+        "tipo_facturacion",
       ];
 
       const csvData = companiesForExport.map((company: any) => [
@@ -744,6 +746,7 @@ export function SuperCompanies() {
         company.current_account || "-",
         company.fact_manual ? "No" : "Sí",
         company.morosidad ? "Sí" : "No",
+        company.tipo_facturacion || "Masiva",
       ]);
 
       const csvContent = [
@@ -818,6 +821,7 @@ export function SuperCompanies() {
         current_account: empresa.cuenta_corriente || "-",
         fact_manual: empresa.fact_manual || false,
         morosidad: empresa.morosidad || false,
+        tipo_facturacion: empresa.tipo_facturacion || "Masiva",
       }));
 
       const data = companiesForExport.map((company: any) => ({
@@ -836,6 +840,7 @@ export function SuperCompanies() {
         cuenta_corriente: company.current_account || "-",
         "Facturación Automática": company.fact_manual ? "No" : "Sí",
         Morosidad: company.morosidad ? "Sí" : "No",
+        "Tipo Facturación": company.tipo_facturacion || "Masiva",
       }));
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
@@ -898,6 +903,7 @@ export function SuperCompanies() {
         "Cuenta Corriente": company.cuenta_corriente || "-",
         "Facturación Automática": company.fact_manual ? "No" : "Sí",
         Morosidad: company.morosidad ? "Sí" : "No",
+        "Tipo Facturación": company.tipo_facturacion || "Masiva",
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
