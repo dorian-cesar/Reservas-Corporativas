@@ -49,6 +49,7 @@ export async function GET(
     const travelDateDesde = incoming.get("travelDate_desde");
     const travelDateHasta = incoming.get("travelDate_hasta");
     const ticketNumber = incoming.get("ticketNumber"); // nombre esperado por backend
+    const filterStatus = incoming.get("filterStatus");
 
     if (travelDateDesde && travelDateDesde.trim() !== "") {
       backendParams.set("travelDate_desde", travelDateDesde.trim());
@@ -58,6 +59,9 @@ export async function GET(
     }
     if (ticketNumber && ticketNumber.trim() !== "") {
       backendParams.set("pnrNumber", ticketNumber.trim());
+    }
+    if (filterStatus && filterStatus.trim() !== "") {
+      backendParams.set("filterStatus", filterStatus.trim());
     }
 
     const backendUrl = `${API_BASE}/api/tickets/empresa/${encodeURIComponent(empresaId)}${backendParams.toString() ? `?${backendParams.toString()}` : ""}`;

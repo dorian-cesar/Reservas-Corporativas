@@ -163,7 +163,6 @@ export function SuperCostCenters() {
             }
 
             const costCentersData = await res.json();
-            console.log("✅ Cost centers data:", costCentersData);
 
             const costCentersMapped = costCentersData.map((costCenter: any) => ({
                 id: costCenter.id.toString(),
