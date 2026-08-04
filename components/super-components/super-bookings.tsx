@@ -69,6 +69,7 @@ export function SuperAllBookings() {
   );
   const [dateDesde, setDateDesde] = useState<string>("");
   const [dateHasta, setDateHasta] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<string>("");
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
 
@@ -164,7 +165,7 @@ export function SuperAllBookings() {
     fetchCompanies();
   }, []);
 
-  // Cuando cambia empresa o fechas reiniciamos a página 1 y pedimos datos
+  // Cuando cambia empresa, fechas o filtro de estado reiniciamos a página 1 y pedimos datos
   useEffect(() => {
     if (!Number(empresaId)) return;
     setPagination((prev) => ({ ...prev, page: 1 }));
@@ -175,7 +176,7 @@ export function SuperAllBookings() {
       ticketNumber: searchTerm.trim() || undefined,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [empresaId, dateDesde, dateHasta]);
+  }, [empresaId, dateDesde, dateHasta, filterStatus]);
 
   const fetchCompanies = async () => {
     try {
@@ -234,6 +235,7 @@ export function SuperAllBookings() {
 
       if (dateDesde) params.set("travelDate_desde", dateDesde);
       if (dateHasta) params.set("travelDate_hasta", dateHasta);
+      if (filterStatus) params.set("filterStatus", filterStatus);
 
       // ticketNumber como string (no validamos formato)
       if (ticketNumber && ticketNumber.trim() !== "") {
@@ -363,6 +365,7 @@ export function SuperAllBookings() {
 
       if (dateDesde) params.set("travelDate_desde", dateDesde);
       if (dateHasta) params.set("travelDate_hasta", dateHasta);
+      if (filterStatus) params.set("filterStatus", filterStatus);
 
       const queryString = params.toString();
       const url = `/api/confirm-db/empresa/${targetEmpresaId}${queryString ? `?${queryString}` : ""}`;
@@ -414,8 +417,36 @@ export function SuperAllBookings() {
     return new Date(dateString).toLocaleDateString("es-CL");
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (ticket: Ticket) => {
+    if (ticket.reclamos && ticket.reclamos.length > 0) {
+      const recEstado = ticket.reclamos[0].estado.toLowerCase();
+      if (recEstado === "pendiente") {
+        return (
+          <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full flex items-center gap-1 w-fit">
+            <AlertCircle className="h-3 w-3" />
+            Reclamo Pendiente
+          </span>
+        );
+      }
+      if (recEstado === "aceptado") {
+        return (
+          <span className="px-2 py-1 text-xs bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 w-fit">
+            <CheckCircle className="h-3 w-3" />
+            Reclamo Aceptado
+          </span>
+        );
+      }
+      if (recEstado === "rechazado") {
+        return (
+          <span className="px-2 py-1 text-xs bg-rose-100 text-rose-800 rounded-full flex items-center gap-1 w-fit">
+            <XCircle className="h-3 w-3" />
+            Reclamo Rechazado
+          </span>
+        );
+      }
+    }
+
+    switch (ticket.ticketStatus) {
       case "Confirmed":
         return (
           <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full flex items-center gap-1 w-fit">
@@ -433,14 +464,17 @@ export function SuperAllBookings() {
       default:
         return (
           <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
-            {status}
+            {ticket.ticketStatus}
           </span>
         );
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (ticket: Ticket) => {
+    if (ticket.reclamos && ticket.reclamos.length > 0) {
+      return <AlertCircle className="h-5 w-5 text-amber-600" />;
+    }
+    switch (ticket.ticketStatus) {
       case "Confirmed":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
       case "Anulado":
@@ -1059,7 +1093,7 @@ export function SuperAllBookings() {
       {!isLoading && empresaId && (
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="search">Buscar por número de ticket</Label>
                 <div className="relative">
@@ -1102,6 +1136,23 @@ export function SuperAllBookings() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="filterStatus">Estado</Label>
+                <select
+                  id="filterStatus"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Todos</option>
+                  <option value="Confirmado">Confirmado</option>
+                  <option value="Anulado">Anulado</option>
+                  <option value="Reclamo Pendiente">Reclamo Pendiente</option>
+                  <option value="Reclamo Aceptado">Reclamo Aceptado</option>
+                  <option value="Reclamo Rechazado">Reclamo Rechazado</option>
+                </select>
+              </div>
+
               <div className="space-y-2 md:col-span-2">
                 <Label>Acciones</Label>
                 <div className="flex gap-2">
@@ -1116,6 +1167,7 @@ export function SuperAllBookings() {
                     onClick={() => {
                       setSearchTerm("");
                       clearDateFilters();
+                      setFilterStatus("");
                       setPagination((prev) => ({ ...prev, page: 1 }));
                       fetchTickets({
                         targetEmpresaId: Number(empresaId),
@@ -1302,14 +1354,14 @@ export function SuperAllBookings() {
                   <div className="flex flex-col gap-5 justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-3 bg-primary/10 rounded-lg">
-                        {getStatusIcon(ticket.ticketStatus)}
+                        {getStatusIcon(ticket)}
                       </div>
                       <div>
                         <CardTitle className="text-lg">
                           {ticket.pnrNumber ?? "-"}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-1">
-                          {getStatusBadge(ticket.ticketStatus)}
+                          {getStatusBadge(ticket)}
                         </CardDescription>
                       </div>
                     </div>
@@ -1569,7 +1621,7 @@ export function SuperAllBookings() {
                         </p>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(ticket.ticketStatus)}
+                        {getStatusBadge(ticket)}
                       </TableCell>
                       <TableCell>
                         <p className="font-medium">{ticket.origin || "—"}</p>

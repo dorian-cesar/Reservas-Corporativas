@@ -126,7 +126,6 @@ export function AuditoriaCostCenters() {
             }
 
             const costCentersData = await res.json();
-            console.log("✅ Cost centers data:", costCentersData); // ← Agregar log
 
             const costCentersMapped = costCentersData.map((costCenter: any) => ({
                 id: costCenter.id.toString(),
