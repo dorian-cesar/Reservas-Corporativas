@@ -750,6 +750,49 @@ export function EstadoPago() {
       description: `Se exportaron ${estadosCuenta.length} registros a XLSX`,
     });
   };
+  const extractTicketRowData = (ticket: any, cuenta: EstadoCuentaType | null) => {
+    const esAnulado = ticket.ticketStatus === "Anulado";
+    const tieneReclamoAceptado =
+      ticket.reclamos &&
+      ticket.reclamos.some((r: any) => r.estado === "Aceptado");
+
+    const estadoLabel = tieneReclamoAceptado && !esAnulado
+      ? "Reclamado"
+      : ticket.ticketStatus || "";
+
+    const montoOriginal = Number(ticket.monto_boleto || 0);
+    const devolucion = Number(ticket.monto_devolucion || 0);
+    const montoNeto = montoOriginal - devolucion;
+
+    const centroCostoNombre =
+      ticket.pasajero?.centroCosto?.nombre ||
+      ticket.pasajero?.centro_costo?.nombre ||
+      ticket.pasajero?.CentroCosto?.nombre ||
+      "Sin asignar";
+
+    const ctaCte = ticket.empresa?.cuenta_corriente || cuenta?.empresa?.cuenta_corriente || "";
+    const rutComprador = ticket.user?.rut || ticket.usuario?.rut || "";
+    const nombreComprador = ticket.user?.nombre || ticket.usuario?.nombre || "";
+
+    return {
+      ticketNumber: ticket.ticketNumber || ticket.pnrNumber || "",
+      fechaCompra: formatDate(ticket.confirmedAt) || "-",
+      estado: estadoLabel,
+      origen: ticket.origin || ticket.terminal_origen || "",
+      destino: ticket.destination || ticket.terminal_destino || "",
+      fechaViaje: `${formatDate(ticket.travelDate)} ${ticket.departureTime || ""}`.trim(),
+      rutPasajero: ticket.pasajero?.rut || "",
+      nombrePasajero: ticket.pasajero?.nombre || "",
+      montoOriginal: `$${montoOriginal.toLocaleString("es-CL")}`,
+      devolucion: `$${devolucion.toLocaleString("es-CL")}`,
+      montoNeto: `$${montoNeto.toLocaleString("es-CL")}`,
+      centroCosto: centroCostoNombre,
+      ctaCte,
+      rutComprador,
+      nombreComprador,
+    };
+  };
+
   const exportTicketsToCSV = (
     ticketsData: any[],
     cuenta: EstadoCuentaType | null,
@@ -773,26 +816,26 @@ export function EstadoPago() {
       "RUT Comprador",
       "Nombre Comprador",
     ];
-    const csvData = ticketsData.map((ticket) => [
-      ticket.ticketNumber || ticket.pnrNumber || "",
-      formatDate(ticket.confirmedAt) || "-",
-      ticket.reclamos &&
-      ticket.reclamos.some((r: any) => r.estado === "Aceptado")
-        ? "Reclamado"
-        : ticket.ticketStatus,
-      ticket.origin || ticket.terminal_origen || "",
-      ticket.destination || ticket.terminal_destino || "",
-      `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
-      ticket?.pasajero.rut || "",
-      ticket?.pasajero.nombre || "",
-      `$${ticket.monto_boleto.toLocaleString("es-CL")}`,
-      `$${(ticket.monto_devolucion || 0).toLocaleString("es-CL")}`,
-      `$${(ticket.monto_boleto - (ticket.monto_devolucion || 0)).toLocaleString("es-CL")}`,
-      ticket?.pasajero.id_centro_costo || "",
-      ticket?.empresa.cuenta_corriente || "",
-      ticket?.user.rut || "",
-      ticket?.user.nombre || "",
-    ]);
+    const csvData = ticketsData.map((ticket) => {
+      const row = extractTicketRowData(ticket, cuenta);
+      return [
+        row.ticketNumber,
+        row.fechaCompra,
+        row.estado,
+        row.origen,
+        row.destino,
+        row.fechaViaje,
+        row.rutPasajero,
+        row.nombrePasajero,
+        row.montoOriginal,
+        row.devolucion,
+        row.montoNeto,
+        row.centroCosto,
+        row.ctaCte,
+        row.rutComprador,
+        row.nombreComprador,
+      ];
+    });
 
     const csvContent = [
       headers.join(","),
@@ -816,27 +859,26 @@ export function EstadoPago() {
   ) => {
     if (ticketsData.length === 0) return;
 
-    const data = ticketsData.map((ticket) => ({
-      "Ticket #": ticket.ticketNumber || ticket.pnrNumber || "",
-      "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
-      Estado:
-        ticket.reclamos &&
-        ticket.reclamos.some((r: any) => r.estado === "Aceptado")
-          ? "Reclamado"
-          : ticket.ticketStatus,
-      Origen: ticket.origin || ticket.terminal_origen || "",
-      Destino: ticket.destination || ticket.terminal_destino || "",
-      "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
-      "RUT Pasajero": ticket?.pasajero.rut || "",
-      "Nombre Pasajero": ticket?.pasajero.nombre || "",
-      "Monto Original": `$${ticket.monto_boleto.toLocaleString("es-CL")}`,
-      Devolución: `$${(ticket.monto_devolucion || 0).toLocaleString("es-CL")}`,
-      "Monto Neto": `$${(ticket.monto_boleto - (ticket.monto_devolucion || 0)).toLocaleString("es-CL")}`,
-      "Centro De Costo": ticket?.pasajero.id_centro_costo || "",
-      "Cta. Cte": ticket?.empresa.cuenta_corriente || "",
-      "RUT Comprador": ticket?.user.rut || "",
-      "Nombre Comprador": ticket?.user.nombre || "",
-    }));
+    const data = ticketsData.map((ticket) => {
+      const row = extractTicketRowData(ticket, cuenta);
+      return {
+        "Ticket #": row.ticketNumber,
+        "Fecha Compra": row.fechaCompra,
+        Estado: row.estado,
+        Origen: row.origen,
+        Destino: row.destino,
+        "Fecha Viaje": row.fechaViaje,
+        "RUT Pasajero": row.rutPasajero,
+        "Nombre Pasajero": row.nombrePasajero,
+        "Monto Original": row.montoOriginal,
+        Devolución: row.devolucion,
+        "Monto Neto": row.montoNeto,
+        "Centro De Costo": row.centroCosto,
+        "Cta. Cte": row.ctaCte,
+        "RUT Comprador": row.rutComprador,
+        "Nombre Comprador": row.nombreComprador,
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -857,7 +899,6 @@ export function EstadoPago() {
 
     try {
       setIsExporting(true);
-      // Obtener todos los tickets sin paginación
       const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -893,26 +934,26 @@ export function EstadoPago() {
         "RUT Comprador",
         "Nombre Comprador",
       ];
-      const csvData = allTickets.map((ticket: any) => [
-        ticket.ticketNumber || ticket.pnrNumber || "",
-        formatDate(ticket.confirmedAt) || "-",
-        ticket.reclamos &&
-        ticket.reclamos.some((r: any) => r.estado === "Aceptado")
-          ? "Reclamado"
-          : ticket.ticketStatus,
-        ticket.origin || ticket.terminal_origen || "",
-        ticket.destination || ticket.terminal_destino || "",
-        `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
-        ticket?.pasajero?.rut || "",
-        ticket?.pasajero?.nombre || "",
-        `$${ticket.monto_boleto?.toLocaleString("es-CL") || "0"}`,
-        `$${(ticket.monto_devolucion || 0).toLocaleString("es-CL")}`,
-        `$${((ticket.monto_boleto || 0) - (ticket.monto_devolucion || 0)).toLocaleString("es-CL")}`,
-        ticket?.pasajero?.centroCosto?.nombre || "",
-        ticket?.empresa?.cuenta_corriente || "",
-        ticket?.user?.rut || "",
-        ticket?.user?.nombre || "",
-      ]);
+      const csvData = allTickets.map((ticket: any) => {
+        const row = extractTicketRowData(ticket, cuenta);
+        return [
+          row.ticketNumber,
+          row.fechaCompra,
+          row.estado,
+          row.origen,
+          row.destino,
+          row.fechaViaje,
+          row.rutPasajero,
+          row.nombrePasajero,
+          row.montoOriginal,
+          row.devolucion,
+          row.montoNeto,
+          row.centroCosto,
+          row.ctaCte,
+          row.rutComprador,
+          row.nombreComprador,
+        ];
+      });
 
       const csvContent = [
         headers.join(","),
@@ -945,58 +986,23 @@ export function EstadoPago() {
 
     try {
       setIsExporting(true);
-      // Obtener todos los tickets sin paginación
-      const res = await fetch(`/api/estado-cuenta/${cuenta.id}/tickets`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/estado-cuenta/excel?id=${cuenta.id}`);
 
-      if (!res.ok) throw new Error("Error al obtener tickets para exportación");
+      if (!res.ok) throw new Error("Error al obtener la planilla Excel");
 
-      const response = await res.json();
-      const allTickets = response.data || response || [];
-
-      if (allTickets.length === 0) {
-        toast({
-          title: "Sin datos",
-          description: "No hay tickets para exportar",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const data = allTickets.map((ticket: any) => ({
-        "Ticket #": ticket.ticketNumber || ticket.pnrNumber || "",
-        "Fecha Compra": formatDate(ticket.confirmedAt) || "-",
-        Estado:
-          ticket.reclamos &&
-          ticket.reclamos.some((r: any) => r.estado === "Aceptado")
-            ? "Reclamado"
-            : ticket.ticketStatus,
-        Origen: ticket.origin || ticket.terminal_origen || "",
-        Destino: ticket.destination || ticket.terminal_destino || "",
-        "Fecha Viaje": `${formatDate(ticket.travelDate)} ${ticket.departureTime}`,
-        "RUT Pasajero": ticket?.pasajero?.rut || "",
-        "Nombre Pasajero": ticket?.pasajero?.nombre || "",
-        "Monto Original": `$${ticket.monto_boleto?.toLocaleString("es-CL") || "0"}`,
-        Devolución: `$${(ticket.monto_devolucion || 0).toLocaleString("es-CL")}`,
-        "Monto Neto": `$${((ticket.monto_boleto || 0) - (ticket.monto_devolucion || 0)).toLocaleString("es-CL")}`,
-        "Centro De Costo": ticket?.pasajero?.centroCosto?.nombre || "",
-        "Cta. Cte": ticket?.empresa?.cuenta_corriente || "",
-        "RUT Comprador": ticket?.user?.rut || "",
-        "Nombre Comprador": ticket?.user?.nombre || "",
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
-      XLSX.writeFile(
-        workbook,
-        `tickets_estado_cuenta_${cuenta.periodo || "sin_periodo"}_${new Date().toISOString().split("T")[0]}.xlsx`,
-      );
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tickets_edp_${cuenta.periodo || "sin_periodo"}_${cuenta.empresa?.cuenta_corriente || cuenta.id}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${allTickets.length} tickets a XLSX`,
+        description: `Se descargó la planilla Excel maquetada de tickets`,
       });
     } catch (err) {
       toast({
@@ -1004,7 +1010,6 @@ export function EstadoPago() {
         description: (err as Error).message,
         variant: "destructive",
       });
-      setIsExporting(false);
     } finally {
       setIsExporting(false);
     }
@@ -1473,13 +1478,16 @@ export function EstadoPago() {
                               : "0"}
                           </TableCell>
                           <TableCell>
-                            {ticket?.pasajero?.centroCosto.nombre ?? "-"}
+                            {ticket?.pasajero?.centroCosto?.nombre ||
+                              ticket?.pasajero?.centro_costo?.nombre ||
+                              ticket?.pasajero?.CentroCosto?.nombre ||
+                              "-"}
                           </TableCell>
                           <TableCell>
-                            {ticket?.empresa.cuenta_corriente ?? "-"}
+                            {ticket?.empresa?.cuenta_corriente || selectedCuenta?.empresa?.cuenta_corriente || "-"}
                           </TableCell>
-                          <TableCell>{ticket?.user.rut ?? "-"}</TableCell>
-                          <TableCell>{ticket?.user.nombre ?? "-"}</TableCell>
+                          <TableCell>{ticket?.user?.rut || ticket?.usuario?.rut || "-"}</TableCell>
+                          <TableCell>{ticket?.user?.nombre || ticket?.usuario?.nombre || "-"}</TableCell>
                           <TableCell>
                             {ticket.updated_at
                               ? formatDate(ticket.updated_at)
