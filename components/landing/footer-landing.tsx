@@ -167,7 +167,7 @@ export function FooterLanding() {
       </div>
 
       {/* WhatsApp FAB */}
-      {pathname !== "/" && (
+      {/* {pathname !== "/" && (
         <a
           href={`https://wa.me/?text=${encodeURIComponent("Hola, me gustaría información sobre el portal de reservas corporativas de Pullman Bus.")}`}
           target="_blank"
@@ -180,7 +180,7 @@ export function FooterLanding() {
             <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.555 4.118 1.529 5.847L.057 23.571a.75.75 0 00.921.921l5.724-1.472A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.726 9.726 0 01-4.964-1.361l-.356-.211-3.695.949.969-3.595-.231-.369A9.718 9.718 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" />
           </svg>
         </a>
-      )}
+      )} */}
 
       {/* Scroll to top */}
       <button
