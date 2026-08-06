@@ -107,6 +107,7 @@ export function SuperCompanies() {
     expirationDay: number;
     max: number;
     count: number;
+    deuda_cc_impaga?: number;
     saldo_actual?: number;
     saldo_restante?: number;
     fact_manual?: boolean;
@@ -263,6 +264,7 @@ export function SuperCompanies() {
           expirationDay: empresa.dia_vencimiento,
           max: empresa.monto_maximo,
           count: empresa.monto_acumulado,
+          deuda_cc_impaga: empresa.deuda_cc_impaga || 0,
           saldo_actual: empresa.saldo_actual || 0,
           saldo_restante: empresa.saldo_restante || 0,
           fact_manual: empresa.fact_manual || false,
@@ -895,7 +897,7 @@ export function SuperCompanies() {
             backendToPercent(company.porcentaje_devolucion) || 0,
           ).toFixed(2),
         ),
-        "Día Facturación": company.dia_facturacion,
+        "Día Emisión EDP": company.dia_facturacion,
         "Día Vencimiento": company.dia_vencimiento,
         "Monto Máximo": company.monto_maximo || 0,
         "Monto Acumulado": company.monto_acumulado || 0,
@@ -1391,7 +1393,7 @@ export function SuperCompanies() {
               {/* Columna 2 */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="billingDay">Día de Facturación</Label>
+                  <Label htmlFor="billingDay">Día Emisión EDP</Label>
                   <Input
                     id="billingDay"
                     type="number"
@@ -1934,10 +1936,11 @@ export function SuperCompanies() {
                   <TableHead>Estado</TableHead>
                   {user?.role !== "admin" && <TableHead>Recargo</TableHead>}
                   {user?.role !== "admin" && <TableHead>Devolución</TableHead>}
-                  <TableHead>Día Facturación</TableHead>
+                  <TableHead>Día Emisión EDP</TableHead>
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
+                  <TableHead>Monto Deuda CC</TableHead>
                   <TableHead>Saldo disponible</TableHead>
                   {user?.role !== "admin" &&
                     user?.role !== "contralor" &&
@@ -2009,6 +2012,13 @@ export function SuperCompanies() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
                           {formatCurrency(company.count) || 0}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {formatCurrency(company.deuda_cc_impaga || 0)}
                         </span>
                       </div>
                     </TableCell>
@@ -2164,7 +2174,7 @@ export function SuperCompanies() {
               {/* Columna 2 */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-billingDay">Día de Facturación</Label>
+                  <Label htmlFor="edit-billingDay">Día Emisión EDP</Label>
                   <Input
                     id="edit-billingDay"
                     type="number"

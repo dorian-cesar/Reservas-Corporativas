@@ -77,6 +77,7 @@ export function ServiceDetailDialog({
   const [disponibilidadVerificada, setDisponibilidadVerificada] =
     useState<boolean>(false);
   const [passengersData, setPassengersData] = useState<PassengerData[]>([]);
+  const [loadingSeat, setLoadingSeat] = useState<string | null>(null);
   const bookingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const MAX_SEATS = 5;
 
@@ -327,7 +328,11 @@ export function ServiceDetailDialog({
     }
   };
 
-  const verificarDisponibilidadEmpresa = async (service: ServiceDetail) => {
+  const verificarDisponibilidadEmpresa = async (
+    service: ServiceDetail,
+    targetSeats?: string[],
+    closeModalOnFail: boolean = true,
+  ) => {
     try {
       const extractPriceForVerification = (costString: string): number => {
         if (!costString) return 0;
@@ -340,9 +345,10 @@ export function ServiceDetailDialog({
       };
 
       const precioConRecargo = extractPriceForVerification(service.cost);
+      const seatsToValidate = targetSeats !== undefined ? targetSeats : selectedSeats;
       const precioTotal =
-        selectedSeats.length > 0
-          ? selectedSeats.reduce((total, seatNumber) => {
+        seatsToValidate.length > 0
+          ? seatsToValidate.reduce((total, seatNumber) => {
               const seat = parseSeats().find((s) => s.number === seatNumber);
               return total + (seat?.price || precioConRecargo);
             }, 0)
@@ -363,25 +369,45 @@ export function ServiceDetailDialog({
       const data = await res.json();
 
       if (!data.disponible) {
+        const esMorosa = Boolean(data.morosidad);
+        const detalles = data.detalles || {};
+        const montoMaximoStr = detalles.monto_maximo ? `$${Number(detalles.monto_maximo).toLocaleString("es-CL")}` : "N/A";
+        const deudaTotalStr = detalles.deuda_total !== undefined ? `$${Number(detalles.deuda_total).toLocaleString("es-CL")}` : `$${Number(detalles.monto_acumulado || 0).toLocaleString("es-CL")}`;
+        const ventasActivasStr = `$${Number(detalles.monto_acumulado || 0).toLocaleString("es-CL")}`;
+        const deudaCcStr = `$${Number(detalles.deuda_cc_impaga || 0).toLocaleString("es-CL")}`;
+        const montoTicketStr = `$${Number(detalles.monto_ticket || precioTotal).toLocaleString("es-CL")}`;
+        const cupoDisponible = detalles.disponible !== undefined && detalles.disponible !== null
+          ? detalles.disponible
+          : (detalles.monto_maximo ? (detalles.monto_maximo - (detalles.deuda_total || 0)) : 0);
+        const cupoDisponibleStr = cupoDisponible < 0
+          ? `-$${Math.abs(cupoDisponible).toLocaleString("es-CL")}`
+          : `$${cupoDisponible.toLocaleString("es-CL")}`;
+
         await showSweetAlert({
           icon: "error",
-          title: "Sin disponibilidad",
-          html: `
-          <b>La empresa ha excedido su límite de gasto.</b><br><br>
-          Monto máximo: $${data.detalles.monto_maximo.toLocaleString(
-            "es-CL",
-          )}<br>
-          Acumulado: $${data.detalles.monto_acumulado.toLocaleString(
-            "es-CL",
-          )}<br>
-          Nuevo ticket: $${data.detalles.monto_ticket.toLocaleString("es-CL")}
-        `,
+          title: esMorosa ? "Empresa en Morosidad" : "Cupo de Crédito Excedido",
+          html: esMorosa
+            ? `<b>La empresa se encuentra en estado de Morosidad.</b><br>No es posible realizar reservas ni compras hasta regularizar la cuenta.`
+            : `
+            <div style="text-align: left; font-size: 14px; line-height: 1.6;">
+              <b>La empresa ha superado su límite de crédito disponible.</b><br><br>
+              • <b>Monto Máximo (Cupo):</b> ${montoMaximoStr}<br>
+              • <b>Deuda Total Actual:</b> ${deudaTotalStr}<br>
+              <span style="font-size: 12px; color: #555; display: block; margin-left: 12px; margin-bottom: 4px;">
+                (Ventas período activo: ${ventasActivasStr} + Cargos CC impagos: ${deudaCcStr})
+              </span>
+              • <b>Cupo Disponible Restante:</b> <span style="font-weight: bold; color: ${cupoDisponible <= 0 ? '#dc2626' : '#16a34a'};">${cupoDisponibleStr}</span><br>
+              • <b>Valor Selección Asientos:</b> ${montoTicketStr}
+            </div>
+          `,
           confirmButtonText: "Entendido",
           confirmButtonColor: "#d33",
           showCancelButton: false,
           focusConfirm: true,
           willClose: () => {
-            onOpenChange(false);
+            if (closeModalOnFail) {
+              onOpenChange(false);
+            }
           },
         });
 
@@ -568,11 +594,28 @@ export function ServiceDetailDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleSeatSelection = (seats: string[]) => {
-    if (!disponibilidadVerificada) {
-      return;
+  const handleSeatSelection = async (newSeats: string[]) => {
+    if (!serviceDetail) return;
+
+    // Si se están agregando nuevos asientos a la selección
+    if (newSeats.length > selectedSeats.length) {
+      const newlyAddedSeat = newSeats.find((s) => !selectedSeats.includes(s)) || null;
+      setLoadingSeat(newlyAddedSeat);
+      try {
+        const esDisponible = await verificarDisponibilidadEmpresa(
+          serviceDetail,
+          newSeats,
+          false,
+        );
+        if (!esDisponible) {
+          return; // Rechazar la selección del nuevo asiento por falta de cupo
+        }
+      } finally {
+        setLoadingSeat(null);
+      }
     }
-    setSelectedSeats(seats);
+
+    setSelectedSeats(newSeats);
   };
 
   const handleRemoveSeat = (seatToRemove: string) => {
@@ -1120,8 +1163,9 @@ export function ServiceDetailDialog({
                   seats={availableSeats}
                   coachDetails={serviceDetail.bus_layout.coach_details}
                   floor={serviceDetail.bus_layout.floor}
-                  disabled={!disponibilidadVerificada}
+                  disabled={!disponibilidadVerificada || Boolean(loadingSeat)}
                   maxSeats={MAX_SEATS}
+                  loadingSeat={loadingSeat}
                 />
 
                 {selectedSeats.length > 0 && (
