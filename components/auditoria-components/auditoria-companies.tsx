@@ -77,7 +77,9 @@ export function AuditoriaCompanies() {
     billingDay: number;
     expirationDay: number;
     max: number;
-    count: number
+    count: number;
+    deuda_cc_impaga?: number;
+    saldo_restante?: number;
   };
 
   const swalConfig = {
@@ -152,7 +154,9 @@ export function AuditoriaCompanies() {
             billingDay: empresa.dia_facturacion,
             expirationDay: empresa.dia_vencimiento,
             max: empresa.monto_maximo,
-            count: empresa.monto_acumulado
+            count: empresa.monto_acumulado,
+            deuda_cc_impaga: empresa.deuda_cc_impaga || 0,
+            saldo_restante: empresa.saldo_restante || 0,
           };
         });
 
@@ -210,7 +214,9 @@ export function AuditoriaCompanies() {
         billingDay: empresa.dia_facturacion,
         expirationDay: empresa.dia_vencimiento,
         max: empresa.monto_maximo,
-        count: empresa.monto_acumulado
+        count: empresa.monto_acumulado,
+        deuda_cc_impaga: empresa.deuda_cc_impaga || 0,
+        saldo_restante: empresa.saldo_restante || 0,
       };
 
       setFilteredCompanies([companyMapped]);
@@ -397,10 +403,12 @@ export function AuditoriaCompanies() {
                   <TableHead>Estado</TableHead>
                   <TableHead>Recargo</TableHead>
                   <TableHead>Devolución</TableHead>
-                  <TableHead>Día Facturación</TableHead>
+                  <TableHead>Día Emisión EDP</TableHead>
                   <TableHead>Día Vencimiento</TableHead>
                   <TableHead>Monto Máximo</TableHead>
                   <TableHead>Monto Acumulado</TableHead>
+                  <TableHead>Monto Deuda CC</TableHead>
+                  <TableHead>Saldo disponible</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -452,6 +460,16 @@ export function AuditoriaCompanies() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{formatNumber(company.count) || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{formatNumber(company.deuda_cc_impaga || 0)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{formatNumber(company.saldo_restante || 0)}</span>
                       </div>
                     </TableCell>
                   </TableRow>

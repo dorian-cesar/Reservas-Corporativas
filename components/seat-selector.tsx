@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { Seat } from "@/types/service-detail";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
@@ -17,6 +17,7 @@ interface SeatSelectorProps {
   floor?: string;
   disabled: boolean;
   maxSeats?: number;
+  loadingSeat?: string | null;
 }
 
 interface BusLayout {
@@ -45,6 +46,7 @@ export function SeatSelector({
   floor = "",
   disabled,
   maxSeats = 5,
+  loadingSeat = null,
 }: SeatSelectorProps) {
   const [currentFloor, setCurrentFloor] = useState<"first" | "second">("first");
   const [processedLayout, setProcessedLayout] = useState<BusLayout>({
@@ -357,7 +359,7 @@ export function SeatSelector({
   };
 
   const handleSeatClick = (seatNumber: string) => {
-    if (!isSeatAvailable(seatNumber) || disabled) return;
+    if (!isSeatAvailable(seatNumber) || disabled || Boolean(loadingSeat)) return;
 
     let newSelectedSeats: string[];
 
@@ -433,14 +435,16 @@ export function SeatSelector({
                   {seat ? (
                     <button
                       onClick={() => handleSeatClick(seat)}
-                      disabled={!isSeatAvailable(seat) || disabled}
+                      disabled={!isSeatAvailable(seat) || disabled || Boolean(loadingSeat)}
                       className={cn(
                         "h-10 w-10 sm:h-12 sm:w-12 rounded-lg border-2 flex items-center justify-center transition-all duration-200 font-bold text-xs sm:text-sm",
                         selectedSeats.includes(seat)
-                          ? "bg-accent border-orange-600 text-accent-foreground scale-105 shadow-md cursor-pointer"
+                          ? "bg-accent border-orange-600 text-accent-foreground scale-105 shadow-md"
                           : isSeatAvailable(seat)
-                          ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 hover:border-blue-400 hover:scale-105 cursor-pointer shadow-sm"
-                          : "bg-red-100 border-red-300 text-red-800 cursor-not-allowed opacity-80"
+                          ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 hover:border-blue-400 hover:scale-105 shadow-sm"
+                          : "bg-red-100 border-red-300 text-red-800 cursor-not-allowed opacity-80",
+                        Boolean(loadingSeat) && loadingSeat !== seat && "pointer-events-none opacity-50 cursor-not-allowed",
+                        loadingSeat === seat && "pointer-events-none scale-105 shadow-md cursor-wait opacity-100"
                       )}
                       title={
                         isSeatAvailable(seat)
@@ -450,7 +454,11 @@ export function SeatSelector({
                           : "Asiento ocupado - No disponible"
                       }
                     >
-                      {seat}
+                      {loadingSeat === seat ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-current" />
+                      ) : (
+                        seat
+                      )}
                     </button>
                   ) : (
                     <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gray-100 border border-gray-300 rounded flex items-center justify-center">
