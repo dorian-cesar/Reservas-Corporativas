@@ -113,6 +113,7 @@ export function SuperCompanies() {
     fact_manual?: boolean;
     morosidad?: boolean;
     tipo_facturacion?: "Masiva" | "Especial";
+    ente_facturador?: string;
     contacto_fact_nombre?: string;
     contacto_fact_email?: string;
     contacto_fact_telefono?: string;
@@ -170,6 +171,7 @@ export function SuperCompanies() {
     fact_manual: false,
     morosidad: false,
     tipo_facturacion: "Masiva",
+    ente_facturador: "",
     contacto_fact_nombre: "",
     contacto_fact_email: "",
     contacto_fact_telefono: "",
@@ -270,6 +272,7 @@ export function SuperCompanies() {
           fact_manual: empresa.fact_manual || false,
           morosidad: empresa.morosidad || false,
           tipo_facturacion: empresa.tipo_facturacion || "Masiva",
+          ente_facturador: empresa.ente_facturador || "",
           contacto_fact_nombre: empresa.contacto_fact_nombre || "",
           contacto_fact_email: empresa.contacto_fact_email || "",
           contacto_fact_telefono: empresa.contacto_fact_telefono || "",
@@ -362,6 +365,7 @@ export function SuperCompanies() {
       fact_manual: false,
       morosidad: false,
       tipo_facturacion: "Masiva",
+      ente_facturador: "",
       contacto_fact_nombre: "",
       contacto_fact_email: "",
       contacto_fact_telefono: "",
@@ -420,6 +424,7 @@ export function SuperCompanies() {
           fact_manual: formData.fact_manual,
           morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
+          ente_facturador: formData.ente_facturador,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
           contacto_fact_telefono: formData.contacto_fact_telefono,
@@ -496,6 +501,7 @@ export function SuperCompanies() {
           fact_manual: formData.fact_manual,
           morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
+          ente_facturador: formData.ente_facturador,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
           contacto_fact_telefono: formData.contacto_fact_telefono,
@@ -948,6 +954,7 @@ export function SuperCompanies() {
       fact_manual: Boolean(company.fact_manual),
       morosidad: Boolean(company.morosidad),
       tipo_facturacion: company.tipo_facturacion || "Masiva",
+      ente_facturador: company.ente_facturador || "",
       contacto_fact_nombre: company.contacto_fact_nombre || "",
       contacto_fact_email: company.contacto_fact_email || "",
       contacto_fact_telefono: company.contacto_fact_telefono || "",
@@ -1483,24 +1490,48 @@ export function SuperCompanies() {
 
             <div className="border-t pt-4 space-y-4">
               <div className="space-y-4">
-                <div className="max-w-xs space-y-2">
-                  <Label htmlFor="tipo_facturacion">
-                    Tipo de Facturación *
-                  </Label>
-                  <select
-                    id="tipo_facturacion"
-                    value={formData.tipo_facturacion}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tipo_facturacion: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border rounded-md bg-background"
-                  >
-                    <option value="Masiva">Masiva</option>
-                    <option value="Especial">Especial</option>
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo_facturacion">
+                      Tipo de Facturación *
+                    </Label>
+                    <select
+                      id="tipo_facturacion"
+                      value={formData.tipo_facturacion}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tipo_facturacion: e.target.value as any,
+                        })
+                      }
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="Masiva">Masiva</option>
+                      <option value="Especial">Especial</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ente_facturador">Ente Facturador</Label>
+                    <select
+                      id="ente_facturador"
+                      value={formData.ente_facturador}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          ente_facturador: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="">Seleccione Ente Facturador</option>
+                      <option value="WIT Latam">WIT Latam</option>
+                      <option value="Turismo FYF">Turismo FYF</option>
+                      <option value="Transportes Cometa">
+                        Transportes Cometa
+                      </option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 pt-2">
@@ -2261,24 +2292,52 @@ export function SuperCompanies() {
 
             <div className="border-t pt-4 space-y-4">
               <div className="space-y-4">
-                <div className="max-w-xs space-y-2">
-                  <Label htmlFor="edit-tipo_facturacion">
-                    Tipo de Facturación *
-                  </Label>
-                  <select
-                    id="edit-tipo_facturacion"
-                    value={formData.tipo_facturacion}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tipo_facturacion: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border rounded-md bg-background"
-                  >
-                    <option value="Masiva">Masiva</option>
-                    <option value="Especial">Especial</option>
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-tipo_facturacion">
+                      Tipo de Facturación *
+                    </Label>
+                    <select
+                      id="edit-tipo_facturacion"
+                      value={formData.tipo_facturacion}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tipo_facturacion: e.target.value as any,
+                        })
+                      }
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="Masiva">Masiva</option>
+                      <option value="Especial">Especial</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-ente_facturador">
+                      Ente Facturador
+                    </Label>
+                    <select
+                      id="edit-ente_facturador"
+                      value={formData.ente_facturador}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          ente_facturador: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="">
+                        Seleccione Ente Facturador (Opcional)
+                      </option>
+                      <option value="WIT Latam">WIT Latam</option>
+                      <option value="Turismo FYF">Turismo FYF</option>
+                      <option value="Transportes Cometa">
+                        Transportes Cometa
+                      </option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 pt-2">
