@@ -103,10 +103,12 @@ export default function SuperUserPage() {
                   <IdCard className="h-4 w-4" />
                   Pasajeros
                 </TabsTrigger>
-                <TabsTrigger value="reports" className="gap-2">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Reportes
-                </TabsTrigger>
+                {user?.role === "superuser" && (
+                  <TabsTrigger value="reports" className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Reportes
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -141,9 +143,11 @@ export default function SuperUserPage() {
                 <CompanyPassengers />
               </TabsContent>
 
-              <TabsContent value="reports" className="mt-6">
-                <SuperReports />
-              </TabsContent>
+              {user?.role === "superuser" && (
+                <TabsContent value="reports" className="mt-6">
+                  <SuperReports />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </main>
