@@ -1010,7 +1010,7 @@ export function ServiceDetailDialog({
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
       <DialogContent
-        className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto z-51 p-4 sm:p-6"
+        className="sm:max-w-225 max-h-[90vh] overflow-y-auto z-51 p-4 sm:p-6"
         onEscapeKeyDown={(e) => {
           if (loading || loadingDetail) e.preventDefault();
         }}

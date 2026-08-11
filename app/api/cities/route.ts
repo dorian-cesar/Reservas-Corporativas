@@ -48,9 +48,9 @@ export async function GET(request: Request) {
       destination_count: row[3],
     }));
 
-    // Filtrar ciudades con nombres inválidos
+    // Filtrar ciudades con nombres inválidos y excluir la ciudad con ID 6832
     cities = cities.filter(
-      (c) => !c.name.toLowerCase().includes("hackedbykode")
+      (c) => !c.name.toLowerCase().includes("hackedbykode") && c.id !== 6832 && String(c.id) !== "6832"
     );
 
     // Si hay una búsqueda, filtrar insensible a tildes
