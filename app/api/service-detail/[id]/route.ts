@@ -134,8 +134,10 @@ export async function GET(
         fares_hash: {},
         o_availabity: "",
       },
-      boarding_stages: result.bus_layout.boarding_stages || "",
-      dropoff_stages: result.dropoff_stages || "",
+      boarding_stages:
+        result.bus_layout?.boarding_stages || result.boarding_stages || "",
+      dropoff_stages:
+        result.bus_layout?.dropoff_stages || result.dropoff_stages || "",
     };
 
     return NextResponse.json({

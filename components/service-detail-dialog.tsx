@@ -733,6 +733,7 @@ export function ServiceDetailDialog({
 
     try {
       const boardingPoint = serviceDetail.boarding_stages?.split("|")[0];
+      const dropoffPoint = serviceDetail.dropoff_stages?.split("|")[0];
       const availableSeats = parseSeats();
       const bookings = [];
 
@@ -758,6 +759,7 @@ export function ServiceDetailDialog({
             availableSeats: serviceDetail.available_seats,
             cost: serviceDetail.cost,
             boardingAt: boardingPoint,
+            dropoffAt: dropoffPoint,
             passengerName: passengerData.passenger.nombre,
             passengerEmail: passengerData.passenger.correo || "",
             passengerRut: passengerData.passenger.rut,
