@@ -113,7 +113,10 @@ export function SuperReports() {
         const res = await fetch(`/api/reports/estado-cuenta-periodo?${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Error al obtener reporte por período");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || "Error al obtener reporte por período");
+        }
         const data = await res.json();
         setPeriodoData(data);
       } else {
@@ -123,7 +126,10 @@ export function SuperReports() {
         const res = await fetch(`/api/reports/estado-cuenta-empresa?${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Error al obtener detalle por empresa");
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || "Error al obtener detalle por empresa");
+        }
         const data = await res.json();
         setEmpresaDetalleData(data);
       }
