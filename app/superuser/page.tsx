@@ -1,39 +1,50 @@
-"use client"
+"use client";
 
-import { AuthGuard } from "@/components/auth-guard"
-import { useAuth } from "@/lib/auth"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { AdminStats } from "@/components/admin-stats"
-import { CurrentAccounts } from "@/components/cuenta-corriente"
-import { SuperAllBookings } from "@/components/super-components/super-bookings"
-import { SuperCompanies } from "@/components/super-components/super-companies"
-import { CompanyUsers } from "@/components/company-users"
-import { SuperCostCenters } from "@/components/super-cost-center"
-import { EstadoPago } from "@/components/estado-pago"
-import { TravelSearch } from "@/components/travel-search"
-import { UserProvider } from "@/components/providers/user-provider"
-import { CompanyPassengers } from "@/components/super-components/super-passengers"
-import { usePersistedTab } from "@/hooks/usePersistedTab"
+import { AuthGuard } from "@/components/auth-guard";
+import { useAuth } from "@/lib/auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LogOut,
+  Building2,
+  BarChart,
+  Settings,
+  Users,
+  Calendar,
+  AlertCircle,
+  AlbumIcon,
+  IdCard,
+  FileSpreadsheet,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AdminStats } from "@/components/admin-stats";
+import { CurrentAccounts } from "@/components/cuenta-corriente";
+import { SuperAllBookings } from "@/components/super-components/super-bookings";
+import { SuperCompanies } from "@/components/super-components/super-companies";
+import { CompanyUsers } from "@/components/company-users";
+import { SuperCostCenters } from "@/components/super-cost-center";
+import { EstadoPago } from "@/components/estado-pago";
+import { TravelSearch } from "@/components/travel-search";
+import { UserProvider } from "@/components/providers/user-provider";
+import { CompanyPassengers } from "@/components/super-components/super-passengers";
+import { SuperReports } from "@/components/super-components/super-reports";
+import { usePersistedTab } from "@/hooks/usePersistedTab";
 
 export default function SuperUserPage() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const { activeTab, handleTabChange } = usePersistedTab(
     "companies-crud",
-    "superuser-page-active-tab"
-  )
-
+    "superuser-page-active-tab",
+  );
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("superuser-page-active-tab")
+      localStorage.removeItem("superuser-page-active-tab");
     }
-    logout()
-    router.push("/")
-  }
+    logout();
+    router.push("/");
+  };
 
   return (
     <AuthGuard allowedRoles={["superuser"]}>
@@ -51,12 +62,14 @@ export default function SuperUserPage() {
               onValueChange={handleTabChange}
               className="w-full"
             >
-              <TabsList className="
+              <TabsList
+                className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap
                   p-2 -mx-2 sm:mx-0
                   rounded-md
-                ">
+                "
+              >
                 <TabsTrigger value="companies-crud" className="gap-2">
                   <Building2 className="h-4 w-4" />
                   Empresas
@@ -90,6 +103,10 @@ export default function SuperUserPage() {
                   <IdCard className="h-4 w-4" />
                   Pasajeros
                 </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Reportes
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -106,7 +123,7 @@ export default function SuperUserPage() {
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
               </TabsContent>
-              
+
               <TabsContent value="cuenta-corriente" className="mt-6">
                 <CurrentAccounts />
               </TabsContent>
@@ -123,10 +140,14 @@ export default function SuperUserPage() {
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
               </TabsContent>
+
+              <TabsContent value="reports" className="mt-6">
+                <SuperReports />
+              </TabsContent>
             </Tabs>
           </div>
         </main>
       </div>
     </AuthGuard>
-  )
+  );
 }
