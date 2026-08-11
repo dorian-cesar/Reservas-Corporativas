@@ -15,6 +15,9 @@ interface BookingRequest {
   availableSeats: number;
   cost: string;
   boardingAt: string;
+  dropoffAt?: string;
+  dropoff_at?: string;
+  dropoff_stages?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -36,12 +39,18 @@ export async function POST(request: NextRequest) {
       availableSeats,
       cost,
       boardingAt,
+      dropoffAt,
+      dropoff_at,
+      dropoff_stages,
     } = body;
+
+    const rawDropoff = dropoffAt || dropoff_at || dropoff_stages;
+    const dropoffPoint = rawDropoff ? rawDropoff.toString().split("|")[0] : "";
 
     if (!serviceId || !seatNumber) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,11 +65,11 @@ export async function POST(request: NextRequest) {
     if (!apiKey || !URL_KUPOS) {
       return NextResponse.json(
         { error: "Configuración de API no disponible" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    const bookingPayload = {
+    const bookingPayload: Record<string, any> = {
       book_ticket: {
         seat_details: {
           seat_detail: [
@@ -87,6 +96,7 @@ export async function POST(request: NextRequest) {
       origin_id: originId,
       destination_id: destinationId,
       boarding_at: boardingAt,
+      drop_off: dropoffPoint,
       no_of_seats: "1",
       travel_date: travelDate,
       available_seats: availableSeats,
@@ -94,6 +104,8 @@ export async function POST(request: NextRequest) {
       bus_type: busType,
       route_id: routeId,
     };
+
+    console.log("booking payload:", bookingPayload);
 
     const apiUrl = `${URL_KUPOS}/tentative_booking/${serviceId}.json?api_key=${apiKey}`;
 
@@ -129,7 +141,7 @@ export async function POST(request: NextRequest) {
             error: "El asiento ya está reservado o no está disponible.",
             details: kuposError,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -140,7 +152,7 @@ export async function POST(request: NextRequest) {
           error: "Error al reservar el asiento",
           details: kuposError,
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -163,7 +175,7 @@ export async function POST(request: NextRequest) {
           error: "El asiento ya está reservado o no está disponible.",
           details: data,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -176,7 +188,7 @@ export async function POST(request: NextRequest) {
             "No se pudo reservar el asiento. Intente nuevamente o busque otro servicio.",
           details: data,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -195,7 +207,7 @@ export async function POST(request: NextRequest) {
     console.error("Booking API Error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
