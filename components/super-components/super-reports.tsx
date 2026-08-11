@@ -119,7 +119,9 @@ export function SuperReports() {
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || "Error al obtener reporte por período");
+          throw new Error(
+            errData.message || "Error al obtener reporte por período",
+          );
         }
         const data = await res.json();
         setPeriodoData(data);
@@ -132,7 +134,9 @@ export function SuperReports() {
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || "Error al obtener detalle por empresa");
+          throw new Error(
+            errData.message || "Error al obtener detalle por empresa",
+          );
         }
         const data = await res.json();
         setEmpresaDetalleData(data);
@@ -353,9 +357,9 @@ export function SuperReports() {
           <Button
             onClick={handleExportExcel}
             disabled={exporting || loading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="bg-primary hover:bg-primary/80 text-white"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4" />
             {exporting ? "Generando Excel..." : "Exportar Excel (.xlsx)"}
           </Button>
         </div>
