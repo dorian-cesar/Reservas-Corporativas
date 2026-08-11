@@ -45,10 +45,14 @@ const formatCLP = (monto: number): string =>
   `$${Math.round(Number(monto || 0)).toLocaleString("es-CL")}`;
 
 export function SuperReports() {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [reportType, setReportType] = useState<"periodo" | "empresa">(
     "periodo",
   );
+
+  if (user?.role !== "superuser") {
+    return null;
+  }
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
 
