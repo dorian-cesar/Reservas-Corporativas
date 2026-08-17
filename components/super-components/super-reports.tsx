@@ -558,12 +558,12 @@ export function SuperReports() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left border-collapse">
+                  <table className="w-full min-w-max text-sm text-left border-collapse">
                     <thead className="bg-muted/60 text-foreground text-xs uppercase font-semibold border-b">
                       <tr>
-                        <th className="py-3 px-4 border-b">ID</th>
-                        <th className="py-3 px-4 border-b">Empresa</th>
-                        <th className="py-3 px-4 border-b">Cuenta Corriente</th>
+                        <th className="py-3 px-4 border-b whitespace-nowrap">ID</th>
+                        <th className="py-3 px-4 border-b whitespace-nowrap">Empresa</th>
+                        <th className="py-3 px-4 border-b whitespace-nowrap">Cuenta Corriente</th>
                         {periodoData.periodos.map((p) => (
                           <th
                             key={p}
@@ -572,13 +572,13 @@ export function SuperReports() {
                             {p}
                           </th>
                         ))}
-                        <th className="py-3 px-4 border-b text-right bg-primary/10 text-primary">
+                        <th className="py-3 px-4 border-b text-right bg-primary/10 text-primary whitespace-nowrap">
                           Total EDP
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-emerald-500/10 text-emerald-700">
+                        <th className="py-3 px-4 border-b text-right bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
                           Total Abono
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-muted">
+                        <th className="py-3 px-4 border-b text-right bg-muted whitespace-nowrap">
                           Saldo Actual
                         </th>
                       </tr>
@@ -593,31 +593,31 @@ export function SuperReports() {
                               : "bg-muted/30 hover:bg-muted/50 transition-colors"
                           }
                         >
-                          <td className="py-3 px-4 font-mono text-xs">
+                          <td className="py-3 px-4 font-mono text-xs whitespace-nowrap">
                             {emp.id}
                           </td>
-                          <td className="py-3 px-4 font-medium text-foreground">
+                          <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">
                             {emp.nombre}
                           </td>
-                          <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                          <td className="py-3 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
                             {emp.cuentaCorriente}
                           </td>
                           {periodoData.periodos.map((p) => (
                             <td
                               key={p}
-                              className="py-3 px-4 text-right font-mono text-xs"
+                              className="py-3 px-4 text-right font-mono text-xs whitespace-nowrap"
                             >
                               {formatCLP(emp.montosPorPeriodo[p] || 0)}
                             </td>
                           ))}
-                          <td className="py-3 px-4 text-right font-semibold font-mono text-xs bg-primary/5">
+                          <td className="py-3 px-4 text-right font-semibold font-mono text-xs bg-primary/5 whitespace-nowrap">
                             {formatCLP(emp.totalEDP)}
                           </td>
-                          <td className="py-3 px-4 text-right font-semibold font-mono text-xs bg-emerald-500/5 text-emerald-600">
+                          <td className="py-3 px-4 text-right font-semibold font-mono text-xs bg-emerald-500/5 text-emerald-600 whitespace-nowrap">
                             {formatCLP(emp.totalAbono)}
                           </td>
                           <td
-                            className={`py-3 px-4 text-right font-bold font-mono text-xs ${
+                            className={`py-3 px-4 text-right font-bold font-mono text-xs whitespace-nowrap ${
                               emp.saldoActual > 0
                                 ? "text-amber-600"
                                 : "text-emerald-600"
@@ -630,27 +630,27 @@ export function SuperReports() {
                     </tbody>
                     <tfoot className="bg-amber-500/10 font-bold border-t-2 border-primary">
                       <tr>
-                        <td colSpan={3} className="py-3 px-4 text-primary">
+                        <td colSpan={3} className="py-3 px-4 text-primary whitespace-nowrap">
                           TOTALES GENERALES
                         </td>
                         {periodoData.periodos.map((p) => (
                           <td
                             key={p}
-                            className="py-3 px-4 text-right font-mono text-xs"
+                            className="py-3 px-4 text-right font-mono text-xs whitespace-nowrap"
                           >
                             {formatCLP(
                               periodoData.totales.totalesPorPeriodo[p] || 0,
                             )}
                           </td>
                         ))}
-                        <td className="py-3 px-4 text-right font-mono text-xs text-primary">
+                        <td className="py-3 px-4 text-right font-mono text-xs text-primary whitespace-nowrap">
                           {formatCLP(periodoData.totales.grandTotalEDP)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-xs text-emerald-600">
+                        <td className="py-3 px-4 text-right font-mono text-xs text-emerald-600 whitespace-nowrap">
                           {formatCLP(periodoData.totales.grandTotalAbono)}
                         </td>
                         <td
-                          className={`py-3 px-4 text-right font-mono text-xs ${
+                          className={`py-3 px-4 text-right font-mono text-xs whitespace-nowrap ${
                             periodoData.totales.grandSaldoActual > 0
                               ? "text-amber-600"
                               : "text-emerald-600"
