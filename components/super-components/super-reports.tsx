@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Check,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,23 +50,24 @@ export function SuperReports() {
   const [reportType, setReportType] = useState<"periodo" | "empresa">(
     "periodo",
   );
-
-  if (user?.role !== "superuser") {
-    return null;
-  }
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
+  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
   // Filtros
   const [meses, setMeses] = useState<string>("6");
   const [empresas, setEmpresas] = useState<{ id: number; nombre: string }[]>(
     [],
   );
-  const [selectedEmpresa, setSelectedEmpresa] = useState<string>("todas");
+  const [selectedEmpresaPeriodo, setSelectedEmpresaPeriodo] = useState<string>("todas");
+  const [selectedEmpresaDetalle, setSelectedEmpresaDetalle] = useState<string>("todas");
   const [openEmpresaCombo, setOpenEmpresaCombo] = useState<boolean>(false);
 
+  const activeSelectedEmpresa = reportType === "periodo" ? selectedEmpresaPeriodo : selectedEmpresaDetalle;
+  const setActiveSelectedEmpresa = reportType === "periodo" ? setSelectedEmpresaPeriodo : setSelectedEmpresaDetalle;
+
   const selectedEmpresaData = empresas.find(
-    (e) => String(e.id) === selectedEmpresa,
+    (e) => String(e.id) === activeSelectedEmpresa,
   );
 
   // Datos Reporte Por Periodo
@@ -112,7 +114,7 @@ export function SuperReports() {
       if (reportType === "periodo") {
         const query = new URLSearchParams({
           meses,
-          empresa_id: selectedEmpresa,
+          empresa_id: selectedEmpresaPeriodo,
         });
         const res = await fetch(`/api/reports/estado-cuenta-periodo?${query}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -127,7 +129,7 @@ export function SuperReports() {
         setPeriodoData(data);
       } else {
         const query = new URLSearchParams({
-          empresa_id: selectedEmpresa,
+          empresa_id: selectedEmpresaDetalle,
         });
         const res = await fetch(`/api/reports/estado-cuenta-empresa?${query}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -155,7 +157,12 @@ export function SuperReports() {
 
   useEffect(() => {
     fetchReportData();
-  }, [token, reportType, meses, selectedEmpresa]);
+  }, [token, reportType, meses, activeSelectedEmpresa]);
+
+  // Guard de rol — debe ir DESPUÉS de todos los hooks
+  if (user?.role !== "superuser") {
+    return null;
+  }
 
   // Descarga de Excel
   const handleExportExcel = async () => {
@@ -169,12 +176,27 @@ export function SuperReports() {
 
       const query = new URLSearchParams({
         meses,
-        empresa_id: selectedEmpresa,
+        empresa_id: reportType === "periodo" ? "todas" : selectedEmpresaDetalle,
       });
 
       const res = await fetch(`${endpoint}?${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      const formattedDate = new Date()
+        .toLocaleDateString("es-CL")
+        .replace(/\//g, "_");
+      const cleanCompName = selectedEmpresaData
+        ? selectedEmpresaData.nombre
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .replace(/__+/g, "_")
+            .replace(/_$/, "")
+        : "Empresa";
+
+      const fileName =
+        reportType === "periodo"
+          ? `Estado_Cuenta_Global_${meses}_Meses_${formattedDate}.xlsx`
+          : `Estado_Cuenta_${cleanCompName}_${empresaDetalleData?.periodoInicio || "2026-07"}_a_${empresaDetalleData?.periodoFin || "Actual"}.xlsx`;
 
       if (!res.ok) throw new Error("No se pudo generar el archivo Excel");
 
@@ -182,10 +204,7 @@ export function SuperReports() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download =
-        reportType === "periodo"
-          ? `Estado_Cuenta_Global_Periodo.xlsx`
-          : `Estado_Cuenta_Global_Empresa.xlsx`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -210,6 +229,71 @@ export function SuperReports() {
     }
   };
 
+  // Descarga de PDF
+  const handleExportPDF = async () => {
+    if (!token) return;
+    setExportingPdf(true);
+    try {
+      const endpoint =
+        reportType === "periodo"
+          ? "/api/reports/estado-cuenta-periodo/export-pdf"
+          : "/api/reports/estado-cuenta-empresa/export-pdf";
+
+      const query = new URLSearchParams({
+        meses,
+        empresa_id: reportType === "periodo" ? "todas" : selectedEmpresaDetalle,
+      });
+
+      const res = await fetch(`${endpoint}?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const formattedDate = new Date()
+        .toLocaleDateString("es-CL")
+        .replace(/\//g, "_");
+      const cleanCompName = selectedEmpresaData
+        ? selectedEmpresaData.nombre
+            .replace(/[^a-zA-Z0-9]/g, "_")
+            .replace(/__+/g, "_")
+            .replace(/_$/, "")
+        : "Empresa";
+
+      const fileName =
+        reportType === "periodo"
+          ? `Estado_Cuenta_Global_${meses}_Meses_${formattedDate}.pdf`
+          : `Estado_Cuenta_${cleanCompName}_${empresaDetalleData?.periodoInicio || "2026-07"}_a_${empresaDetalleData?.periodoFin || "Actual"}.pdf`;
+
+      if (!res.ok) throw new Error("No se pudo generar el archivo PDF");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire({
+        icon: "success",
+        title: "PDF Exportado",
+        text: "El archivo PDF se ha descargado exitosamente.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (err: any) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Error al exportar",
+        text: err.message || "No se pudo exportar el reporte a PDF.",
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header y Control Principal */}
@@ -217,7 +301,6 @@ export function SuperReports() {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold">Panel de Reportes Globales</h2>
-            <Badge variant="default">En Desarrollo</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             Consolidado y exportación oficial de Estados de Cuenta y Movimientos
@@ -279,7 +362,7 @@ export function SuperReports() {
                   className="w-full justify-between bg-background overflow-hidden font-normal"
                 >
                   <span className="truncate">
-                    {selectedEmpresa === "todas"
+                    {activeSelectedEmpresa === "todas"
                       ? "Todas las Empresas"
                       : selectedEmpresaData
                         ? `${selectedEmpresaData.id} - ${selectedEmpresaData.nombre}`
@@ -289,7 +372,7 @@ export function SuperReports() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-(--radix-popover-trigger-width) p-0"
+                className="w-[var(--radix-popover-trigger-width)] p-0"
                 align="start"
               >
                 <Command>
@@ -300,14 +383,14 @@ export function SuperReports() {
                       <CommandItem
                         value="todas Todas las Empresas"
                         onSelect={() => {
-                          setSelectedEmpresa("todas");
+                          setActiveSelectedEmpresa("todas");
                           setOpenEmpresaCombo(false);
                         }}
                         className="cursor-pointer"
                       >
                         <Check
                           className={`mr-2 h-4 w-4 ${
-                            selectedEmpresa === "todas"
+                            activeSelectedEmpresa === "todas"
                               ? "opacity-100"
                               : "opacity-0"
                           }`}
@@ -316,13 +399,13 @@ export function SuperReports() {
                       </CommandItem>
                       {empresas.map((company) => {
                         const empIdStr = String(company.id);
-                        const isSelected = selectedEmpresa === empIdStr;
+                        const isSelected = activeSelectedEmpresa === empIdStr;
                         return (
                           <CommandItem
                             key={company.id}
                             value={`${company.id} ${company.nombre}`}
                             onSelect={() => {
-                              setSelectedEmpresa(empIdStr);
+                              setActiveSelectedEmpresa(empIdStr);
                               setOpenEmpresaCombo(false);
                             }}
                             className="cursor-pointer"
@@ -349,19 +432,35 @@ export function SuperReports() {
             variant="secondary"
             onClick={fetchReportData}
             disabled={loading}
+            className="h-9 w-9 p-0 flex items-center justify-center border border-transparent"
           >
             <RefreshCcw
               className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
             />
           </Button>
-          <Button
-            onClick={handleExportExcel}
-            disabled={exporting || loading}
-            className="bg-primary hover:bg-primary/80 text-white"
-          >
-            <Download className="h-4 w-4" />
-            {exporting ? "Generando Excel..." : "Exportar Excel (.xlsx)"}
-          </Button>
+          {(reportType === "periodo" ||
+            (reportType === "empresa" && selectedEmpresaDetalle !== "todas")) && (
+            <>
+              <Button
+                onClick={handleExportPDF}
+                disabled={exportingPdf || loading}
+                variant="outline"
+                className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+              >
+                <FileText className="h-4 w-4" />
+                {exportingPdf ? "Generando PDF..." : "Exportar PDF"}
+              </Button>
+              <Button
+                onClick={handleExportExcel}
+                disabled={exporting || loading}
+                variant="outline"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                {exporting ? "Generando Excel..." : "Exportar Excel (.xlsx)"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -480,7 +579,7 @@ export function SuperReports() {
                           Total Abono
                         </th>
                         <th className="py-3 px-4 border-b text-right bg-muted">
-                          Diferencia
+                          Saldo Actual
                         </th>
                       </tr>
                     </thead>
@@ -519,12 +618,12 @@ export function SuperReports() {
                           </td>
                           <td
                             className={`py-3 px-4 text-right font-bold font-mono text-xs ${
-                              emp.diferencia > 0
+                              emp.saldoActual > 0
                                 ? "text-amber-600"
                                 : "text-emerald-600"
                             }`}
                           >
-                            {formatCLP(emp.diferencia)}
+                            {formatCLP(emp.saldoActual)}
                           </td>
                         </tr>
                       ))}
@@ -552,12 +651,12 @@ export function SuperReports() {
                         </td>
                         <td
                           className={`py-3 px-4 text-right font-mono text-xs ${
-                            periodoData.totales.grandDiferencia > 0
+                            periodoData.totales.grandSaldoActual > 0
                               ? "text-amber-600"
                               : "text-emerald-600"
                           }`}
                         >
-                          {formatCLP(periodoData.totales.grandDiferencia)}
+                          {formatCLP(periodoData.totales.grandSaldoActual)}
                         </td>
                       </tr>
                     </tfoot>
@@ -569,7 +668,7 @@ export function SuperReports() {
         </div>
       )}
 
-      {/* CONTENIDO 2: ESTADO DE CUENTA X EMPRESA DETALLE */}
+      {/* CONTENIDO 2: ESTADO DE CUENTA POR EMPRESA DETALLE */}
       {reportType === "empresa" && (
         <div className="space-y-6">
           {loading ? (
@@ -581,177 +680,306 @@ export function SuperReports() {
             <div className="p-8 text-center text-muted-foreground bg-card rounded-xl border">
               No se encontraron registros de empresas para el período.
             </div>
-          ) : (
-            empresaDetalleData.empresas.map((item) => (
-              <Card key={item.empresa.id} className="overflow-hidden border">
-                <CardHeader className="bg-background text-foreground border-b py-4">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-                    <div>
-                      <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
-                        <Building2 className="h-5 w-5 text-primary" />
-                        {item.empresa.nombre}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        RUT: {item.empresa.rut} &nbsp;|&nbsp; Cuenta Corriente:{" "}
-                        <span className="font-mono text-primary font-semibold">
-                          {item.empresa.cuentaCorriente}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4 text-right">
-                      <div>
-                        <span className="text-xs text-muted-foreground block">
-                          Total EDP Facturado
-                        </span>
-                        <span className="text-base font-bold font-mono text-foreground">
-                          {formatCLP(item.totales.totalMontoEDP)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground block">
-                          Total Abonos
-                        </span>
-                        <span className="text-base font-bold font-mono text-emerald-600">
-                          {formatCLP(item.totales.totalAbonos)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground block">
-                          Saldo Actual Cta. Cte.
-                        </span>
-                        <span
-                          className={`text-base font-bold font-mono ${
-                            item.totales.saldoFinal > 0
-                              ? "text-amber-600"
-                              : "text-emerald-600"
-                          }`}
+          ) : selectedEmpresaDetalle === "todas" ? (
+            /* VISTA CONSOLIDADA GLOBAL POR EMPRESA (Desde Reinicio) */
+            <Card>
+              <CardHeader className="border-b bg-muted/20">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  Estado de Cuenta Global por Empresa
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead className="bg-muted/60 text-foreground text-xs uppercase font-semibold border-b">
+                      <tr>
+                        <th className="py-3 px-4 border-b">ID</th>
+                        <th className="py-3 px-4 border-b">Empresa</th>
+                        <th className="py-3 px-4 border-b">Cuenta Corriente</th>
+                        <th className="py-3 px-4 border-b text-right bg-primary/5 text-primary">
+                          Total EDP (+)
+                        </th>
+                        <th className="py-3 px-4 border-b text-right bg-emerald-500/5 text-emerald-700">
+                          Total Abonos (-)
+                        </th>
+                        <th className="py-3 px-4 border-b text-right bg-muted font-bold">
+                          Saldo Actual
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {empresaDetalleData.empresas.map((item, idx) => (
+                        <tr
+                          key={item.empresa.id}
+                          className={
+                            idx % 2 === 0
+                              ? "bg-background"
+                              : "bg-muted/30 hover:bg-muted/50 transition-colors"
+                          }
                         >
-                          {formatCLP(item.totales.saldoFinal)}
-                        </span>
+                          <td className="py-3 px-4 font-mono text-xs">
+                            {item.empresa.id}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-foreground">
+                            {item.empresa.nombre}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-xs text-muted-foreground">
+                            {item.empresa.cuentaCorriente}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono text-xs bg-primary/5">
+                            {formatCLP(item.totales.totalEDP)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono text-xs text-emerald-600 font-semibold bg-emerald-500/5">
+                            {formatCLP(item.totales.totalAbonos)}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-right font-mono text-xs font-bold bg-muted/30 ${item.totales.saldoFinal > 0 ? "text-amber-600" : "text-emerald-600"}`}
+                          >
+                            {formatCLP(item.totales.saldoFinal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-amber-500/10 font-bold border-t-2 border-primary">
+                      <tr>
+                        <td colSpan={3} className="py-3 px-4 text-primary">
+                          TOTALES CONSOLIDADOS
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-xs text-primary">
+                          {formatCLP(
+                            empresaDetalleData.empresas.reduce(
+                              (acc, item) => acc + item.totales.totalEDP,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-xs text-emerald-600">
+                          {formatCLP(
+                            empresaDetalleData.empresas.reduce(
+                              (acc, item) => acc + item.totales.totalAbonos,
+                              0,
+                            ),
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-xs text-foreground bg-muted">
+                          {formatCLP(
+                            empresaDetalleData.empresas.reduce(
+                              (acc, item) => acc + item.totales.saldoFinal,
+                              0,
+                            ),
+                          )}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* VISTA DETALLADA: SOLO LA EMPRESA SELECCIONADA */
+             empresaDetalleData.empresas
+              .filter((item) => String(item.empresa.id) === selectedEmpresaDetalle)
+              .map((item) => (
+                <Card key={item.empresa.id} className="overflow-hidden border">
+                  <CardHeader className="bg-background text-foreground border-b py-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                      <div>
+                        <CardTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+                          <Building2 className="h-5 w-5 text-primary" />
+                          {item.empresa.nombre}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          RUT: {item.empresa.rut} &nbsp;|&nbsp; Cuenta
+                          Corriente:{" "}
+                          <span className="font-mono text-primary font-semibold">
+                            {item.empresa.cuentaCorriente}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4 text-right">
+                        <div>
+                          <span className="text-xs text-muted-foreground block">
+                            Total EDP Facturado
+                          </span>
+                          <span className="text-base font-bold font-mono text-foreground">
+                            {formatCLP(item.totales.totalEDP)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">
+                            Total Abonos
+                          </span>
+                          <span className="text-base font-bold font-mono text-emerald-600">
+                            {formatCLP(item.totales.totalAbonos)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground block">
+                            Saldo Actual Cta. Cte.
+                          </span>
+                          <span
+                            className={`text-base font-bold font-mono ${
+                              item.totales.saldoFinal > 0
+                                ? "text-amber-600"
+                                : "text-emerald-600"
+                            }`}
+                          >
+                            {formatCLP(item.totales.saldoFinal)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Columna Izquierda: EDPs */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        EDP (Estados de Pago Emitidos)
-                      </h4>
-                      <Badge variant="outline" className="text-xs">
-                        {item.edps.length} EDPs
-                      </Badge>
-                    </div>
-                    {item.edps.length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-4 text-center">
-                        Sin EDPs emitidos en este rango.
-                      </p>
-                    ) : (
-                      <div className="border rounded-md overflow-x-auto">
-                        <table className="w-full text-xs text-left">
-                          <thead className="bg-muted text-muted-foreground">
-                            <tr>
-                              <th className="p-2">EDP ID</th>
-                              <th className="p-2">Período</th>
-                              <th className="p-2 text-center">Estado</th>
-                              <th className="p-2 text-right">
-                                Monto Facturado
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {item.edps.map((edp: any) => (
-                              <tr key={edp.id} className="hover:bg-muted/30">
-                                <td className="p-2 font-mono font-medium">
-                                  {edp.edpId}
-                                </td>
-                                <td className="p-2 font-mono">{edp.periodo}</td>
-                                <td className="p-2 text-center">
-                                  {edp.pagado ? (
-                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] py-0">
-                                      <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
-                                      Pagado
-                                    </Badge>
-                                  ) : (
-                                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px] py-0">
-                                      <AlertCircle className="h-3 w-3 mr-1" />{" "}
-                                      Pendiente
-                                    </Badge>
-                                  )}
-                                </td>
-                                <td className="p-2 text-right font-mono font-bold">
-                                  {formatCLP(edp.montoFacturado)}
-                                </td>
+                  </CardHeader>
+                  <CardContent className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Columna Izquierda: EDPs */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2 text-primary">
+                          <FileSpreadsheet className="h-4 w-4" />
+                          EDP (Estados de Pago Emitidos)
+                        </h4>
+                        <Badge variant="outline" className="text-xs">
+                          {item.edps.length} EDPs
+                        </Badge>
+                      </div>
+                      {item.edps.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-4 text-center">
+                          Sin EDPs emitidos en este rango.
+                        </p>
+                      ) : (
+                        <div className="border rounded-md overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-muted text-muted-foreground">
+                              <tr>
+                                <th className="p-2">EDP ID</th>
+                                <th className="p-2">Período</th>
+                                <th className="p-2 text-center">Estado</th>
+                                <th className="p-2 text-right">
+                                  Monto Facturado
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
+                            </thead>
+                            <tbody className="divide-y">
+                              {item.edps.map((edp: any) => (
+                                <tr key={edp.id} className="hover:bg-muted/30">
+                                  <td className="p-2 font-mono font-medium">
+                                    {edp.edpId}
+                                  </td>
+                                  <td className="p-2 font-mono">
+                                    {edp.periodo}
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    {edp.pagado ? (
+                                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] py-0">
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />{" "}
+                                        Pagado
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px] py-0">
+                                        <AlertCircle className="h-3 w-3 mr-1" />{" "}
+                                        Pendiente
+                                      </Badge>
+                                    )}
+                                  </td>
+                                  <td className="p-2 text-right font-mono font-bold">
+                                    {formatCLP(edp.montoFacturado)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Columna Derecha: Movimientos Cuenta Corriente */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <h4 className="font-semibold text-sm flex items-center gap-2 text-emerald-600">
-                        <CreditCard className="h-4 w-4" />
-                        Estado Cuenta Corriente (Abonos / Cargos)
-                      </h4>
-                      <Badge variant="outline" className="text-xs">
-                        {item.movimientos.length} Movimientos
-                      </Badge>
-                    </div>
-                    {item.movimientos.length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-4 text-center">
-                        Sin movimientos en cuenta corriente en este rango.
-                      </p>
-                    ) : (
-                      <div className="border rounded-md overflow-x-auto">
-                        <table className="w-full text-xs text-left">
-                          <thead className="bg-muted text-muted-foreground">
-                            <tr>
-                              <th className="p-2">ID Mov.</th>
-                              <th className="p-2">Tipo</th>
-                              <th className="p-2 text-right">Monto</th>
-                              <th className="p-2 text-right">Saldo $</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {item.movimientos.map((mov: any) => (
-                              <tr key={mov.id} className="hover:bg-muted/30">
-                                <td className="p-2 font-mono font-medium">
-                                  {mov.idAbono}
-                                </td>
-                                <td className="p-2">
-                                  <Badge
-                                    variant="outline"
-                                    className={
-                                      mov.tipoMovimiento === "abono"
-                                        ? "text-emerald-600 border-emerald-300 bg-emerald-50 text-[10px] py-0"
-                                        : "text-amber-700 border-amber-300 bg-amber-50 text-[10px] py-0"
-                                    }
-                                  >
-                                    {mov.tipoMovimiento.toUpperCase()}
-                                  </Badge>
-                                </td>
-                                <td className="p-2 text-right font-mono font-semibold">
-                                  {formatCLP(mov.monto)}
-                                </td>
-                                <td className="p-2 text-right font-mono font-bold text-muted-foreground">
-                                  {formatCLP(mov.saldo)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    {/* Columna Derecha: Movimientos Cuenta Corriente */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-semibold text-sm flex items-center gap-2 text-emerald-600">
+                          <CreditCard className="h-4 w-4" />
+                          Estado Cuenta Corriente (Abonos / Cargos)
+                        </h4>
+                        <Badge variant="outline" className="text-xs">
+                          {item.movimientos.length} Movimientos
+                        </Badge>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                      {item.movimientos.length === 0 &&
+                      item.saldoReinicio === 0 ? (
+                        <p className="text-xs text-muted-foreground py-4 text-center">
+                          Sin movimientos en cuenta corriente en este rango.
+                        </p>
+                      ) : (
+                        <div className="border rounded-md overflow-x-auto">
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-muted text-muted-foreground">
+                              <tr>
+                                <th className="p-2">Fecha Abono</th>
+                                <th className="p-2">Tipo</th>
+                                <th className="p-2">Fecha</th>
+                                <th className="p-2 text-right">Monto</th>
+                                <th className="p-2 text-right">Saldo $</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {/* Movimientos normales */}
+                              {item.movimientos.map((mov: any) => {
+                                const fechaAbonoStr = mov.fechaMovimiento
+                                  ? new Date(mov.fechaMovimiento)
+                                      .toLocaleDateString("es-CL", {
+                                        timeZone: "America/Santiago",
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                      })
+                                      .replace(/\//g, "-")
+                                  : "-";
+                                return (
+                                  <tr
+                                    key={mov.id}
+                                    className="hover:bg-muted/30"
+                                  >
+                                    <td className="p-2 font-mono font-medium">
+                                      {fechaAbonoStr}
+                                    </td>
+                                    <td className="p-2">
+                                      <Badge
+                                        variant="outline"
+                                        className={
+                                          mov.tipoMovimiento === "abono"
+                                            ? "text-emerald-600 border-emerald-300 bg-emerald-50 text-[10px] py-0"
+                                            : "text-amber-700 border-amber-300 bg-amber-50 text-[10px] py-0"
+                                        }
+                                      >
+                                        {mov.tipoMovimiento.toUpperCase()}
+                                      </Badge>
+                                    </td>
+                                    <td className="p-2 text-muted-foreground font-mono">
+                                      {mov.fechaMovimiento
+                                        ? new Date(
+                                            mov.fechaMovimiento,
+                                          ).toLocaleDateString("es-CL", {
+                                            timeZone: "America/Santiago",
+                                          })
+                                        : "-"}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-semibold">
+                                      {formatCLP(mov.monto)}
+                                    </td>
+                                    <td className="p-2 text-right font-mono font-bold text-muted-foreground">
+                                      {formatCLP(mov.saldo)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
           )}
         </div>
       )}
