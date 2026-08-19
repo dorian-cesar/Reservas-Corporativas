@@ -782,85 +782,28 @@ export function SuperCompanies() {
     }
   };
 
-  const exportToXLSX = async () => {
+    const exportToXLSX = async () => {
     try {
-      const res = await fetch(
-        `/api/companies?includeInactives=${showInactives}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await fetch(\`/api/companies/export-excel\`, {
+        headers: { Authorization: \`Bearer \${token}\` },
+      });
 
       if (!res.ok) {
-        throw new Error("Error al obtener empresas para exportar");
+        throw new Error("Error al obtener el archivo Excel desde el servidor");
       }
 
-      const response = await res.json();
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = \`empresas_\${new Date().toISOString().split("T")[0]}.xlsx\`;
+      link.click();
+      window.URL.revokeObjectURL(url);
 
-      let empresasArray;
-      if (Array.isArray(response)) {
-        empresasArray = response;
-      } else if (response.data && Array.isArray(response.data)) {
-        empresasArray = response.data;
-      } else {
-        empresasArray = [];
-      }
-
-      if (empresasArray.length === 0) {
-        toast({
-          title: "No hay datos",
-          description: "No hay empresas para exportar",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const companiesForExport = empresasArray.map((empresa: any) => ({
-        id: empresa.id.toString(),
-        name: empresa.nombre,
-        state: empresa.estado,
-        surchargePercentage: empresa.recargo || 0,
-        returnPercentage: backendToPercent(empresa.porcentaje_devolucion),
-        billingDay: empresa.dia_facturacion,
-        expirationDay: empresa.dia_vencimiento,
-        max: empresa.monto_maximo,
-        count: empresa.monto_acumulado,
-        rut: empresa.rut || "-",
-        current_account: empresa.cuenta_corriente || "-",
-        fact_manual: empresa.fact_manual || false,
-        morosidad: empresa.morosidad || false,
-        tipo_facturacion: empresa.tipo_facturacion || "Masiva",
-      }));
-
-      const data = companiesForExport.map((company: any) => ({
-        id: company.id,
-        nombre_empresa: company.name,
-        estado: company.state ? 1 : 0,
-        porcentaje_recargo: company.surchargePercentage || 0,
-        porcentaje_devolucion: parseFloat(
-          percentToBackend(company.returnPercentage || 0).toFixed(2),
-        ),
-        dia_facturacion: company.billingDay,
-        dia_vencimiento: company.expirationDay,
-        monto_maximo: company.max || 0,
-        monto_acumulado: company.count || 0,
-        rut_empresa: company.rut || "-",
-        cuenta_corriente: company.current_account || "-",
-        "Facturación Automática": company.fact_manual ? "No" : "Sí",
-        Morosidad: company.morosidad ? "Sí" : "No",
-        "Tipo Facturación": company.tipo_facturacion || "Masiva",
-      }));
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
-      XLSX.writeFile(
-        workbook,
-        `empresas_${new Date().toISOString().split("T")[0]}.xlsx`,
-      );
       setIsExportDialogOpen(false);
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${filteredCompanies.length} empresas a XLSX`,
+        description: "Se descargó el reporte Excel estilizado",
       });
     } catch (err) {
       console.error("Error en exportación XLSX:", err);
@@ -870,7 +813,7 @@ export function SuperCompanies() {
         variant: "destructive",
       });
     }
-  };
+  };;
 
   const exportAllCompaniesToXLSX = async () => {
     try {
