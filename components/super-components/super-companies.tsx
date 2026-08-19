@@ -912,6 +912,13 @@ export function SuperCompanies() {
         "Facturación Automática": company.fact_manual ? "No" : "Sí",
         Morosidad: company.morosidad ? "Sí" : "No",
         "Tipo Facturación": company.tipo_facturacion || "Masiva",
+        "Nombre Contacto Facturador": company.contacto_fact_nombre || "-",
+        "Email Contacto Facturador": company.contacto_fact_email || "-",
+        "Teléfono Contacto Facturador": company.contacto_fact_telefono || "-",
+        "Nombre Ejecutivo Comercial": company.ejecutivo_com_nombre || "-",
+        "Email Ejecutivo Comercial": company.ejecutivo_com_email || "-",
+        "Teléfono Ejecutivo Comercial": company.ejecutivo_com_telefono || "-",
+        "Ente Facturador": company.ente_facturador || "-",
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData);
