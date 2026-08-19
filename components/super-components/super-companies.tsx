@@ -784,8 +784,8 @@ export function SuperCompanies() {
 
     const exportToXLSX = async () => {
     try {
-      const res = await fetch(\`/api/companies/export-excel\`, {
-        headers: { Authorization: \`Bearer \${token}\` },
+      const res = await fetch(`/api/companies/export-excel`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
@@ -796,7 +796,7 @@ export function SuperCompanies() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = \`empresas_\${new Date().toISOString().split("T")[0]}.xlsx\`;
+      link.download = `empresas_${new Date().toISOString().split("T")[0]}.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
 
@@ -818,63 +818,25 @@ export function SuperCompanies() {
   const exportAllCompaniesToXLSX = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/export/companies", {
+      const res = await fetch("/api/companies/export-excel", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
-        throw new Error("Error al obtener las empresas para exportar");
+        throw new Error("Error al obtener el archivo Excel desde el servidor");
       }
 
-      const data = await res.json();
-
-      if (!data || data.length === 0) {
-        toast({
-          title: "Sin datos",
-          description: "No hay empresas para exportar",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const worksheetData = data.map((company: any) => ({
-        ID: company.id,
-        "Nombre Empresa": company.nombre,
-        "Porcentaje Recargo (%)": company.recargo || 0,
-        "Porcentaje Devolución (%)": parseFloat(
-          percentToBackend(
-            backendToPercent(company.porcentaje_devolucion) || 0,
-          ).toFixed(2),
-        ),
-        "Día Emisión EDP": company.dia_facturacion,
-        "Día Vencimiento": company.dia_vencimiento,
-        "Monto Máximo": company.monto_maximo || 0,
-        "Monto Acumulado": company.monto_acumulado || 0,
-        RUT: company.rut || "-",
-        "Cuenta Corriente": company.cuenta_corriente || "-",
-        "Facturación Automática": company.fact_manual ? "No" : "Sí",
-        Morosidad: company.morosidad ? "Sí" : "No",
-        "Tipo Facturación": company.tipo_facturacion || "Masiva",
-        "Nombre Contacto Facturador": company.contacto_fact_nombre || "-",
-        "Email Contacto Facturador": company.contacto_fact_email || "-",
-        "Teléfono Contacto Facturador": company.contacto_fact_telefono || "-",
-        "Nombre Ejecutivo Comercial": company.ejecutivo_com_nombre || "-",
-        "Email Ejecutivo Comercial": company.ejecutivo_com_email || "-",
-        "Teléfono Ejecutivo Comercial": company.ejecutivo_com_telefono || "-",
-        "Ente Facturador": company.ente_facturador || "-",
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Empresas");
-      XLSX.writeFile(
-        workbook,
-        `empresas_${new Date().toISOString().split("T")[0]}.xlsx`,
-      );
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `empresas_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${data.length} empresas a Excel`,
+        description: "Se descargó el reporte Excel estilizado",
       });
     } catch (err: any) {
       console.error(err);
@@ -2625,25 +2587,27 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
           </div>
 
           {result && (
-            <div className="mt-4 rounded-md bg-muted p-3 text-sm">
-              <p>
-                <strong>Procesamiento completado:</strong>
+            <div className="mt-4 rounded-md bg-muted p-3 text-sm border border-border">
+              <p className="font-semibold mb-2 text-foreground">
+                Procesamiento de carga finalizado
               </p>
-              <p>✅ Éxitos: {result.result?.success}</p>
-              <p>❌ Errores: {result.result?.errors?.length || 0}</p>
-              <p>📊 Total filas: {result.result?.totalRows || 0}</p>
+              <div className="space-y-1 text-muted-foreground">
+                <p>Registros exitosos: {result.result?.success}</p>
+                <p>Registros con error: {result.result?.errors?.length || 0}</p>
+                <p>Total de filas procesadas: {result.result?.totalRows || 0}</p>
+              </div>
 
               {result.result?.errors?.length > 0 && (
-                <>
-                  <p className="mt-2 font-medium text-red-600">
-                    Detalle de errores:
+                <div className="mt-3">
+                  <p className="font-medium text-destructive">
+                    Detalle de errores detectados:
                   </p>
-                  <ul className="list-disc list-inside text-xs text-red-500 max-h-32 overflow-auto">
+                  <ul className="list-disc list-inside text-xs text-destructive max-h-32 overflow-auto mt-1">
                     {result.result.errors.map((e: string, i: number) => (
                       <li key={i}>{e}</li>
                     ))}
                   </ul>
-                </>
+                </div>
               )}
             </div>
           )}
