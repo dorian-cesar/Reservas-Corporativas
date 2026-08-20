@@ -86,6 +86,85 @@ export function SuperReports() {
     empresas: any[];
   } | null>(null);
 
+  // Estados para ordenar interactivamente las columnas
+  const [sortKey, setSortKey] = useState<string>("id");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null); // Empezar sin ningún orden de columna activo por defecto
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortOrder === "asc") {
+        setSortOrder("desc");
+      } else if (sortOrder === "desc") {
+        setSortOrder(null);
+      } else {
+        setSortOrder("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+  };
+
+  // Obtener array ordenado de empresas (Reporte 1: Periodos)
+  const getOrderedEmpresasPeriodo = () => {
+    if (!periodoData) return [];
+    if (!sortOrder) return periodoData.empresas;
+    return [...periodoData.empresas].sort((a, b) => {
+      let valA: any = a[sortKey];
+      let valB: any = b[sortKey];
+
+      if (sortKey.startsWith("periodo_")) {
+        const p = sortKey.replace("periodo_", "");
+        valA = a.montosPorPeriodo[p] || 0;
+        valB = b.montosPorPeriodo[p] || 0;
+      }
+
+      if (typeof valA === "string") {
+        return sortOrder === "asc"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
+  };
+
+  // Obtener array ordenado de empresas (Reporte 2: Empresas Global)
+  const getOrderedEmpresasGlobal = () => {
+    if (!empresaDetalleData) return [];
+    if (!sortOrder) return empresaDetalleData.empresas;
+    return [...empresaDetalleData.empresas].sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      if (sortKey === "id") {
+        valA = a.empresa.id;
+        valB = b.empresa.id;
+      } else if (sortKey === "nombre") {
+        valA = a.empresa.nombre;
+        valB = b.empresa.nombre;
+      } else if (sortKey === "cuentaCorriente") {
+        valA = a.empresa.cuentaCorriente;
+        valB = b.empresa.cuentaCorriente;
+      } else if (sortKey === "totalEDP") {
+        valA = a.totales.totalEDP;
+        valB = b.totales.totalEDP;
+      } else if (sortKey === "totalAbono") {
+        valA = a.totales.totalAbonos;
+        valB = b.totales.totalAbonos;
+      } else if (sortKey === "saldoActual") {
+        valA = a.totales.saldoFinal;
+        valB = b.totales.saldoFinal;
+      }
+
+      if (typeof valA === "string") {
+        return sortOrder === "asc"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
+  };
+
   // Cargar lista de empresas para el filtro
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -561,30 +640,90 @@ export function SuperReports() {
                   <table className="w-full min-w-max text-sm text-left border-collapse">
                     <thead className="bg-muted/60 text-foreground text-xs uppercase font-semibold border-b">
                       <tr>
-                        <th className="py-3 px-4 border-b whitespace-nowrap">ID</th>
-                        <th className="py-3 px-4 border-b whitespace-nowrap">Empresa</th>
-                        <th className="py-3 px-4 border-b whitespace-nowrap">Cuenta Corriente</th>
+                        <th
+                          className="py-3 px-4 border-b whitespace-nowrap cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("id")}
+                        >
+                          <div className="flex items-center gap-1">
+                            ID
+                            {sortKey === "id" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          className="py-3 px-4 border-b whitespace-nowrap cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("nombre")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Empresa
+                            {sortKey === "nombre" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          className="py-3 px-4 border-b whitespace-nowrap cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("cuentaCorriente")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Cuenta Corriente
+                            {sortKey === "cuentaCorriente" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
                         {periodoData.periodos.map((p) => (
                           <th
                             key={p}
-                            className="py-3 px-4 border-b text-right whitespace-nowrap"
+                            className="py-3 px-4 border-b text-right whitespace-nowrap cursor-pointer hover:bg-muted transition-colors select-none"
+                            onClick={() => handleSort(`periodo_${p}`)}
                           >
-                            {p}
+                            <div className="flex items-center justify-end gap-1">
+                              {p}
+                              {sortKey === `periodo_${p}` && sortOrder && (
+                                <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                              )}
+                            </div>
                           </th>
                         ))}
-                        <th className="py-3 px-4 border-b text-right bg-primary/10 text-primary whitespace-nowrap">
-                          Total EDP
+                        <th
+                          className="py-3 px-4 border-b text-right bg-primary/10 text-primary whitespace-nowrap cursor-pointer hover:bg-primary/20 transition-colors select-none"
+                          onClick={() => handleSort("totalEDP")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Total EDP
+                            {sortKey === "totalEDP" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
-                          Total Abono
+                        <th
+                          className="py-3 px-4 border-b text-right bg-emerald-500/10 text-emerald-700 whitespace-nowrap cursor-pointer hover:bg-emerald-500/20 transition-colors select-none"
+                          onClick={() => handleSort("totalAbono")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Total Abono
+                            {sortKey === "totalAbono" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-muted whitespace-nowrap">
-                          Saldo Actual
+                        <th
+                          className="py-3 px-4 border-b text-right bg-muted whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors select-none"
+                          onClick={() => handleSort("saldoActual")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Saldo Actual
+                            {sortKey === "saldoActual" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {periodoData.empresas.map((emp, idx) => (
+                      {getOrderedEmpresasPeriodo().map((emp, idx) => (
                         <tr
                           key={emp.id}
                           className={
@@ -694,22 +833,76 @@ export function SuperReports() {
                   <table className="w-full text-sm text-left border-collapse">
                     <thead className="bg-muted/60 text-foreground text-xs uppercase font-semibold border-b">
                       <tr>
-                        <th className="py-3 px-4 border-b">ID</th>
-                        <th className="py-3 px-4 border-b">Empresa</th>
-                        <th className="py-3 px-4 border-b">Cuenta Corriente</th>
-                        <th className="py-3 px-4 border-b text-right bg-primary/5 text-primary">
-                          Total EDP (+)
+                        <th
+                          className="py-3 px-4 border-b cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("id")}
+                        >
+                          <div className="flex items-center gap-1">
+                            ID
+                            {sortKey === "id" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-emerald-500/5 text-emerald-700">
-                          Total Abonos (-)
+                        <th
+                          className="py-3 px-4 border-b cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("nombre")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Empresa
+                            {sortKey === "nombre" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
-                        <th className="py-3 px-4 border-b text-right bg-muted font-bold">
-                          Saldo Actual
+                        <th
+                          className="py-3 px-4 border-b cursor-pointer hover:bg-muted transition-colors select-none"
+                          onClick={() => handleSort("cuentaCorriente")}
+                        >
+                          <div className="flex items-center gap-1">
+                            Cuenta Corriente
+                            {sortKey === "cuentaCorriente" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          className="py-3 px-4 border-b text-right bg-primary/5 text-primary cursor-pointer hover:bg-primary/10 transition-colors select-none"
+                          onClick={() => handleSort("totalEDP")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Total EDP (+)
+                            {sortKey === "totalEDP" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          className="py-3 px-4 border-b text-right bg-emerald-500/5 text-emerald-700 cursor-pointer hover:bg-emerald-500/10 transition-colors select-none"
+                          onClick={() => handleSort("totalAbono")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Total Abonos (-)
+                            {sortKey === "totalAbono" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th
+                          className="py-3 px-4 border-b text-right bg-muted font-bold cursor-pointer hover:bg-muted/80 transition-colors select-none"
+                          onClick={() => handleSort("saldoActual")}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Saldo Actual
+                            {sortKey === "saldoActual" && sortOrder && (
+                              <span className="text-[10px]">{sortOrder === "asc" ? "▲" : "▼"}</span>
+                            )}
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {empresaDetalleData.empresas.map((item, idx) => (
+                      {getOrderedEmpresasGlobal().map((item, idx) => (
                         <tr
                           key={item.empresa.id}
                           className={
