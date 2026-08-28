@@ -1,51 +1,62 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/lib/auth"
-import { Building2, Ticket, DollarSign, Users } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/lib/auth";
+import {
+  Building2,
+  Ticket,
+  DollarSign,
+  Users,
+  CreditCard,
+  Building,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface DashboardStats {
-  totalEmpresas: number
-  totalCentrosCosto: number
-  totalReservasConfirmadas: number
-  totalUsuariosActivos: number
-  montoBoletos: number
+  totalEmpresas: number;
+  totalEmpresasActivas?: number;
+  totalCuentasActivas?: number;
+  totalCentrosCosto: number;
+  totalReservasConfirmadas: number;
+  totalUsuariosActivos: number;
+  montoBoletos: number;
 }
 
 export function AdminStats() {
   const { token, user } = useAuth.getState();
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
         const response = await fetch("/api/dashboard", {
           headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        })
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!response.ok) {
-          throw new Error(`Error: ${response.status}`)
+          throw new Error(`Error: ${response.status}`);
         }
 
-        const data: DashboardStats = await response.json()
-        setStats(data)
+        const data: DashboardStats = await response.json();
+        setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al cargar estadísticas")
-        console.error("Error fetching stats:", err)
+        setError(
+          err instanceof Error ? err.message : "Error al cargar estadísticas",
+        );
+        console.error("Error fetching stats:", err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchStats()
-  }, [])
+    fetchStats();
+  }, []);
 
   const displayStats = [
     {
@@ -54,7 +65,23 @@ export function AdminStats() {
       icon: Building2,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      formatter: (value: number) => value.toString()
+      formatter: (value: number) => value.toLocaleString("es-CL"),
+    },
+    {
+      title: "Empresas Activas",
+      value: stats?.totalEmpresasActivas ?? 0,
+      icon: Building,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-500/10",
+      formatter: (value: number) => value.toLocaleString("es-CL"),
+    },
+    {
+      title: "Cuentas Activas",
+      value: stats?.totalCuentasActivas ?? 0,
+      icon: CreditCard,
+      color: "text-blue-600",
+      bgColor: "bg-blue-500/10",
+      formatter: (value: number) => value.toLocaleString("es-CL"),
     },
     {
       title: "Total Reservas",
@@ -62,7 +89,7 @@ export function AdminStats() {
       icon: Ticket,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
-      formatter: (value: number) => value.toString()
+      formatter: (value: number) => value.toLocaleString("es-CL"),
     },
     {
       title: "Usuarios Activos",
@@ -70,7 +97,7 @@ export function AdminStats() {
       icon: Users,
       color: "text-green-600",
       bgColor: "bg-green-500/10",
-      formatter: (value: number) => value.toString()
+      formatter: (value: number) => value.toLocaleString("es-CL"),
     },
     {
       title: "Monto Boletos",
@@ -78,26 +105,28 @@ export function AdminStats() {
       icon: DollarSign,
       color: "text-accent",
       bgColor: "bg-accent/10",
-      formatter: (value: number) => `$${value.toLocaleString()}`
-    }
-  ]
+      formatter: (value: number) => `$${value.toLocaleString("es-CL")}`,
+    },
+  ];
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, index) => (
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        {[...Array(6)].map((_, index) => (
           <Card key={index}>
-            cargando...
+            <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+              Cargando...
+            </CardContent>
           </Card>
         ))}
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="col-span-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-6">
+        <Card className="col-span-full">
           <CardContent className="pt-6 text-center">
             <p className="text-destructive">Error: {error}</p>
             <button
@@ -109,11 +138,11 @@ export function AdminStats() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
       {displayStats.map((stat, index) => (
         <Card
           key={stat.title}
@@ -129,12 +158,12 @@ export function AdminStats() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-2xl font-bold">
               {stat.formatter(stat.value)}
             </div>
           </CardContent>
         </Card>
       ))}
     </div>
-  )
+  );
 }

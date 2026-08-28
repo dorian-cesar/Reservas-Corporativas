@@ -243,7 +243,7 @@ export function AdminEstadoPago() {
     const exportTicketsToCSV = (ticketsData: any[], cuenta: EstadoCuentaType | null) => {
         if (ticketsData.length === 0) return;
 
-        const headers = ["Ticket #", "Estado", "Origen", "Destino", "Fecha Viaje", "Hora Salida", "Monto"];
+        const headers = ["Boleto #", "Estado", "Origen", "Destino", "Fecha Viaje", "Hora Salida", "Monto"];
         const csvData = ticketsData.map(ticket => [
             ticket.ticketNumber,
             ticket.ticketStatus,
@@ -263,7 +263,7 @@ export function AdminEstadoPago() {
 
         toast({
             title: "Exportación exitosa",
-            description: `Se exportaron ${ticketsData.length} tickets a CSV`
+            description: `Se exportaron ${ticketsData.length} boletos a CSV`
         });
     };
 
@@ -271,7 +271,7 @@ export function AdminEstadoPago() {
         if (ticketsData.length === 0) return;
 
         const data = ticketsData.map(ticket => ({
-            "Ticket #": ticket.ticketNumber,
+            "Boleto #": ticket.ticketNumber,
             "Estado": ticket.ticketStatus,
             "Origen": ticket.origin,
             "Destino": ticket.destination,
@@ -282,12 +282,12 @@ export function AdminEstadoPago() {
 
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Boletos");
         XLSX.writeFile(workbook, `tickets_estado_cuenta_${cuenta?.periodo || 'sin_periodo'}_${new Date().toISOString().split('T')[0]}.xlsx`);
 
         toast({
             title: "Exportación exitosa",
-            description: `Se exportaron ${ticketsData.length} tickets a XLSX`
+            description: `Se exportaron ${ticketsData.length} boletos a XLSX`
         });
     };
 
@@ -497,16 +497,16 @@ export function AdminEstadoPago() {
                         {isLoadingTickets ? (
                             <div className="text-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                                <p className="text-muted-foreground mt-2">Cargando tickets...</p>
+                                <p className="text-muted-foreground mt-2">Cargando boletos...</p>
                             </div>
                         ) : tickets.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                No hay tickets para este período
+                                No hay boletos para este período
                             </div>
                         ) : (
                             <>
                                 <div className="text-sm text-muted-foreground">
-                                    Mostrando {tickets.length} tickets
+                                    Mostrando {tickets.length} boletos
                                 </div>
 
                                 <div className="border rounded-md">

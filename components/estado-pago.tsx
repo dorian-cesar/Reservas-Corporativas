@@ -680,7 +680,7 @@ export function EstadoPago() {
       "Fecha Generación",
       "Fecha Inicio",
       "Fecha Fin",
-      "Total Tickets",
+      "Total Boletos",
       "Total Anulados",
       "Monto Facturado",
       "Devoluciones",
@@ -800,7 +800,7 @@ export function EstadoPago() {
     if (ticketsData.length === 0) return;
 
     const headers = [
-      "Ticket #",
+      "Boleto #",
       "Fecha Compra",
       "Estado",
       "Origen",
@@ -849,7 +849,7 @@ export function EstadoPago() {
 
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${ticketsData.length} tickets a CSV`,
+      description: `Se exportaron ${ticketsData.length} boletos a CSV`,
     });
   };
 
@@ -862,7 +862,7 @@ export function EstadoPago() {
     const data = ticketsData.map((ticket) => {
       const row = extractTicketRowData(ticket, cuenta);
       return {
-        "Ticket #": row.ticketNumber,
+        "Boleto #": row.ticketNumber,
         "Fecha Compra": row.fechaCompra,
         Estado: row.estado,
         Origen: row.origen,
@@ -882,7 +882,7 @@ export function EstadoPago() {
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Boletos");
     XLSX.writeFile(
       workbook,
       `tickets_estado_cuenta_${cuenta?.periodo || "sin_periodo"}_${new Date().toISOString().split("T")[0]}.xlsx`,
@@ -911,14 +911,14 @@ export function EstadoPago() {
       if (allTickets.length === 0) {
         toast({
           title: "Sin datos",
-          description: "No hay tickets para exportar",
+          description: "No hay boletos para exportar",
           variant: "destructive",
         });
         return;
       }
 
       const headers = [
-        "Ticket #",
+        "Boleto #",
         "Fecha Compra",
         "Estado",
         "Origen",
@@ -967,7 +967,7 @@ export function EstadoPago() {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${allTickets.length} tickets a CSV`,
+        description: `Se exportaron ${allTickets.length} boletos a CSV`,
       });
     } catch (err) {
       toast({
@@ -1002,7 +1002,7 @@ export function EstadoPago() {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se descargó la planilla Excel maquetada de tickets`,
+        description: `Se descargó la planilla Excel maquetada de boletos`,
       });
     } catch (err) {
       toast({
@@ -1402,12 +1402,12 @@ export function EstadoPago() {
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="text-muted-foreground mt-2">
-                  Cargando tickets...
+                  Cargando boletos...
                 </p>
               </div>
             ) : tickets.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No hay tickets para este período
+                No hay boletos para este período
               </div>
             ) : (
               <>
@@ -1415,7 +1415,7 @@ export function EstadoPago() {
                   <UITable>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ticket #</TableHead>
+                        <TableHead>Boleto #</TableHead>
                         <TableHead>Fecha Compra</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead>Origen</TableHead>

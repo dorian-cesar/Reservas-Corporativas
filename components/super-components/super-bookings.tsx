@@ -264,7 +264,7 @@ export function SuperAllBookings() {
         toast({
           title: "Información",
           description:
-            errorData.message || "No se encontraron tickets para esta empresa",
+            errorData.message || "No se encontraron boletos para esta empresa",
           variant: "default",
         });
         return;
@@ -290,7 +290,7 @@ export function SuperAllBookings() {
           title: "Información",
           description:
             responseData.message ||
-            "No se encontraron tickets para esta empresa",
+            "No se encontraron boletos para esta empresa",
           variant: "default",
         });
         return;
@@ -324,7 +324,7 @@ export function SuperAllBookings() {
       });
 
       if ((ticketsArray || []).length === 0) {
-        let message = "No se encontraron tickets";
+        let message = "No se encontraron boletos";
         if (dateDesde || dateHasta) message += " para el período seleccionado";
         toast({
           title: "Información",
@@ -339,7 +339,7 @@ export function SuperAllBookings() {
         description:
           err instanceof Error
             ? err.message
-            : "No se pudieron cargar los tickets",
+            : "No se pudieron cargar los boletos",
         variant: "destructive",
       });
       setTickets([]);
@@ -497,7 +497,7 @@ export function SuperAllBookings() {
       if (!allTickets || allTickets.length === 0) {
         toast({
           title: "Sin datos",
-          description: "No hay tickets para exportar",
+          description: "No hay boletos para exportar",
           variant: "destructive",
         });
         return;
@@ -576,13 +576,13 @@ export function SuperAllBookings() {
       setIsExportDialogOpen(false);
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${allTickets.length} tickets a CSV`,
+        description: `Se exportaron ${allTickets.length} boletos a CSV`,
       });
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "No se pudieron exportar los tickets",
+        description: "No se pudieron exportar los boletos",
         variant: "destructive",
       });
     } finally {
@@ -603,14 +603,14 @@ export function SuperAllBookings() {
       if (!allTickets || allTickets.length === 0) {
         toast({
           title: "Sin datos",
-          description: "No hay tickets para exportar",
+          description: "No hay boletos para exportar",
           variant: "destructive",
         });
         return;
       }
 
       const data = allTickets.map((ticket) => ({
-        "Número de Ticket": ticket.ticketNumber || "",
+        "Número de Boleto": ticket.ticketNumber || "",
         PNR: ticket.pnrNumber || "",
         Estado: ticket.ticketStatus || "",
         "Nombre Usuario": ticket.user?.nombre || "",
@@ -635,7 +635,7 @@ export function SuperAllBookings() {
 
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Boletos");
       XLSX.writeFile(
         workbook,
         `tickets_empresa_${empresaId}_${new Date().toISOString().split("T")[0]}.xlsx`,
@@ -644,13 +644,13 @@ export function SuperAllBookings() {
       setIsExportDialogOpen(false);
       toast({
         title: "Exportación exitosa",
-        description: `Se exportaron ${allTickets.length} tickets a XLSX`,
+        description: `Se exportaron ${allTickets.length} boletos a XLSX`,
       });
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "No se pudieron exportar los tickets",
+        description: "No se pudieron exportar los boletos",
         variant: "destructive",
       });
     } finally {
@@ -1041,8 +1041,8 @@ export function SuperAllBookings() {
   return (
     <div className="space-y-6">
       <ToolBar
-        title="Gestión de Tickets"
-        description="Visualice y exporte los tickets del sistema"
+        title="Gestión de Boletos"
+        description="Visualice y exporte los boletos del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
         showCompanySelect
@@ -1072,7 +1072,7 @@ export function SuperAllBookings() {
       {isLoading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Cargando tickets...</p>
+          <p className="text-muted-foreground mt-2">Cargando boletos...</p>
         </div>
       )}
 
@@ -1084,7 +1084,7 @@ export function SuperAllBookings() {
               Selecciona una empresa
             </h3>
             <p className="text-muted-foreground">
-              Selecciona una empresa para ver sus tickets
+              Selecciona una empresa para ver sus boletos
             </p>
           </CardContent>
         </Card>
@@ -1095,12 +1095,12 @@ export function SuperAllBookings() {
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="search">Buscar por número de ticket</Label>
+                <Label htmlFor="search">Buscar por número de boleto</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="search"
-                    placeholder="Código de ticket (se busca en servidor)"
+                    placeholder="Código de boleto (se busca en servidor)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyDown={(e) => {
@@ -1180,7 +1180,7 @@ export function SuperAllBookings() {
                   </Button>
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  {pagination.total} tickets — página {pagination.page} de{" "}
+                  {pagination.total} boletos — página {pagination.page} de{" "}
                   {pagination.totalPages || 1}
                 </div>
               </div>
@@ -1279,9 +1279,9 @@ export function SuperAllBookings() {
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
+            <h3 className="text-lg font-semibold mb-2">No hay boletos</h3>
             <p className="text-muted-foreground mb-4">
-              No se encontraron tickets para la empresa seleccionada
+              No se encontraron boletos para la empresa seleccionada
             </p>
           </CardContent>
         </Card>
@@ -1290,11 +1290,11 @@ export function SuperAllBookings() {
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
         <DialogContent className="sm:max-w-100">
           <DialogHeader>
-            <DialogTitle>Exportar Tickets</DialogTitle>
+            <DialogTitle>Exportar Boletos</DialogTitle>
             <DialogDescription>
               {isLoading
-                ? "Cargando todos los tickets para exportar..."
-                : `Exporte todos los tickets de la empresa (sin límite de paginación)`}
+                ? "Cargando todos los boletos para exportar..."
+                : `Exporte todos los boletos de la empresa (sin límite de paginación)`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1302,7 +1302,7 @@ export function SuperAllBookings() {
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="text-muted-foreground mt-2 ml-2">
-                  Cargando todos los tickets...
+                  Cargando todos los boletos...
                 </p>
               </div>
             ) : (
@@ -1563,7 +1563,7 @@ export function SuperAllBookings() {
             <UITable>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticket</TableHead>
+                  <TableHead>Boleto</TableHead>
                   <TableHead>Nombre Usuario</TableHead>
                   <TableHead>RUT Usuario</TableHead>
                   <TableHead>Nombre Pasajero</TableHead>
