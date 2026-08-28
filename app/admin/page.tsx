@@ -75,7 +75,7 @@ export default function AdminPage() {
                 </TabsTrigger>
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
-                  Tickets
+                  Boletos
                 </TabsTrigger>
                 <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
