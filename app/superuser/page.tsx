@@ -92,7 +92,7 @@ export default function SuperUserPage() {
                 </TabsTrigger>
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
-                  Tickets
+                  Boletos
                 </TabsTrigger>
                 {/* <TabsTrigger value="bookings" className="gap-2">
                   <AlbumIcon className="h-4 w-4" />
