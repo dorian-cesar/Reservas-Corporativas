@@ -318,7 +318,7 @@ export function AuditoriaBookings() {
     if (ticketsToExport.length === 0) return;
 
     const headers = [
-      "Número de Ticket",
+      "Número de Boleto",
       "Nombre Usuario",
       "RUT Usuario",
       "Correo Usuario",
@@ -386,7 +386,7 @@ export function AuditoriaBookings() {
     if (ticketsToExport.length === 0) return;
 
     const data = filteredTickets.map(ticket => ({
-      "Número de Ticket": ticket.ticketNumber,
+      "Número de Boleto": ticket.ticketNumber,
       "Nombre Usuario": ticket.user.nombre,
       "RUT Usuario": ticket.user.rut,
       "Correo Usuario": ticket.user.email,
@@ -408,7 +408,7 @@ export function AuditoriaBookings() {
     const worksheet = XLSX.utils.json_to_sheet(data);
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Boletos");
 
     XLSX.writeFile(workbook, `tickets_${new Date().toISOString().split('T')[0]}.xlsx`);
 
@@ -427,8 +427,8 @@ export function AuditoriaBookings() {
   return (
     <div className="space-y-6">
       <ToolBar
-        title="Gestión de Tickets"
-        description="Visualice y exporte los tickets del sistema"
+        title="Gestión de Boletos"
+        description="Visualice y exporte los boletos del sistema"
         viewMode={viewMode}
         setViewMode={setViewMode}
 
@@ -452,7 +452,7 @@ export function AuditoriaBookings() {
       {isLoading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Cargando tickets...</p>
+          <p className="text-muted-foreground mt-2">Cargando boletos...</p>
         </div>
       )}
 
@@ -463,7 +463,7 @@ export function AuditoriaBookings() {
             <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h3 className="text-lg font-semibold mb-2">Selecciona una empresa</h3>
             <p className="text-muted-foreground">
-              Selecciona una empresa para ver sus tickets
+              Selecciona una empresa para ver sus boletos
             </p>
           </CardContent>
         </Card>
@@ -474,9 +474,9 @@ export function AuditoriaBookings() {
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">No hay tickets</h3>
+            <h3 className="text-lg font-semibold mb-2">No hay boletos</h3>
             <p className="text-muted-foreground mb-4">
-              No se encontraron tickets para la empresa seleccionada
+              No se encontraron boletos para la empresa seleccionada
             </p>
           </CardContent>
         </Card>
@@ -712,7 +712,7 @@ export function AuditoriaBookings() {
             <UITable>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticket</TableHead>
+                  <TableHead>Boleto</TableHead>
                   <TableHead>Nombre Usuario</TableHead>
                   <TableHead>RUT Usuario</TableHead>
                   <TableHead>Correo Usuario</TableHead>

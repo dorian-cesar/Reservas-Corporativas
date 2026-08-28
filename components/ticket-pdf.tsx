@@ -53,7 +53,7 @@ export default function TicketPDFButton({
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `ticket-${ticketNumber}.pdf`;
+      link.download = `boleto-${ticketNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
