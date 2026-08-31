@@ -5,8 +5,24 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { DollarSign } from "lucide-react"
+
+const METODOS_PAGO = [
+    "Transferencia",
+    "Efectivo",
+    "Factorial",
+    "Cheque",
+    "Vale Vista",
+    "Pagaré",
+] as const;
 
 type Props = {
     open: boolean;
@@ -26,7 +42,8 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [referenciaPago, setReferenciaPago] = useState("");
+    const [metodoPago, setMetodoPago] = useState<string>("Transferencia");
+    const [numeroReferencia, setNumeroReferencia] = useState("");
 
     const getReferenciaCuenta = () => {
         if (!movimiento) return "";
@@ -36,11 +53,51 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
         return `${tipo}-${movimiento.id.toString().padStart(4, '0')}`;
     };
 
+    const getReferenciaLabel = (metodo: string) => {
+        switch (metodo) {
+            case "Transferencia":
+                return "Número de Referencia Transferencia *";
+            case "Efectivo":
+                return "Número de Referencia Comprobante Efectivo *";
+            case "Factorial":
+                return "Número de Referencia Factorial *";
+            case "Cheque":
+                return "Número de Referencia Cheque *";
+            case "Vale Vista":
+                return "Número de Referencia Vale Vista *";
+            case "Pagaré":
+                return "Número de Referencia Pagaré *";
+            default:
+                return `Número de Referencia ${metodo} *`;
+        }
+    };
+
+    const getReferenciaPlaceholder = (metodo: string) => {
+        switch (metodo) {
+            case "Transferencia":
+                return "Ej: N° de transferencia bancaria";
+            case "Efectivo":
+                return "Ej: N° de recibo o comprobante";
+            case "Factorial":
+                return "Ej: N° de operación factorial";
+            case "Cheque":
+                return "Ej: N° de cheque";
+            case "Vale Vista":
+                return "Ej: N° de vale vista";
+            case "Pagaré":
+                return "Ej: N° de pagaré";
+            default:
+                return "Ingrese el número de referencia";
+        }
+    };
+
     const handlePagar = async () => {
         if (!movimiento) return;
 
         try {
             setLoading(true);
+
+            const refPagoFinal = `${metodoPago}: ${numeroReferencia.trim().toUpperCase()}`;
 
             const res = await fetch("/api/current-accounts/pagar", {
                 method: "POST",
@@ -51,7 +108,8 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                 body: JSON.stringify({
                     movimientoId: movimiento.id,
                     monto: movimiento.monto,
-                    referenciaPago: referenciaPago || undefined
+                    referenciaPago: refPagoFinal,
+                    tipo_pago: metodoPago,
                 }),
             });
 
@@ -68,7 +126,8 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
 
             onOpenChange(false);
             setConfirmOpen(false);
-            setReferenciaPago("");
+            setNumeroReferencia("");
+            setMetodoPago("Transferencia");
             onSuccess();
         } catch (err) {
             console.error(err);
@@ -97,7 +156,8 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
         <>
             <Dialog open={open} onOpenChange={(isOpen) => {
                 if (!isOpen) {
-                    setReferenciaPago("");
+                    setNumeroReferencia("");
+                    setMetodoPago("Transferencia");
                 }
                 onOpenChange(isOpen);
             }}>
@@ -143,17 +203,40 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                             </div>
                         </div>
 
+                        {/* Selector de Método de Pago */}
                         <div className="space-y-2">
-                            <Label htmlFor="referencia-pago">Referencia del pago *</Label>
+                            <Label htmlFor="metodo-pago">Método de Pago *</Label>
+                            <Select
+                                value={metodoPago}
+                                onValueChange={(val) => setMetodoPago(val)}
+                            >
+                                <SelectTrigger id="metodo-pago" className="w-full bg-white font-normal">
+                                    <SelectValue placeholder="Seleccione método de pago" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {METODOS_PAGO.map((metodo) => (
+                                        <SelectItem key={metodo} value={metodo}>
+                                            {metodo}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Input dinámico para Número de Referencia */}
+                        <div className="space-y-2">
+                            <Label htmlFor="numero-referencia">
+                                {getReferenciaLabel(metodoPago)}
+                            </Label>
                             <Input
-                                id="referencia-pago"
-                                placeholder="Ej: TRANSFER-001, CHEQUE-456, DEPOSITO-789"
-                                value={referenciaPago}
-                                onChange={(e) => setReferenciaPago(e.target.value)}
-                                className="font-medium"
+                                id="numero-referencia"
+                                placeholder={getReferenciaPlaceholder(metodoPago)}
+                                value={numeroReferencia}
+                                onChange={(e) => setNumeroReferencia(e.target.value.toUpperCase())}
+                                className="font-medium uppercase"
                             />
                             <p className="text-xs text-gray-500">
-                                Ingrese una referencia para identificar este pago (ej: número de transferencia, cheque, etc.)
+                                Ingrese el número de respaldo para el pago ({metodoPago.toLowerCase()})
                             </p>
                         </div>
                     </div>
@@ -168,7 +251,7 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                         </Button>
                         <Button
                             onClick={() => setConfirmOpen(true)}
-                            disabled={loading || !referenciaPago.trim()}
+                            disabled={loading || !numeroReferencia.trim()}
                         >
                             {loading ? "Procesando..." : "Continuar con el pago"}
                         </Button>
@@ -186,12 +269,15 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                     </DialogHeader>
 
                     <div className="py-4">
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md space-y-1">
                             <p className="text-sm font-medium text-yellow-800">
                                 Monto: {formatCurrency(movimiento.monto)}
                             </p>
-                            <p className="text-sm text-yellow-700 mt-1">
-                                Referencia: {referenciaPago}
+                            <p className="text-sm text-yellow-800">
+                                Método: <span className="font-semibold">{metodoPago}</span>
+                            </p>
+                            <p className="text-sm text-yellow-700">
+                                Referencia: {numeroReferencia}
                             </p>
                         </div>
                         <p className="text-sm text-gray-600 mt-3">
