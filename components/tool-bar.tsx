@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Table, RefreshCcw, Search, ChevronsUpDown } from "lucide-react";
+import {
+  LayoutGrid,
+  Table,
+  RefreshCcw,
+  Search,
+  ChevronsUpDown,
+} from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -14,6 +20,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ViewMode = "cards" | "table";
 type CompanySelectMode = "select" | "combobox"; // Nuevo tipo
@@ -39,13 +53,19 @@ interface ToolBarProps {
   viewMode: ViewMode;
   setViewMode: (m: ViewMode) => void;
 
+  // optional ente facturador select
+  showEnteFacturadorSelect?: boolean;
+  selectedEnteFacturador?: string;
+  onEnteFacturadorChange?: (ente: string) => void;
+  enteFacturadorOptions?: string[];
+
   // optional company select (if provided, se muestra)
   showCompanySelect?: boolean;
-  companies?: CompanyOption[];            // opciones a mostrar
-  selectedCompany?: string;               // id seleccionado
+  companies?: CompanyOption[]; // opciones a mostrar
+  selectedCompany?: string; // id seleccionado
   onCompanyChange?: (id: string) => void; // callback al cambiar
-  companySelectMode?: CompanySelectMode;  // NUEVO: modo de selección
-  companySelectPlaceholder?: string;      // NUEVO: placeholder personalizado
+  companySelectMode?: CompanySelectMode; // NUEVO: modo de selección
+  companySelectPlaceholder?: string; // NUEVO: placeholder personalizado
   loadingCompanies?: boolean;
 
   // optional search input
@@ -57,7 +77,7 @@ interface ToolBarProps {
 
   // actions
   refreshAction?: () => void;
-  primaryAction?: ActionButton;   // ej: Agregar
+  primaryAction?: ActionButton; // ej: Agregar
   secondaryActions?: ActionButton[]; // ← CAMBIO: Ahora es un array (plural)
   secondaryAction?: ActionButton; // ← OPCIONAL: Mantén el singular para compatibilidad
 
@@ -70,6 +90,11 @@ export default function ToolBar({
   description,
   viewMode,
   setViewMode,
+
+  showEnteFacturadorSelect = false,
+  selectedEnteFacturador = "",
+  onEnteFacturadorChange,
+  enteFacturadorOptions = ["WIT Latam", "Turismo FYF", "Transportes Cometa"],
 
   showCompanySelect = false,
   companies = [],
@@ -98,18 +123,43 @@ export default function ToolBar({
 
   const [open, setOpen] = useState(false);
 
-  const selectedCompanyData = companies.find(c => c.id === selectedCompany);
+  const selectedCompanyData = companies.find((c) => c.id === selectedCompany);
 
   return (
-    <div className={`flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-4 ${className}`}>
+    <div
+      className={`flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-4 ${className}`}
+    >
       <div>
         <h2 className="text-2xl font-bold">{title}</h2>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+        {showEnteFacturadorSelect && (
+          <div className="w-full sm:w-[180px]">
+            <Select
+              value={selectedEnteFacturador || "todos"}
+              onValueChange={(val) =>
+                onEnteFacturadorChange && onEnteFacturadorChange(val === "todos" ? "" : val)
+              }
+            >
+              <SelectTrigger className="w-full bg-white h-10 border-input font-normal text-sm shadow-xs">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {enteFacturadorOptions.map((ente) => (
+                  <SelectItem key={ente} value={ente}>
+                    {ente}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {showCompanySelect && (
-          <div className="flex items-center gap-2 min-w-[400px]">
+          <div className="flex items-center gap-2 min-w-[320px] lg:min-w-[400px]">
             {companySelectMode === "combobox" ? (
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
@@ -134,9 +184,7 @@ export default function ToolBar({
                     <CommandInput placeholder="Buscar empresa..." />
                     <CommandList>
                       {loadingCompanies ? (
-                        <CommandItem disabled>
-                          Cargando empresas...
-                        </CommandItem>
+                        <CommandItem disabled>Cargando empresas...</CommandItem>
                       ) : companies.length === 0 ? (
                         <CommandEmpty>No se encontró la empresa.</CommandEmpty>
                       ) : (
@@ -163,7 +211,9 @@ export default function ToolBar({
             ) : (
               <select
                 value={selectedCompany ?? ""}
-                onChange={(e) => onCompanyChange && onCompanyChange(e.target.value)}
+                onChange={(e) =>
+                  onCompanyChange && onCompanyChange(e.target.value)
+                }
                 className="p-2 border rounded-md bg-white w-full"
               >
                 <option value="">{companySelectPlaceholder}</option>
@@ -215,7 +265,10 @@ export default function ToolBar({
 
         {/* Refresh */}
         {refreshAction && (
-          <Button onClick={refreshAction} className="bg-secondary hover:bg-secondary/90 justify-center h-8">
+          <Button
+            onClick={refreshAction}
+            className="bg-secondary hover:bg-secondary/90 justify-center h-8"
+          >
             <RefreshCcw className="h-4 w-4" />
           </Button>
         )}
@@ -242,7 +295,9 @@ export default function ToolBar({
             className={`${primaryAction.className ?? "bg-accent hover:bg-accent/90"} h-8`}
             disabled={primaryAction.disabled}
           >
-            {primaryAction.icon && <span className="mr-2">{primaryAction.icon}</span>}
+            {primaryAction.icon && (
+              <span className="mr-2">{primaryAction.icon}</span>
+            )}
             {primaryAction.label}
           </Button>
         )}

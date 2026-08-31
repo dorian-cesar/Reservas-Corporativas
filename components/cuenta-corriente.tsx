@@ -375,6 +375,17 @@ export function CurrentAccounts() {
         description="Gestione los movimientos de cuenta corriente por empresa"
         viewMode={viewMode}
         setViewMode={setViewMode}
+        showEnteFacturadorSelect
+        selectedEnteFacturador={searchFilters.ente_facturador}
+        onEnteFacturadorChange={(ente) => {
+          setSearchFilters((prev) => ({ ...prev, ente_facturador: ente }));
+          if (ente && selectedCompany) {
+            const emp = companies.find((c) => c.id === selectedCompany);
+            if (emp && emp.ente_facturador && emp.ente_facturador !== ente) {
+              setSelectedCompany("");
+            }
+          }
+        }}
         showCompanySelect
         companies={displayedCompanies}
         selectedCompany={selectedCompany}
@@ -398,32 +409,7 @@ export function CurrentAccounts() {
       {selectedCompany && (
         <Card className="mb-4">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {/* Filtro por Ente Facturador */}
-              <div className="space-y-2">
-                <Label htmlFor="ente-filtro">Ente Facturador</Label>
-                <select
-                  id="ente-filtro"
-                  value={searchFilters.ente_facturador}
-                  onChange={(e) => {
-                    const nuevoEnte = e.target.value;
-                    setSearchFilters({ ...searchFilters, ente_facturador: nuevoEnte });
-                    if (nuevoEnte && selectedCompany) {
-                      const emp = companies.find((c) => c.id === selectedCompany);
-                      if (emp && emp.ente_facturador && emp.ente_facturador !== nuevoEnte) {
-                        setSelectedCompany("");
-                      }
-                    }
-                  }}
-                  className="w-full p-2 border rounded-md bg-background"
-                >
-                  <option value="">Todos</option>
-                  <option value="WIT Latam">WIT Latam</option>
-                  <option value="Turismo FYF">Turismo FYF</option>
-                  <option value="Transportes Cometa">Transportes Cometa</option>
-                </select>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Filtro por tipo */}
               <div className="space-y-2">
                 <Label htmlFor="tipo-filtro">Tipo</Label>

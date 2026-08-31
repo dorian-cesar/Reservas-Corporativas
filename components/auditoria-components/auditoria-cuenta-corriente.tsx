@@ -44,9 +44,10 @@ import ToolBar from "../tool-bar";
 
 export function AuditoriaCurrentAccounts() {
   const { token } = useAuth.getState();
-  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; nombre: string; ente_facturador?: string }[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedEnte, setSelectedEnte] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const { toast } = useToast();
@@ -96,6 +97,7 @@ export function AuditoriaCurrentAccounts() {
       const mapped = data.map((c: any) => ({
         id: c.id.toString(),
         nombre: c.nombre,
+        ente_facturador: c.ente_facturador || "",
       }));
       setCompanies(mapped);
     } catch (err) {
@@ -162,6 +164,10 @@ export function AuditoriaCurrentAccounts() {
     setIsAddDialogOpen(true);
   };
 
+  const displayedCompanies = selectedEnte
+    ? companies.filter((c) => c.ente_facturador === selectedEnte)
+    : companies;
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -169,14 +175,22 @@ export function AuditoriaCurrentAccounts() {
         description="Gestione los movimientos de cuenta corriente por empresa"
         viewMode={viewMode}
         setViewMode={setViewMode}
-
+        showEnteFacturadorSelect
+        selectedEnteFacturador={selectedEnte}
+        onEnteFacturadorChange={(ente) => {
+          setSelectedEnte(ente);
+          if (ente && selectedCompany) {
+            const emp = companies.find((c) => c.id === selectedCompany);
+            if (emp && emp.ente_facturador && emp.ente_facturador !== ente) {
+              setSelectedCompany("");
+            }
+          }
+        }}
         showCompanySelect
-        companies={companies}
+        companies={displayedCompanies}
         selectedCompany={selectedCompany}
         onCompanyChange={(id) => setSelectedCompany(id)}
-
         refreshAction={() => selectedCompany && fetchMovements(selectedCompany)}
-
       />
 
       {selectedCompany ? (
