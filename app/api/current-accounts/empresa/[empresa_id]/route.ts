@@ -32,11 +32,13 @@ export async function GET(req: NextRequest, context: any) {
     const pagado = searchParams.get("pagado");
     const desde = searchParams.get("desde");
     const hasta = searchParams.get("hasta");
+    const ente_facturador = searchParams.get("ente_facturador");
 
     if (tipo) params.append("tipo", tipo);
     if (pagado) params.append("pagado", pagado);
     if (desde) params.append("desde", desde);
     if (hasta) params.append("hasta", hasta);
+    if (ente_facturador) params.append("ente_facturador", ente_facturador);
 
     const apiUrl = `${API_BASE}/api/cuenta-corriente/empresa/${empresa_id}?${params.toString()}`;
 

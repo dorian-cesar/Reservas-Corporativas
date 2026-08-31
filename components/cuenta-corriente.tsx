@@ -50,7 +50,7 @@ import { PagarDialog } from "./pagar-dialog";
 
 export function CurrentAccounts() {
   const { user, token } = useAuth.getState();
-  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; nombre: string; ente_facturador?: string }[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -63,7 +63,8 @@ export function CurrentAccounts() {
     tipo: "",
     pagado: "",
     desde: "",
-    hasta: ""
+    hasta: "",
+    ente_facturador: "",
   });
 
   // Estados de paginación
@@ -93,6 +94,7 @@ export function CurrentAccounts() {
     empresa?: {
       id: string;
       nombre: string;
+      ente_facturador?: string;
     };
   };
 
@@ -136,6 +138,7 @@ export function CurrentAccounts() {
       const mapped = data.map((c: any) => ({
         id: c.id.toString(),
         nombre: c.nombre,
+        ente_facturador: c.ente_facturador || "",
       }));
       setCompanies(mapped);
     } catch (err) {
@@ -156,6 +159,7 @@ export function CurrentAccounts() {
     if (searchFilters.pagado) params.append("pagado", searchFilters.pagado);
     if (searchFilters.desde) params.append("desde", searchFilters.desde);
     if (searchFilters.hasta) params.append("hasta", searchFilters.hasta);
+    if (searchFilters.ente_facturador) params.append("ente_facturador", searchFilters.ente_facturador);
 
     return params.toString();
   };
@@ -232,7 +236,8 @@ export function CurrentAccounts() {
       tipo: "",
       pagado: "",
       desde: "",
-      hasta: ""
+      hasta: "",
+      ente_facturador: "",
     });
     if (selectedCompany) {
       setPagination(prev => ({ ...prev, page: 1 }));
@@ -292,59 +297,26 @@ export function CurrentAccounts() {
       setIsAddDialogOpen(false);
       resetForm();
       toast({
-        title: "Movimiento agregado",
-        description: "El movimiento ha sido agregado exitosamente",
+        title: "Abono agregado",
+        description: "El abono ha sido agregado exitosamente",
       });
 
       if (selectedCompany) {
-        fetchMovements(selectedCompany, 1, pagination.limit);
+        fetchMovements(selectedCompany, pagination.page, pagination.limit);
       }
     } catch (err) {
       console.error(err);
       toast({
         title: "Error",
-        description: "No se pudo agregar el movimiento",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async (movementId: number) => {
-    if (!confirm("¿Está seguro que desea eliminar este movimiento?")) return;
-
-    try {
-      const res = await fetch(`/api/current-accounts/${movementId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Error al eliminar movimiento");
-
-      toast({
-        title: "Movimiento eliminado",
-        description: "El movimiento ha sido eliminado exitosamente",
-      });
-
-      // Recargar la página actual
-      fetchMovements(selectedCompany, pagination.page, pagination.limit);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el movimiento",
+        description: "No se pudo agregar el abono",
         variant: "destructive",
       });
     }
   };
 
   const handlePagarClick = (movement: Movement) => {
-    // Solo permitir pagar cargos (no abonos)
-    if (movement.tipo_movimiento === 'cargo') {
-      setMovimientoAPagar(movement);
-      setPagarDialogOpen(true);
-    }
+    setMovimientoAPagar(movement);
+    setPagarDialogOpen(true);
   };
 
   const handlePagoSuccess = () => {
@@ -353,22 +325,6 @@ export function CurrentAccounts() {
     }
     setPagarDialogOpen(false);
     setMovimientoAPagar(null);
-  };
-
-  const getPaymentStatus = (movement: Movement) => {
-    if (movement.tipo_movimiento === 'abono') {
-      return <span className="text-green-600 text-sm">Abono recibido</span>;
-    }
-
-    return movement.pagado ? (
-      <div className="flex items-center gap-1 text-green-600">
-        <span className="text-sm">✓ Pagado</span>
-      </div>
-    ) : (
-      <div className="flex items-center gap-1 text-red-600">
-        <span className="text-sm">Pendiente</span>
-      </div>
-    );
   };
 
   const getCurrentBalance = () => {
@@ -408,6 +364,10 @@ export function CurrentAccounts() {
     setIsAddDialogOpen(true);
   };
 
+  const displayedCompanies = searchFilters.ente_facturador
+    ? companies.filter((c) => c.ente_facturador === searchFilters.ente_facturador)
+    : companies;
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -416,7 +376,7 @@ export function CurrentAccounts() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         showCompanySelect
-        companies={companies}
+        companies={displayedCompanies}
         selectedCompany={selectedCompany}
         onCompanyChange={(id) => setSelectedCompany(id)}
         companySelectMode="combobox"
@@ -438,7 +398,32 @@ export function CurrentAccounts() {
       {selectedCompany && (
         <Card className="mb-4">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {/* Filtro por Ente Facturador */}
+              <div className="space-y-2">
+                <Label htmlFor="ente-filtro">Ente Facturador</Label>
+                <select
+                  id="ente-filtro"
+                  value={searchFilters.ente_facturador}
+                  onChange={(e) => {
+                    const nuevoEnte = e.target.value;
+                    setSearchFilters({ ...searchFilters, ente_facturador: nuevoEnte });
+                    if (nuevoEnte && selectedCompany) {
+                      const emp = companies.find((c) => c.id === selectedCompany);
+                      if (emp && emp.ente_facturador && emp.ente_facturador !== nuevoEnte) {
+                        setSelectedCompany("");
+                      }
+                    }
+                  }}
+                  className="w-full p-2 border rounded-md bg-background"
+                >
+                  <option value="">Todos</option>
+                  <option value="WIT Latam">WIT Latam</option>
+                  <option value="Turismo FYF">Turismo FYF</option>
+                  <option value="Transportes Cometa">Transportes Cometa</option>
+                </select>
+              </div>
+
               {/* Filtro por tipo */}
               <div className="space-y-2">
                 <Label htmlFor="tipo-filtro">Tipo</Label>
@@ -446,7 +431,7 @@ export function CurrentAccounts() {
                   id="tipo-filtro"
                   value={searchFilters.tipo}
                   onChange={(e) => setSearchFilters({ ...searchFilters, tipo: e.target.value })}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md bg-background"
                 >
                   <option value="">Todos</option>
                   <option value="abono">Abono</option>
@@ -461,7 +446,7 @@ export function CurrentAccounts() {
                   id="pagado-filtro"
                   value={searchFilters.pagado}
                   onChange={(e) => setSearchFilters({ ...searchFilters, pagado: e.target.value })}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md bg-background"
                 >
                   <option value="">Todos</option>
                   <option value="true">Pagado</option>
@@ -469,12 +454,33 @@ export function CurrentAccounts() {
                 </select>
               </div>
 
+              {/* Filtro por fecha Desde */}
+              <div className="space-y-2">
+                <Label htmlFor="desde-filtro">Desde</Label>
+                <Input
+                  id="desde-filtro"
+                  type="date"
+                  value={searchFilters.desde}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, desde: e.target.value })}
+                />
+              </div>
+
+              {/* Filtro por fecha Hasta */}
+              <div className="space-y-2">
+                <Label htmlFor="hasta-filtro">Hasta</Label>
+                <Input
+                  id="hasta-filtro"
+                  type="date"
+                  value={searchFilters.hasta}
+                  onChange={(e) => setSearchFilters({ ...searchFilters, hasta: e.target.value })}
+                />
+              </div>
 
               {/* Botones de acción */}
               <div className="flex items-end gap-2">
                 <Button
                   onClick={handleSearch}
-                  className="bg-accent hover:bg-accent/90"
+                  className="bg-accent hover:bg-accent/90 flex-1"
                   disabled={loadingMovements}
                 >
                   <Search className="h-4 w-4 mr-2" />
@@ -493,10 +499,8 @@ export function CurrentAccounts() {
         </Card>
       )}
 
-      {/* Modal para agregar movimiento (igual que antes) */}
+      {/* Modal para agregar movimiento */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogTrigger asChild>
-        </DialogTrigger>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Agregar Nuevo Abono</DialogTitle>
