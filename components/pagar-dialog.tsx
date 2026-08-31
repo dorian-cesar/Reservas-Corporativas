@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { DollarSign } from "lucide-react"
+import { DollarSign, Paperclip, Upload, CheckCircle2, X } from "lucide-react"
 
 const METODOS_PAGO = [
     "Transferencia",
@@ -40,10 +40,12 @@ type Props = {
 
 export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }: Props) {
     const { toast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [metodoPago, setMetodoPago] = useState<string>("Transferencia");
     const [numeroReferencia, setNumeroReferencia] = useState("");
+    const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
 
     const getReferenciaCuenta = () => {
         if (!movimiento) return "";
@@ -91,6 +93,21 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 25 * 1024 * 1024) {
+                toast({
+                    title: "Archivo muy pesado",
+                    description: "El comprobante no debe superar los 25 MB",
+                    variant: "destructive",
+                });
+                return;
+            }
+            setComprobanteFile(file);
+        }
+    };
+
     const handlePagar = async () => {
         if (!movimiento) return;
 
@@ -119,14 +136,32 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                 throw new Error(data.message || "Error al procesar el pago");
             }
 
+            // Si se adjuntó un archivo comprobante, subirlo al S3 (1 sola vez vinculado al abono o cargo)
+            if (comprobanteFile) {
+                const targetId = data?.pago?.id || movimiento.id;
+                try {
+                    const formDataPago = new FormData();
+                    formDataPago.append("file", comprobanteFile);
+                    formDataPago.append("tipo_documento", "Comprobante de Pago");
+                    await fetch(`/api/current-accounts/${targetId}/adjuntos`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: formDataPago,
+                    });
+                } catch (attachErr) {
+                    console.warn("Advertencia al subir comprobante a S3:", attachErr);
+                }
+            }
+
             toast({
                 title: "✅ Pago registrado",
-                description: "El cargo ha sido marcado como pagado y se creó un abono correspondiente",
+                description: "El cargo ha sido marcado como pagado y se creó el abono correspondiente",
             });
 
             onOpenChange(false);
             setConfirmOpen(false);
             setNumeroReferencia("");
+            setComprobanteFile(null);
             setMetodoPago("Transferencia");
             onSuccess();
         } catch (err) {
@@ -157,11 +192,12 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
             <Dialog open={open} onOpenChange={(isOpen) => {
                 if (!isOpen) {
                     setNumeroReferencia("");
+                    setComprobanteFile(null);
                     setMetodoPago("Transferencia");
                 }
                 onOpenChange(isOpen);
             }}>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[520px] max-w-[95vw] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle>Registrar Pago</DialogTitle>
                         <DialogDescription>
@@ -239,6 +275,58 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                                 Ingrese el número de respaldo para el pago ({metodoPago.toLowerCase()})
                             </p>
                         </div>
+
+                        {/* Adjuntar Comprobante de Pago Opcional */}
+                        <div className="space-y-2 pt-1">
+                            <Label className="text-xs font-semibold flex items-center gap-1.5 text-slate-700">
+                                <Paperclip className="h-3.5 w-3.5 text-primary" />
+                                Adjuntar Comprobante / Respaldo (Opcional)
+                            </Label>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                className="hidden"
+                                accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx"
+                            />
+
+                            {comprobanteFile ? (
+                                <div className="flex items-center justify-between p-2.5 bg-green-50/70 border border-green-200 rounded-lg text-xs gap-2 w-full max-w-full overflow-hidden">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                        <span
+                                            className="font-medium text-green-950 truncate block max-w-[260px] sm:max-w-[380px]"
+                                            title={comprobanteFile.name}
+                                        >
+                                            {comprobanteFile.name}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setComprobanteFile(null);
+                                            if (fileInputRef.current) fileInputRef.current.value = "";
+                                        }}
+                                        className="h-6 w-6 p-0 text-red-500 hover:bg-red-100 hover:text-red-700 shrink-0"
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="w-full justify-center h-9 text-xs border-dashed border-slate-300 text-slate-700 bg-white hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                                    Seleccionar archivo de comprobante (PDF, Imagen, etc.)
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
                     <DialogFooter className="gap-2">
@@ -246,6 +334,7 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                             variant="outline"
                             onClick={() => onOpenChange(false)}
                             disabled={loading}
+                            className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                         >
                             Cancelar
                         </Button>
@@ -260,7 +349,7 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
             </Dialog>
 
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                <DialogContent className="sm:max-w-[400px]">
+                <DialogContent className="sm:max-w-[400px] max-w-[95vw] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle>Confirmar Pago</DialogTitle>
                         <DialogDescription>
@@ -279,6 +368,17 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                             <p className="text-sm text-yellow-700">
                                 Referencia: {numeroReferencia}
                             </p>
+                            {comprobanteFile && (
+                                <p className="text-xs text-green-700 font-medium pt-1 flex items-center gap-1 min-w-0 max-w-full overflow-hidden">
+                                    <Paperclip className="h-3 w-3 shrink-0" />
+                                    <span
+                                        className="truncate block max-w-[230px] sm:max-w-[290px]"
+                                        title={comprobanteFile.name}
+                                    >
+                                        Comprobante adjunto: {comprobanteFile.name}
+                                    </span>
+                                </p>
+                            )}
                         </div>
                         <p className="text-sm text-gray-600 mt-3">
                             Esta acción marcará el cargo como pagado y creará un abono correspondiente.
@@ -290,6 +390,7 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                             variant="outline"
                             onClick={() => setConfirmOpen(false)}
                             disabled={loading}
+                            className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                         >
                             No, cancelar
                         </Button>

@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Plus,
   Pencil,
@@ -29,9 +35,9 @@ import {
   LayoutGrid,
   TrendingUp,
   TrendingDown,
-  Badge
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+  Badge,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table as UITable,
   TableBody,
@@ -39,16 +45,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import ToolBar from "../tool-bar";
+import { AdjuntosDialog } from "../adjuntos-dialog";
+import { Paperclip } from "lucide-react";
 
 export function AuditoriaCurrentAccounts() {
   const { token } = useAuth.getState();
-  const [companies, setCompanies] = useState<{ id: string; nombre: string; ente_facturador?: string }[]>([]);
+  const [companies, setCompanies] = useState<
+    { id: string; nombre: string; ente_facturador?: string }[]
+  >([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [selectedEnte, setSelectedEnte] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [adjuntosDialogOpen, setAdjuntosDialogOpen] = useState(false);
+  const [selectedMovementForAdjuntos, setSelectedMovementForAdjuntos] =
+    useState<Movement | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const { toast } = useToast();
 
@@ -56,7 +69,7 @@ export function AuditoriaCurrentAccounts() {
     id: number;
     empresa_id: string;
     fecha_movimiento: string;
-    tipo_movimiento: 'abono' | 'cargo';
+    tipo_movimiento: "abono" | "cargo";
     monto: number;
     descripcion?: string;
     saldo: number;
@@ -72,10 +85,10 @@ export function AuditoriaCurrentAccounts() {
 
   const [formData, setFormData] = useState({
     empresa_id: "",
-    tipo_movimiento: "abono" as 'abono' | 'cargo',
+    tipo_movimiento: "abono" as "abono" | "cargo",
     monto: "",
     descripcion: "",
-    referencia: ""
+    referencia: "",
   });
 
   useEffect(() => {
@@ -103,7 +116,11 @@ export function AuditoriaCurrentAccounts() {
       setCompanies(mapped);
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
     }
   };
 
@@ -114,11 +131,19 @@ export function AuditoriaCurrentAccounts() {
       });
       if (!res.ok) throw new Error("Error fetching movimientos");
       const data = await res.json();
-      const movementsArray = Array.isArray(data.movimientos) ? data.movimientos : (Array.isArray(data) ? data : []);
+      const movementsArray = Array.isArray(data.movimientos)
+        ? data.movimientos
+        : Array.isArray(data)
+          ? data
+          : [];
       setMovements(movementsArray);
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "No se pudieron cargar los movimientos", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los movimientos",
+        variant: "destructive",
+      });
     }
   };
 
@@ -128,41 +153,46 @@ export function AuditoriaCurrentAccounts() {
       tipo_movimiento: "abono",
       monto: "",
       descripcion: "",
-      referencia: ""
+      referencia: "",
     });
   };
 
+  const handleOpenAdjuntos = (movement: Movement) => {
+    setSelectedMovementForAdjuntos(movement);
+    setAdjuntosDialogOpen(true);
+  };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR');
+    return new Date(dateString).toLocaleDateString("es-AR");
   };
 
-  const getMovementIcon = (tipo: 'abono' | 'cargo') => {
-    return tipo === 'abono' ?
-      <TrendingUp className="h-4 w-4 text-green-600" /> :
-      <TrendingDown className="h-4 w-4 text-red-600" />;
-  };
-
-  const getMovementBadge = (tipo: 'abono' | 'cargo') => {
-    return tipo === 'abono' ? (
-      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Abono</span>
+  const getMovementIcon = (tipo: "abono" | "cargo") => {
+    return tipo === "abono" ? (
+      <TrendingUp className="h-4 w-4 text-green-600" />
     ) : (
-      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Cargo</span>
+      <TrendingDown className="h-4 w-4 text-red-600" />
     );
   };
 
-  const openAddDialog = () => {
-    resetForm();
-    setIsAddDialogOpen(true);
+  const getMovementBadge = (tipo: "abono" | "cargo") => {
+    return tipo === "abono" ? (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+        Abono
+      </span>
+    ) : (
+      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+        Cargo
+      </span>
+    );
   };
 
   const displayedCompanies = selectedEnte
@@ -196,38 +226,59 @@ export function AuditoriaCurrentAccounts() {
 
       {selectedCompany ? (
         <>
-          {/* Vista de Tarjetas */}
           {viewMode === "cards" && (
-            <div className="grid gap-4">
-              {movements.map((movement, index) => (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {movements.map((movement) => (
                 <Card
                   key={movement.id}
-                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl animate-in fade-in zoom-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="hover:shadow-md transition-shadow"
                 >
-                  <CardContent className="pt-6">
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         {getMovementIcon(movement.tipo_movimiento)}
                         <div>
-                          <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
+                          <p className="font-semibold">
+                            {movement.descripcion || "Movimiento"}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(movement.fecha_movimiento)}
-                            {movement.mes_operacion && movement.mes_operacion !== "—" && ` • Mes: ${movement.mes_operacion}`}
-                            {movement.referencia && ` • Ref: ${movement.referencia}`}
+                            {movement.mes_operacion &&
+                              movement.mes_operacion !== "—" &&
+                              ` • Mes: ${movement.mes_operacion}`}
+                            {movement.referencia &&
+                              ` • Ref: ${movement.referencia}`}
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right">
-                        <p className={`text-lg font-bold ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                          {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                        <p
+                          className={`text-lg font-bold ${
+                            movement.tipo_movimiento === "abono"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {movement.tipo_movimiento === "abono" ? "+" : "-"}
+                          {formatCurrency(movement.monto)}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Saldo: {formatCurrency(movement.saldo)}
                         </p>
                       </div>
+                    </div>
+                    <div className="flex justify-end mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 text-xs h-8 px-2.5 flex items-center gap-1.5"
+                        onClick={() => handleOpenAdjuntos(movement)}
+                        title="Ver / Adjuntar archivos"
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Adjuntos
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -244,7 +295,6 @@ export function AuditoriaCurrentAccounts() {
             </div>
           )}
 
-          {/* Vista de Tabla */}
           {viewMode === "table" && (
             <Card>
               <CardContent className="p-0">
@@ -259,6 +309,7 @@ export function AuditoriaCurrentAccounts() {
                       <TableHead>Referencia</TableHead>
                       <TableHead className="text-right">Monto</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -279,18 +330,32 @@ export function AuditoriaCurrentAccounts() {
                         <TableCell>
                           {getMovementBadge(movement.tipo_movimiento)}
                         </TableCell>
-                        <TableCell>
-                          {movement.descripcion || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {movement.referencia || "-"}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                          {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                        <TableCell>{movement.descripcion || "-"}</TableCell>
+                        <TableCell>{movement.referencia || "-"}</TableCell>
+                        <TableCell
+                          className={`text-right font-medium ${
+                            movement.tipo_movimiento === "abono"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {movement.tipo_movimiento === "abono" ? "+" : "-"}
+                          {formatCurrency(movement.monto)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(movement.saldo)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenAdjuntos(movement)}
+                            className="h-8 px-2.5 text-xs text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5 ml-auto"
+                            title="Ver y adjuntar archivos"
+                          >
+                            <Paperclip className="h-3.5 w-3.5" />
+                            Adjuntos
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -314,6 +379,15 @@ export function AuditoriaCurrentAccounts() {
           </CardContent>
         </Card>
       )}
+      <AdjuntosDialog
+        open={adjuntosDialogOpen}
+        onOpenChange={setAdjuntosDialogOpen}
+        movimiento={selectedMovementForAdjuntos}
+        token={token}
+        onAdjuntosChange={() =>
+          selectedCompany && fetchMovements(selectedCompany)
+        }
+      />
     </div>
   );
 }
