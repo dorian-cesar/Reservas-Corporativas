@@ -87,6 +87,8 @@ export function CurrentAccounts() {
     descripcion?: string;
     saldo: number;
     referencia?: string;
+    mes_operacion?: string;
+    periodo_operacion?: string;
     pagado?: boolean;
     empresa?: {
       id: string;
@@ -724,6 +726,7 @@ export function CurrentAccounts() {
                           <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(movement.fecha_movimiento)}
+                            {movement.mes_operacion && movement.mes_operacion !== "—" && ` • Mes: ${movement.mes_operacion}`}
                             {movement.referencia && ` • Ref: ${movement.referencia}`}
                           </p>
                         </div>
@@ -776,6 +779,7 @@ export function CurrentAccounts() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Fecha</TableHead>
+                      <TableHead>Mes de Operación</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Descripción</TableHead>
@@ -789,6 +793,9 @@ export function CurrentAccounts() {
                     {movements.map((movement) => (
                       <TableRow key={movement.id} className="hover:bg-muted/50">
                         <TableCell>{formatDate(movement.fecha_movimiento)}</TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {movement.mes_operacion || "—"}
+                        </TableCell>
                         <TableCell>{getMovementBadge(movement.tipo_movimiento)}</TableCell>
 
                         {/* COLUMNA ESTADO */}
