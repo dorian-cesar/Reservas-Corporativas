@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
 import { useAuth } from "@/lib/auth";
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Plus,
   Pencil,
@@ -30,9 +36,9 @@ import {
   TrendingUp,
   TrendingDown,
   Badge,
-  User
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+  User,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table as UITable,
   TableBody,
@@ -40,27 +46,36 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import ToolBar from "../tool-bar";
 import ToolBarAdmin from "../ToolBarAdmin";
+import { AdjuntosDialog } from "../adjuntos-dialog";
+import { Paperclip } from "lucide-react";
 
 export function AdminCurrentAccounts() {
   const { token, user } = useAuth.getState();
-  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>([]);
+  const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>(
+    [],
+  );
   const [movements, setMovements] = useState<Movement[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [adjuntosDialogOpen, setAdjuntosDialogOpen] = useState(false);
+  const [selectedMovementForAdjuntos, setSelectedMovementForAdjuntos] =
+    useState<Movement | null>(null);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const { toast } = useToast();
   const [empresaId, setEmpresaId] = useState("");
-  const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
-
+  const [userCompany, setUserCompany] = useState<{
+    id: string;
+    nombre: string;
+  } | null>(null);
 
   type Movement = {
     id: number;
     empresa_id: string;
     fecha_movimiento: string;
-    tipo_movimiento: 'abono' | 'cargo';
+    tipo_movimiento: "abono" | "cargo";
     monto: number;
     descripcion?: string;
     saldo: number;
@@ -76,10 +91,10 @@ export function AdminCurrentAccounts() {
 
   const [formData, setFormData] = useState({
     empresa_id: "",
-    tipo_movimiento: "abono" as 'abono' | 'cargo',
+    tipo_movimiento: "abono" as "abono" | "cargo",
     monto: "",
     descripcion: "",
-    referencia: ""
+    referencia: "",
   });
 
   useEffect(() => {
@@ -95,7 +110,7 @@ export function AdminCurrentAccounts() {
     if (id) {
       // sincronizar selectedCompany y formData
       setSelectedCompany(id.toString());
-      setFormData(prev => ({ ...prev, empresa_id: id.toString() }));
+      setFormData((prev) => ({ ...prev, empresa_id: id.toString() }));
       fetchMovements(id.toString());
     } else {
       setMovements([]);
@@ -104,11 +119,19 @@ export function AdminCurrentAccounts() {
 
   const fetchCompanies = async () => {
     try {
-      const res = await fetch("/api/companies", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch("/api/companies", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
-      setCompanies(data.map((c: any) => ({ id: c.id.toString(), nombre: c.nombre })));
+      setCompanies(
+        data.map((c: any) => ({ id: c.id.toString(), nombre: c.nombre })),
+      );
     } catch {
-      toast({ title: "Error", description: "No se pudieron cargar las empresas", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las empresas",
+        variant: "destructive",
+      });
     }
   };
 
@@ -124,7 +147,7 @@ export function AdminCurrentAccounts() {
         const companyData = await res.json();
         const company = {
           id: companyData.id.toString(),
-          nombre: companyData.nombre
+          nombre: companyData.nombre,
         };
 
         setUserCompany(company);
@@ -136,7 +159,7 @@ export function AdminCurrentAccounts() {
       toast({
         title: "Error",
         description: "No se pudo cargar la empresa del usuario",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -148,11 +171,19 @@ export function AdminCurrentAccounts() {
       });
       if (!res.ok) throw new Error("Error fetching movimientos");
       const data = await res.json();
-      const movementsArray = Array.isArray(data.movimientos) ? data.movimientos : (Array.isArray(data) ? data : []);
+      const movementsArray = Array.isArray(data.movimientos)
+        ? data.movimientos
+        : Array.isArray(data)
+          ? data
+          : [];
       setMovements(movementsArray);
     } catch (err) {
       console.error(err);
-      toast({ title: "Error", description: "No se pudieron cargar los movimientos", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los movimientos",
+        variant: "destructive",
+      });
     }
   };
 
@@ -162,7 +193,7 @@ export function AdminCurrentAccounts() {
       tipo_movimiento: "abono",
       monto: "",
       descripcion: "",
-      referencia: ""
+      referencia: "",
     });
   };
 
@@ -188,7 +219,7 @@ export function AdminCurrentAccounts() {
           tipo_movimiento: formData.tipo_movimiento,
           monto: parseFloat(formData.monto),
           descripcion: formData.descripcion,
-          referencia: formData.referencia
+          referencia: formData.referencia,
         }),
       });
 
@@ -242,35 +273,46 @@ export function AdminCurrentAccounts() {
     }
   };
 
+  const handleOpenAdjuntos = (movement: Movement) => {
+    setSelectedMovementForAdjuntos(movement);
+    setAdjuntosDialogOpen(true);
+  };
+
   const getCurrentBalance = () => {
     if (movements.length === 0) return 0;
     return movements[movements.length - 1].saldo;
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
+    return new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: "CLP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR');
+    return new Date(dateString).toLocaleDateString("es-AR");
   };
 
-  const getMovementIcon = (tipo: 'abono' | 'cargo') => {
-    return tipo === 'abono' ?
-      <TrendingUp className="h-4 w-4 text-green-600" /> :
-      <TrendingDown className="h-4 w-4 text-red-600" />;
-  };
-
-  const getMovementBadge = (tipo: 'abono' | 'cargo') => {
-    return tipo === 'abono' ? (
-      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Abono</span>
+  const getMovementIcon = (tipo: "abono" | "cargo") => {
+    return tipo === "abono" ? (
+      <TrendingUp className="h-4 w-4 text-green-600" />
     ) : (
-      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">Cargo</span>
+      <TrendingDown className="h-4 w-4 text-red-600" />
+    );
+  };
+
+  const getMovementBadge = (tipo: "abono" | "cargo") => {
+    return tipo === "abono" ? (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+        Abono
+      </span>
+    ) : (
+      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+        Cargo
+      </span>
     );
   };
 
@@ -285,9 +327,12 @@ export function AdminCurrentAccounts() {
         <Card>
           <CardContent className="text-center py-12">
             <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-semibold mb-2">Usuario sin empresa asignada</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              Usuario sin empresa asignada
+            </h3>
             <p className="text-muted-foreground">
-              Tu usuario no tiene una empresa asignada. Contacta al administrador.
+              Tu usuario no tiene una empresa asignada. Contacta al
+              administrador.
             </p>
           </CardContent>
         </Card>
@@ -299,13 +344,17 @@ export function AdminCurrentAccounts() {
     <div className="space-y-6">
       <ToolBarAdmin
         title="Cuenta corriente"
-        description={`Gestione los movimientos de cuenta corriente ${userCompany?.nombre || 'su empresa'}`}
+        description={`Gestione los movimientos de cuenta corriente ${userCompany?.nombre || "su empresa"}`}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        companyInfo={userCompany ? {
-          id: userCompany.id,
-          nombre: userCompany.nombre
-        } : undefined}
+        companyInfo={
+          userCompany
+            ? {
+                id: userCompany.id,
+                nombre: userCompany.nombre,
+              }
+            : undefined
+        }
         refreshAction={() => userCompany && fetchMovements(userCompany.id)}
         primaryAction={{
           label: "Nuevo Movimiento",
@@ -315,12 +364,13 @@ export function AdminCurrentAccounts() {
         }}
       />
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogTrigger asChild>
-        </DialogTrigger>
+        <DialogTrigger asChild></DialogTrigger>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Agregar Nuevo Movimiento</DialogTitle>
-            <DialogDescription>Registre un nuevo movimiento en la cuenta corriente</DialogDescription>
+            <DialogDescription>
+              Registre un nuevo movimiento en la cuenta corriente
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
@@ -328,7 +378,9 @@ export function AdminCurrentAccounts() {
               <select
                 id="empresa"
                 value={formData.empresa_id}
-                onChange={(e) => setFormData({ ...formData, empresa_id: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, empresa_id: e.target.value })
+                }
                 className="w-full p-2 border rounded-md"
                 disabled
               >
@@ -346,7 +398,12 @@ export function AdminCurrentAccounts() {
               <select
                 id="tipo"
                 value={formData.tipo_movimiento}
-                onChange={(e) => setFormData({ ...formData, tipo_movimiento: e.target.value as 'abono' | 'cargo' })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    tipo_movimiento: e.target.value as "abono" | "cargo",
+                  })
+                }
                 className="w-full p-2 border rounded-md"
               >
                 <option value="abono">Abono</option>
@@ -362,7 +419,9 @@ export function AdminCurrentAccounts() {
                 step="1"
                 placeholder="0"
                 value={formData.monto}
-                onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, monto: e.target.value })
+                }
               />
             </div>
 
@@ -372,7 +431,9 @@ export function AdminCurrentAccounts() {
                 id="descripcion"
                 placeholder="Descripción del movimiento"
                 value={formData.descripcion}
-                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, descripcion: e.target.value })
+                }
               />
             </div>
 
@@ -382,7 +443,9 @@ export function AdminCurrentAccounts() {
                 id="referencia"
                 placeholder="Número de referencia"
                 value={formData.referencia}
-                onChange={(e) => setFormData({ ...formData, referencia: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, referencia: e.target.value })
+                }
               />
             </div>
           </div>
@@ -390,7 +453,10 @@ export function AdminCurrentAccounts() {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAdd} className="bg-accent hover:bg-accent/90">
+            <Button
+              onClick={handleAdd}
+              className="bg-accent hover:bg-accent/90"
+            >
               Agregar
             </Button>
           </DialogFooter>
@@ -412,19 +478,30 @@ export function AdminCurrentAccounts() {
                     <div className="flex items-center gap-4">
                       {getMovementIcon(movement.tipo_movimiento)}
                       <div>
-                        <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
+                        <p className="font-semibold">
+                          {movement.descripcion || "Movimiento"}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(movement.fecha_movimiento)}
-                          {movement.mes_operacion && movement.mes_operacion !== "—" && ` • Mes: ${movement.mes_operacion}`}
-                          {movement.referencia && ` • Ref: ${movement.referencia}`}
+                          {movement.mes_operacion &&
+                            movement.mes_operacion !== "—" &&
+                            ` • Mes: ${movement.mes_operacion}`}
+                          {movement.referencia &&
+                            ` • Ref: ${movement.referencia}`}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                        {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                      <p
+                        className={`text-lg font-bold ${
+                          movement.tipo_movimiento === "abono"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {movement.tipo_movimiento === "abono" ? "+" : "-"}
+                        {formatCurrency(movement.monto)}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Saldo: {formatCurrency(movement.saldo)}
@@ -432,6 +509,16 @@ export function AdminCurrentAccounts() {
                     </div>
 
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 transition-all text-xs h-8 px-2.5 flex items-center gap-1.5"
+                        onClick={() => handleOpenAdjuntos(movement)}
+                        title="Ver / Adjuntar archivos"
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Adjuntos
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -493,21 +580,33 @@ export function AdminCurrentAccounts() {
                       <TableCell>
                         {getMovementBadge(movement.tipo_movimiento)}
                       </TableCell>
-                      <TableCell>
-                        {movement.descripcion || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {movement.referencia || "-"}
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${movement.tipo_movimiento === 'abono' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                        {movement.tipo_movimiento === 'abono' ? '+' : '-'}{formatCurrency(movement.monto)}
+                      <TableCell>{movement.descripcion || "-"}</TableCell>
+                      <TableCell>{movement.referencia || "-"}</TableCell>
+                      <TableCell
+                        className={`text-right font-medium ${
+                          movement.tipo_movimiento === "abono"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {movement.tipo_movimiento === "abono" ? "+" : "-"}
+                        {formatCurrency(movement.monto)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(movement.saldo)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenAdjuntos(movement)}
+                            className="h-8 px-2.5 text-xs text-slate-700 border-slate-300 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-1.5"
+                            title="Ver y adjuntar archivos"
+                          >
+                            <Paperclip className="h-3.5 w-3.5" />
+                            Adjuntos
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -532,6 +631,15 @@ export function AdminCurrentAccounts() {
           </Card>
         )}
       </>
+      <AdjuntosDialog
+        open={adjuntosDialogOpen}
+        onOpenChange={setAdjuntosDialogOpen}
+        movimiento={selectedMovementForAdjuntos}
+        token={token}
+        onAdjuntosChange={() =>
+          selectedCompany && fetchMovements(selectedCompany)
+        }
+      />
     </div>
   );
 }
