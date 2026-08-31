@@ -770,6 +770,7 @@ export function CurrentAccounts() {
                     <TableRow>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Mes de Operación</TableHead>
+                      <TableHead>Ente Facturador</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Descripción</TableHead>
@@ -785,6 +786,9 @@ export function CurrentAccounts() {
                         <TableCell>{formatDate(movement.fecha_movimiento)}</TableCell>
                         <TableCell className="text-sm font-medium">
                           {movement.mes_operacion || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {movement.empresa?.ente_facturador || "—"}
                         </TableCell>
                         <TableCell>{getMovementBadge(movement.tipo_movimiento)}</TableCell>
 
