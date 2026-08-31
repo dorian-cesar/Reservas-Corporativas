@@ -60,6 +60,8 @@ export function AuditoriaCurrentAccounts() {
     descripcion?: string;
     saldo: number;
     referencia?: string;
+    mes_operacion?: string;
+    periodo_operacion?: string;
     empresa?: {
       id: string;
       nombre: string;
@@ -109,7 +111,8 @@ export function AuditoriaCurrentAccounts() {
       });
       if (!res.ok) throw new Error("Error fetching movimientos");
       const data = await res.json();
-      setMovements(data);
+      const movementsArray = Array.isArray(data.movimientos) ? data.movimientos : (Array.isArray(data) ? data : []);
+      setMovements(movementsArray);
     } catch (err) {
       console.error(err);
       toast({ title: "Error", description: "No se pudieron cargar los movimientos", variant: "destructive" });
@@ -195,6 +198,7 @@ export function AuditoriaCurrentAccounts() {
                           <p className="font-semibold">{movement.descripcion || "Movimiento"}</p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(movement.fecha_movimiento)}
+                            {movement.mes_operacion && movement.mes_operacion !== "—" && ` • Mes: ${movement.mes_operacion}`}
                             {movement.referencia && ` • Ref: ${movement.referencia}`}
                           </p>
                         </div>
@@ -233,6 +237,7 @@ export function AuditoriaCurrentAccounts() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Fecha</TableHead>
+                      <TableHead>Mes de Operación</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Descripción</TableHead>
                       <TableHead>Referencia</TableHead>
@@ -248,6 +253,9 @@ export function AuditoriaCurrentAccounts() {
                             <Calendar className="h-3 w-3 text-muted-foreground" />
                             {formatDate(movement.fecha_movimiento)}
                           </div>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">
+                          {movement.mes_operacion || "—"}
                         </TableCell>
                         <TableCell>
                           {getMovementBadge(movement.tipo_movimiento)}

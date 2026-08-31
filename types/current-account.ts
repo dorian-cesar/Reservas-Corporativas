@@ -9,6 +9,8 @@ export interface CurrentAccountMovement {
     descripcion?: string;
     saldo: number;
     referencia?: string;
+    mes_operacion?: string;
+    periodo_operacion?: string;
 }
 
 export interface CreateMovementRequest {
