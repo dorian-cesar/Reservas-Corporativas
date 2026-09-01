@@ -36,6 +36,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useAuth } from "@/lib/auth";
 import {
   PhoneCall,
@@ -64,6 +77,8 @@ import {
   LayoutList,
   CalendarDays,
   CheckCircle2,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { format } from "date-fns";
@@ -259,6 +274,11 @@ export function SuperCobranza() {
   const [fechaDesde, setFechaDesde] = useState<string>("");
   const [fechaHasta, setFechaHasta] = useState<string>("");
 
+  const [openFilterEmpresaCombo, setOpenFilterEmpresaCombo] =
+    useState<boolean>(false);
+  const [openCreateEmpresaCombo, setOpenCreateEmpresaCombo] =
+    useState<boolean>(false);
+
   const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
 
   // Modales
@@ -285,11 +305,11 @@ export function SuperCobranza() {
     fecha_gestion: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   });
 
-  // Cargar lista de empresas para selects
+  // Cargar lista de empresas para selects y combobox
   const fetchEmpresas = async () => {
     try {
       const res = await fetch(
-        "/api/companies?limit=2000&includeInactives=false",
+        "/api/companies?includeInactives=true",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -300,7 +320,7 @@ export function SuperCobranza() {
         const data = await res.json();
         const list = Array.isArray(data)
           ? data
-          : data.empresas || data.companies || [];
+          : data.data || data.empresas || data.companies || [];
         setEmpresas(list);
       }
     } catch (err) {
@@ -948,30 +968,88 @@ export function SuperCobranza() {
         <CardContent>
           <form onSubmit={handleFilterSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {/* Filtro Empresa */}
+              {/* Filtro Empresa con ComboBox */}
               <div className="space-y-1">
                 <Label className="text-xs">Empresa</Label>
-                <Select
-                  value={selectedEmpresaFilter}
-                  onValueChange={setSelectedEmpresaFilter}
+                <Popover
+                  open={openFilterEmpresaCombo}
+                  onOpenChange={setOpenFilterEmpresaCombo}
                 >
-                  <SelectTrigger className="h-9 text-xs w-full min-w-0 max-w-full overflow-hidden">
-                    <SelectValue placeholder="Todas las empresas" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 max-w-[320px]">
-                    <SelectItem value="all">Todas las empresas</SelectItem>
-                    {empresas.map((emp) => (
-                      <SelectItem
-                        key={emp.id}
-                        value={String(emp.id)}
-                        className="truncate"
-                      >
-                        <span className="truncate">{emp.nombre}</span>{" "}
-                        {emp.rut ? `(${emp.rut})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openFilterEmpresaCombo}
+                      className="h-9 text-xs w-full justify-between font-normal bg-background px-2.5 overflow-hidden"
+                    >
+                      <span className="truncate">
+                        {selectedEmpresaFilter === "all"
+                          ? "Todas las empresas"
+                          : empresas.find(
+                              (e) => String(e.id) === selectedEmpresaFilter,
+                            )?.nombre || "Empresa seleccionada"}
+                      </span>
+                      <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[300px] p-0"
+                    align="start"
+                  >
+                    <Command>
+                      <CommandInput placeholder="Buscar empresa o RUT..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all Todas las empresas"
+                            onSelect={() => {
+                              setSelectedEmpresaFilter("all");
+                              setOpenFilterEmpresaCombo(false);
+                            }}
+                            className="cursor-pointer text-xs"
+                          >
+                            <Check
+                              className={`mr-2 h-3.5 w-3.5 ${
+                                selectedEmpresaFilter === "all"
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
+                            />
+                            Todas las empresas
+                          </CommandItem>
+                          {empresas.map((emp) => (
+                            <CommandItem
+                              key={emp.id}
+                              value={`${emp.id} ${emp.nombre} ${emp.rut || ""}`}
+                              onSelect={() => {
+                                setSelectedEmpresaFilter(String(emp.id));
+                                setOpenFilterEmpresaCombo(false);
+                              }}
+                              className="cursor-pointer text-xs"
+                            >
+                              <Check
+                                className={`mr-2 h-3.5 w-3.5 ${
+                                  selectedEmpresaFilter === String(emp.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
+                              />
+                              <span className="truncate font-medium">
+                                {emp.nombre}
+                              </span>
+                              {emp.rut && (
+                                <span className="ml-1 text-muted-foreground text-[11px] shrink-0">
+                                  ({emp.rut})
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Filtro Tipo */}
@@ -1560,38 +1638,74 @@ export function SuperCobranza() {
                 >
                   Empresa Cliente <span className="text-red-500">*</span>
                 </Label>
-                <Select
-                  value={formData.empresa_id}
-                  onValueChange={handleEmpresaChange}
-                  required
+                <Popover
+                  open={openCreateEmpresaCombo}
+                  onOpenChange={setOpenCreateEmpresaCombo}
                 >
-                  <SelectTrigger
-                    id="empresa_select"
-                    className="text-xs h-10 w-full min-w-0 max-w-full overflow-hidden"
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="empresa_select"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCreateEmpresaCombo}
+                      className="h-10 text-xs w-full justify-between font-normal bg-background px-3 overflow-hidden"
+                    >
+                      <span className="truncate">
+                        {formData.empresa_id
+                          ? (() => {
+                              const emp = empresas.find(
+                                (e) => String(e.id) === formData.empresa_id,
+                              );
+                              return emp
+                                ? `${emp.nombre} ${emp.rut ? `(${emp.rut})` : ""}`
+                                : "Selecciona una empresa cliente...";
+                            })()
+                          : "Selecciona una empresa cliente..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[500px] p-0"
+                    align="start"
                   >
-                    <SelectValue placeholder="Selecciona una empresa cliente..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-64 max-w-[500px]">
-                    {empresas.map((emp) => (
-                      <SelectItem
-                        key={emp.id}
-                        value={String(emp.id)}
-                        className="truncate"
-                      >
-                        <span className="font-medium truncate">
-                          {emp.nombre}
-                        </span>{" "}
-                        {emp.rut ? (
-                          <span className="text-muted-foreground text-xs shrink-0">
-                            ({emp.rut})
-                          </span>
-                        ) : (
-                          ""
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <Command>
+                      <CommandInput placeholder="Buscar por nombre, RUT o ID..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
+                        <CommandGroup>
+                          {empresas.map((emp) => (
+                            <CommandItem
+                              key={emp.id}
+                              value={`${emp.id} ${emp.nombre} ${emp.rut || ""}`}
+                              onSelect={() => {
+                                handleEmpresaChange(String(emp.id));
+                                setOpenCreateEmpresaCombo(false);
+                              }}
+                              className="cursor-pointer text-xs"
+                            >
+                              <Check
+                                className={`mr-2 h-3.5 w-3.5 ${
+                                  formData.empresa_id === String(emp.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
+                              />
+                              <span className="font-medium truncate">
+                                {emp.nombre}
+                              </span>
+                              {emp.rut && (
+                                <span className="ml-1 text-muted-foreground text-[11px] shrink-0">
+                                  ({emp.rut})
+                                </span>
+                              )}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-1.5">

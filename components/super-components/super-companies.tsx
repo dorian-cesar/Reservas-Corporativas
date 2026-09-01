@@ -23,6 +23,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Building2,
   Plus,
   Pencil,
@@ -31,6 +44,8 @@ import {
   RefreshCcw,
   Search,
   Loader2,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -198,12 +213,42 @@ export function SuperCompanies() {
     }>
   >([]);
 
+  const [allCompaniesForCombo, setAllCompaniesForCombo] = useState<
+    Array<{ id: string; name: string; rut?: string; current_account?: string }>
+  >([]);
+  const [openSearchCombo, setOpenSearchCombo] = useState<boolean>(false);
+
+  const fetchCompaniesForCombo = async () => {
+    try {
+      const res = await fetch("/api/companies?includeInactives=true", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data)
+          ? data
+          : data.data || data.empresas || data.companies || [];
+        setAllCompaniesForCombo(
+          list.map((c: any) => ({
+            id: String(c.id),
+            name: c.nombre || c.name || "",
+            rut: c.rut || "",
+            current_account: c.cuenta_corriente || c.current_account || "",
+          })),
+        );
+      }
+    } catch (err) {
+      console.error("Error al cargar empresas para combo:", err);
+    }
+  };
+
   useEffect(() => {
     fetchCompanies({
       page: 1,
       limit: pagination.limit,
       includeInactives: showInactives,
     });
+    fetchCompaniesForCombo();
   }, []);
 
   const reloadCompanies = () => {
@@ -812,7 +857,7 @@ export function SuperCompanies() {
     }
   };
 
-    const exportToXLSX = async () => {
+  const exportToXLSX = async () => {
     try {
       const res = await fetch(`/api/companies/export-excel`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -843,7 +888,7 @@ export function SuperCompanies() {
         variant: "destructive",
       });
     }
-  };;
+  };
 
   const exportAllCompaniesToXLSX = async () => {
     try {
@@ -1084,32 +1129,143 @@ export function SuperCompanies() {
         </DialogContent>
       </Dialog>
 
-      {/* Barra de búsqueda */}
+      {/* Barra de búsqueda con ComboBox */}
       <Card className="mb-4">
         <CardContent className="p-4">
-          <div className="grid md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="search">
-                Buscar empresa (nombre o cuenta corriente)
+              <Label htmlFor="search-combobox">
+                Buscar o seleccionar empresa (nombre, RUT o cuenta corriente)
               </Label>
-              <Input
-                id="search"
-                placeholder="Ej: ABCD-4"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch();
-                  }
-                }}
-                disabled={isSearching}
-              />
+              <Popover open={openSearchCombo} onOpenChange={setOpenSearchCombo}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="search-combobox"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openSearchCombo}
+                    className="w-full justify-between font-normal bg-background h-10 px-3 text-left overflow-hidden"
+                    disabled={isSearching}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">
+                        {searchQuery
+                          ? searchQuery
+                          : "Buscar empresa por nombre, RUT o cuenta corriente..."}
+                      </span>
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[600px] p-0"
+                  align="start"
+                >
+                  <Command>
+                    <CommandInput
+                      placeholder="Escribir nombre, RUT o cuenta corriente..."
+                      value={searchQuery}
+                      onValueChange={(val) => setSearchQuery(val)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          setOpenSearchCombo(false);
+                          handleSearch();
+                        }
+                      }}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="p-3 text-center text-xs text-muted-foreground">
+                          <p>No se encontraron sugerencias locales.</p>
+                          {searchQuery && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="mt-1 text-xs"
+                              onClick={() => {
+                                setOpenSearchCombo(false);
+                                handleSearch();
+                              }}
+                            >
+                              Buscar "{searchQuery}" en el servidor
+                            </Button>
+                          )}
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="all Todas las empresas"
+                          onSelect={() => {
+                            setSearchQuery("");
+                            setOpenSearchCombo(false);
+                            setPagination((prev) => ({ ...prev, page: 1 }));
+                            fetchCompanies({
+                              page: 1,
+                              limit: pagination.limit,
+                              search: "",
+                              includeInactives: showInactives,
+                            });
+                          }}
+                          className="cursor-pointer text-xs"
+                        >
+                          <Check
+                            className={`mr-2 h-3.5 w-3.5 ${
+                              !searchQuery ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          <span className="font-semibold">
+                            Todas las empresas
+                          </span>
+                        </CommandItem>
+                        {allCompaniesForCombo.map((company) => (
+                          <CommandItem
+                            key={company.id}
+                            value={`${company.id} ${company.name} ${company.rut || ""} ${company.current_account || ""}`}
+                            onSelect={() => {
+                              setSearchQuery(company.name);
+                              setOpenSearchCombo(false);
+                              setPagination((prev) => ({ ...prev, page: 1 }));
+                              fetchCompanies({
+                                page: 1,
+                                limit: pagination.limit,
+                                search: company.name,
+                                includeInactives: showInactives,
+                              });
+                            }}
+                            className="cursor-pointer text-xs"
+                          >
+                            <Check
+                              className={`mr-2 h-3.5 w-3.5 ${
+                                searchQuery === company.name
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
+                            />
+                            <div className="flex flex-col truncate">
+                              <span className="font-medium truncate">
+                                {company.name}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground font-mono">
+                                ID: {company.id}
+                                {company.rut && ` | RUT: ${company.rut}`}
+                                {company.current_account &&
+                                  ` | Cta: ${company.current_account}`}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="flex gap-2">
               <Button
                 onClick={handleSearch}
-                className="bg-accent hover:bg-accent/90"
+                className="bg-accent hover:bg-accent/90 flex-1 md:flex-none"
                 disabled={isSearching}
               >
                 <Search className="h-4 w-4 mr-2" />
@@ -1120,6 +1276,7 @@ export function SuperCompanies() {
                 variant="outline"
                 onClick={handleClearSearch}
                 disabled={isSearching}
+                className="flex-1 md:flex-none"
               >
                 Limpiar
               </Button>
@@ -1498,7 +1655,9 @@ export function SuperCompanies() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tipo_facturacion">Tipo de Facturación *</Label>
+                  <Label htmlFor="tipo_facturacion">
+                    Tipo de Facturación *
+                  </Label>
                   <select
                     name="tipo_facturacion"
                     id="tipo_facturacion"
@@ -1506,13 +1665,17 @@ export function SuperCompanies() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        tipo_facturacion: e.target.value as "Masiva" | "Especial",
+                        tipo_facturacion: e.target.value as
+                          | "Masiva"
+                          | "Especial",
                       })
                     }
                     className="w-full p-2 border rounded-md bg-background text-foreground"
                   >
                     <option value="Masiva">Masiva (EDP automático)</option>
-                    <option value="Especial">Especial (EDP manual / Caso especial)</option>
+                    <option value="Especial">
+                      Especial (EDP manual / Caso especial)
+                    </option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -1879,17 +2042,30 @@ export function SuperCompanies() {
                             RUT: {company.rut || "-"}
                           </span>
                         </div>
-                        {(company.giro || company.direccion || company.comuna) && (
+                        {(company.giro ||
+                          company.direccion ||
+                          company.comuna) && (
                           <div className="text-xs text-muted-foreground pt-0.5 space-y-0.5">
                             {company.giro && (
                               <p className="line-clamp-1">
-                                <span className="font-semibold text-foreground/80">Giro:</span> {company.giro}
+                                <span className="font-semibold text-foreground/80">
+                                  Giro:
+                                </span>{" "}
+                                {company.giro}
                               </p>
                             )}
-                            {(company.direccion || company.comuna || company.ciudad) && (
+                            {(company.direccion ||
+                              company.comuna ||
+                              company.ciudad) && (
                               <p className="line-clamp-1">
-                                <span className="font-semibold text-foreground/80">Dirección:</span>{" "}
-                                {[company.direccion, company.comuna, company.ciudad]
+                                <span className="font-semibold text-foreground/80">
+                                  Dirección:
+                                </span>{" "}
+                                {[
+                                  company.direccion,
+                                  company.comuna,
+                                  company.ciudad,
+                                ]
                                   .filter(Boolean)
                                   .join(", ")}
                               </p>
@@ -2409,20 +2585,22 @@ export function SuperCompanies() {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        tipo_facturacion: e.target.value as "Masiva" | "Especial",
+                        tipo_facturacion: e.target.value as
+                          | "Masiva"
+                          | "Especial",
                       })
                     }
                     className="w-full p-2 border rounded-md bg-background text-foreground"
                   >
                     <option value="Masiva">Masiva (EDP automático)</option>
-                    <option value="Especial">Especial (EDP manual / Caso especial)</option>
+                    <option value="Especial">
+                      Especial (EDP manual / Caso especial)
+                    </option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-ente_facturador">
-                    Ente Facturador
-                  </Label>
+                  <Label htmlFor="edit-ente_facturador">Ente Facturador</Label>
                   <select
                     id="edit-ente_facturador"
                     value={formData.ente_facturador}
@@ -2446,46 +2624,43 @@ export function SuperCompanies() {
                 </div>
               </div>
 
-                <div className="flex flex-wrap items-center gap-6 pt-2">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="fact-manual-edit"
-                      checked={formData.fact_manual}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, fact_manual: checked })
-                      }
-                      disabled={user?.role !== "superuser"}
-                    />
-                    <Label
-                      htmlFor="fact-manual-edit"
-                      className="cursor-pointer"
-                    >
-                      Facturación Manual
-                    </Label>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (Si se activa, no se generará facturación automática)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="morosidad-edit"
-                      checked={formData.morosidad}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, morosidad: checked })
-                      }
-                      disabled={
-                        user?.role !== "superuser" && user?.role !== "admin"
-                      }
-                    />
-                    <Label htmlFor="morosidad-edit" className="cursor-pointer">
-                      Morosidad
-                    </Label>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (Bloquea compras de pasajes)
-                    </span>
-                  </div>
+              <div className="flex flex-wrap items-center gap-6 pt-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="fact-manual-edit"
+                    checked={formData.fact_manual}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, fact_manual: checked })
+                    }
+                    disabled={user?.role !== "superuser"}
+                  />
+                  <Label htmlFor="fact-manual-edit" className="cursor-pointer">
+                    Facturación Manual
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (Si se activa, no se generará facturación automática)
+                  </span>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="morosidad-edit"
+                    checked={formData.morosidad}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, morosidad: checked })
+                    }
+                    disabled={
+                      user?.role !== "superuser" && user?.role !== "admin"
+                    }
+                  />
+                  <Label htmlFor="morosidad-edit" className="cursor-pointer">
+                    Morosidad
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (Bloquea compras de pasajes)
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="border-t pt-4 space-y-3">
@@ -2807,7 +2982,9 @@ monto_maximo,monto_acumulado,rut,cuenta_corriente`}
               <div className="space-y-1 text-muted-foreground">
                 <p>Registros exitosos: {result.result?.success}</p>
                 <p>Registros con error: {result.result?.errors?.length || 0}</p>
-                <p>Total de filas procesadas: {result.result?.totalRows || 0}</p>
+                <p>
+                  Total de filas procesadas: {result.result?.totalRows || 0}
+                </p>
               </div>
 
               {result.result?.errors?.length > 0 && (
