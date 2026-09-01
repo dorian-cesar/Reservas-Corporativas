@@ -1742,7 +1742,7 @@ export function SuperCobranza() {
               <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 space-y-3">
                 <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="h-4 w-4" />
-                  Compromiso de Pago (Opcional)
+                  Compromiso de Pago
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -1838,7 +1838,7 @@ export function SuperCobranza() {
               <Textarea
                 id="observaciones"
                 rows={4}
-                placeholder="Detalla lo conversado con el cliente, acuerdos alcanzados, objeciones planteadas o notas importantes para el equipo..."
+                placeholder="Detalla lo conversado con el cliente, acuerdos alcanzados, objeciones planteadas o notas importantes para su revisión..."
                 value={formData.observaciones}
                 onChange={(e) =>
                   setFormData((prev) => ({
