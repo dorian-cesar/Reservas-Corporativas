@@ -240,14 +240,15 @@ export function SuperCobranza() {
   const [gestiones, setGestiones] = useState<CobranzaGestion[]>([]);
   const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
   const [stats, setStats] = useState<CobranzaStats | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [statsLoading, setStatsLoading] = useState<boolean>(true);
 
-  // Estados de paginación y filtros
+  // Estados de paginación y carga
   const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(15);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalRecords, setTotalRecords] = useState<number>(0);
-  const [limit] = useState<number>(15);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
 
   const [selectedEmpresaFilter, setSelectedEmpresaFilter] =
     useState<string>("all");
@@ -328,8 +329,12 @@ export function SuperCobranza() {
   };
 
   // Cargar listado de gestiones
-  const fetchGestiones = async (currentPage = page) => {
-    setLoading(true);
+  const fetchGestiones = async (currentPage = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams({
         page: String(currentPage),
@@ -354,7 +359,13 @@ export function SuperCobranza() {
 
       if (res.ok) {
         const data = await res.json();
-        setGestiones(data.gestiones || []);
+        const incoming = data.gestiones || [];
+        if (append) {
+          setGestiones((prev) => [...prev, ...incoming]);
+        } else {
+          setGestiones(incoming);
+        }
+        setPage(currentPage);
         setTotalPages(data.totalPages || 1);
         setTotalRecords(data.total || 0);
       } else {
@@ -365,6 +376,7 @@ export function SuperCobranza() {
       console.error("Error en petición de gestiones:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -438,6 +450,16 @@ export function SuperCobranza() {
         icon: "warning",
         title: "Empresa requerida",
         text: "Por favor selecciona una empresa para registrar la gestión.",
+      });
+      return;
+    }
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    if (formData.fecha_compromiso && formData.fecha_compromiso < todayStr) {
+      Swal.fire({
+        icon: "warning",
+        title: "Fecha de pago inválida",
+        text: "La fecha de compromiso de pago no puede ser anterior al día de hoy.",
       });
       return;
     }
@@ -535,6 +557,16 @@ export function SuperCobranza() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGestion) return;
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    if (formData.fecha_compromiso && formData.fecha_compromiso < todayStr) {
+      Swal.fire({
+        icon: "warning",
+        title: "Fecha de pago inválida",
+        text: "La fecha de compromiso de pago no puede ser anterior al día de hoy.",
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -923,14 +955,19 @@ export function SuperCobranza() {
                   value={selectedEmpresaFilter}
                   onValueChange={setSelectedEmpresaFilter}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-9 text-xs w-full min-w-0 max-w-full overflow-hidden">
                     <SelectValue placeholder="Todas las empresas" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-60">
+                  <SelectContent className="max-h-60 max-w-[320px]">
                     <SelectItem value="all">Todas las empresas</SelectItem>
                     {empresas.map((emp) => (
-                      <SelectItem key={emp.id} value={String(emp.id)}>
-                        {emp.nombre} {emp.rut ? `(${emp.rut})` : ""}
+                      <SelectItem
+                        key={emp.id}
+                        value={String(emp.id)}
+                        className="truncate"
+                      >
+                        <span className="truncate">{emp.nombre}</span>{" "}
+                        {emp.rut ? `(${emp.rut})` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1052,14 +1089,14 @@ export function SuperCobranza() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="w-35">Fecha / Hora</TableHead>
+                  <TableHead className="w-28">Fecha / Hora</TableHead>
                   <TableHead>Empresa</TableHead>
-                  <TableHead>Tipo de Gestión</TableHead>
-                  <TableHead>Resultado</TableHead>
+                  <TableHead className="w-36">Tipo de Gestión</TableHead>
+                  <TableHead className="w-32">Resultado</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Compromiso / Próx. Acción</TableHead>
-                  <TableHead>Registrado por</TableHead>
-                  <TableHead className="text-right w-25">Acciones</TableHead>
+                  <TableHead className="w-32">Registrado por</TableHead>
+                  <TableHead className="text-right w-24">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1116,39 +1153,39 @@ export function SuperCobranza() {
                       </TableCell>
 
                       {/* Empresa */}
-                      <TableCell>
-                        <div className="font-medium text-sm text-foreground flex items-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span>
+                      <TableCell className="whitespace-normal break-words">
+                        <div className="font-medium text-xs sm:text-sm text-foreground flex items-start gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                          <span className="break-words leading-snug">
                             {gestion.empresa?.nombre ||
                               `Empresa #${gestion.empresa_id}`}
                           </span>
                         </div>
                         {gestion.empresa?.rut && (
-                          <div className="text-xs text-muted-foreground pl-5">
+                          <div className="text-[11px] text-muted-foreground pl-5 mt-0.5">
                             RUT: {gestion.empresa.rut}
                           </div>
                         )}
                       </TableCell>
 
                       {/* Tipo */}
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {renderTipoBadge(gestion.tipo_gestion)}
                       </TableCell>
 
                       {/* Estado */}
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {renderEstadoBadge(gestion.estado_gestion)}
                       </TableCell>
 
                       {/* Contacto */}
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs whitespace-normal break-words">
                         {gestion.contacto_nombre ? (
-                          <div>
-                            <div className="font-medium text-foreground">
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-foreground break-words leading-tight">
                               {gestion.contacto_nombre}
                             </div>
-                            <div className="text-[11px] text-muted-foreground">
+                            <div className="text-[11px] text-muted-foreground break-all">
                               {gestion.contacto_telefono ||
                                 gestion.contacto_email ||
                                 "Sin datos de contacto"}
@@ -1162,13 +1199,15 @@ export function SuperCobranza() {
                       </TableCell>
 
                       {/* Compromiso / Próx Acción */}
-                      <TableCell className="text-xs max-w-50">
+                      <TableCell className="text-xs whitespace-normal break-words">
                         {gestion.monto_compromiso ? (
                           <div className="text-emerald-600 dark:text-emerald-400 font-medium">
-                            $
-                            {Number(gestion.monto_compromiso).toLocaleString(
-                              "es-CL",
-                            )}
+                            <span className="font-semibold text-xs">
+                              $
+                              {Number(gestion.monto_compromiso).toLocaleString(
+                                "es-CL",
+                              )}
+                            </span>
                             {gestion.fecha_compromiso && (
                               <span className="text-[11px] text-muted-foreground block">
                                 Límite:{" "}
@@ -1181,11 +1220,11 @@ export function SuperCobranza() {
                           </div>
                         ) : gestion.proxima_accion ? (
                           <div className="text-purple-600 dark:text-purple-400">
-                            <span className="font-medium">
+                            <span className="font-medium block leading-tight break-words">
                               {gestion.proxima_accion}
                             </span>
                             {gestion.fecha_proxima_accion && (
-                              <span className="text-[11px] text-muted-foreground block">
+                              <span className="text-[11px] text-muted-foreground block mt-0.5">
                                 Fecha:{" "}
                                 {format(
                                   new Date(gestion.fecha_proxima_accion),
@@ -1202,7 +1241,7 @@ export function SuperCobranza() {
                       </TableCell>
 
                       {/* Usuario */}
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <UserCheck className="h-3.5 w-3.5 text-primary" />
                           <span>{gestion.user?.nombre || "Usuario"}</span>
@@ -1210,7 +1249,7 @@ export function SuperCobranza() {
                       </TableCell>
 
                       {/* Acciones */}
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -1306,126 +1345,188 @@ export function SuperCobranza() {
               No hay actividades para mostrar en este criterio.
             </Card>
           ) : (
-            <div className="relative border-l-2 border-primary/20 ml-4 pl-6 space-y-6">
+            <div className="relative border-l-2 border-primary/20 ml-3 pl-5 space-y-3">
               {gestiones.map((gestion) => (
                 <div key={gestion.id} className="relative group">
                   {/* Punto en la línea de tiempo */}
-                  <div className="absolute -left-[31px] top-1 h-5 w-5 rounded-full border-2 border-primary bg-background flex items-center justify-center text-primary group-hover:scale-125 transition-transform">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
+                  <div className="absolute -left-[27px] top-2.5 h-4 w-4 rounded-full border-2 border-primary bg-background flex items-center justify-center text-primary group-hover:scale-125 transition-transform">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                   </div>
 
-                  <Card className="shadow-xs hover:border-primary/40 transition-colors">
-                    <CardHeader className="py-3 px-4 border-b bg-muted/10">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-primary" />
-                          <span className="font-semibold text-sm">
-                            {gestion.empresa?.nombre ||
-                              `Empresa #${gestion.empresa_id}`}
+                  <Card className="shadow-xs hover:border-primary/40 transition-colors gap-2.5 p-3.5 text-xs">
+                    {/* Fila superior: Empresa, RUT, Badges, Fecha */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="font-semibold text-xs sm:text-sm text-foreground">
+                          {gestion.empresa?.nombre ||
+                            `Empresa #${gestion.empresa_id}`}
+                        </span>
+                        {gestion.empresa?.rut && (
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            ({gestion.empresa.rut})
                           </span>
-                          {renderTipoBadge(gestion.tipo_gestion)}
-                          {renderEstadoBadge(gestion.estado_gestion)}
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {format(
-                            new Date(gestion.fecha_gestion),
-                            "dd/MM/yyyy HH:mm",
-                          )}
-                        </div>
+                        )}
+                        {renderTipoBadge(gestion.tipo_gestion)}
+                        {renderEstadoBadge(gestion.estado_gestion)}
                       </div>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-3 text-sm">
-                      {gestion.observaciones && (
-                        <p className="text-muted-foreground bg-muted/30 p-3 rounded-md text-xs whitespace-pre-wrap">
-                          {gestion.observaciones}
-                        </p>
-                      )}
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono shrink-0">
+                        <Calendar className="h-3 w-3" />
+                        {format(
+                          new Date(gestion.fecha_gestion),
+                          "dd/MM/yyyy HH:mm",
+                        )}
+                        {" hrs"}
+                      </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                    {/* Observación / Minuta directa */}
+                    {gestion.observaciones && (
+                      <p className="text-muted-foreground bg-muted/25 border border-muted/40 p-2 px-2.5 rounded-md text-xs whitespace-pre-wrap break-all leading-relaxed">
+                        {gestion.observaciones}
+                      </p>
+                    )}
+
+                    {/* Metadatos en flex wrap compacto */}
+                    {(gestion.contacto_nombre ||
+                      gestion.monto_compromiso ||
+                      gestion.proxima_accion) && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs pt-0.5">
                         {gestion.contacto_nombre && (
-                          <div>
-                            <span className="text-muted-foreground">
-                              Contacto:
-                            </span>{" "}
-                            <span className="font-medium">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Users className="h-3 w-3 text-primary shrink-0" />
+                            <span className="font-medium text-foreground">
                               {gestion.contacto_nombre}
-                            </span>{" "}
-                            {gestion.contacto_telefono &&
-                              `(${gestion.contacto_telefono})`}
+                            </span>
+                            {gestion.contacto_telefono && (
+                              <span className="text-[11px]">
+                                ({gestion.contacto_telefono})
+                              </span>
+                            )}
                           </div>
                         )}
                         {gestion.monto_compromiso && (
-                          <div>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-emerald-600 shrink-0" />
                             <span className="text-muted-foreground">
                               Compromiso:
-                            </span>{" "}
+                            </span>
                             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                               $
                               {Number(gestion.monto_compromiso).toLocaleString(
                                 "es-CL",
                               )}
-                            </span>{" "}
-                            {gestion.fecha_compromiso &&
-                              `(Límite: ${format(new Date(gestion.fecha_compromiso), "dd/MM/yyyy")})`}
+                            </span>
+                            {gestion.fecha_compromiso && (
+                              <span className="text-[11px] text-muted-foreground">
+                                (Límite:{" "}
+                                {format(
+                                  new Date(gestion.fecha_compromiso),
+                                  "dd/MM/yyyy",
+                                )}
+                                )
+                              </span>
+                            )}
                           </div>
                         )}
                         {gestion.proxima_accion && (
-                          <div>
-                            <span className="text-muted-foreground">
-                              Próx. Acción:
-                            </span>{" "}
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-purple-600 shrink-0" />
+                            <span className="text-muted-foreground">Próx:</span>
                             <span className="font-medium text-purple-600 dark:text-purple-400">
                               {gestion.proxima_accion}
-                            </span>{" "}
-                            {gestion.fecha_proxima_accion &&
-                              `(${format(new Date(gestion.fecha_proxima_accion), "dd/MM/yyyy")})`}
+                            </span>
+                            {gestion.fecha_proxima_accion && (
+                              <span className="text-[11px] text-muted-foreground">
+                                (
+                                {format(
+                                  new Date(gestion.fecha_proxima_accion),
+                                  "dd/MM/yyyy",
+                                )}
+                                )
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
+                    )}
 
-                      <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <UserCheck className="h-3.5 w-3.5 text-primary" />
-                          <span>
-                            Registrado por:{" "}
-                            <strong>{gestion.user?.nombre}</strong>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs text-blue-600"
-                            onClick={() => {
-                              setSelectedGestion(gestion);
-                              setIsDetailOpen(true);
-                            }}
-                          >
-                            Ver detalle
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs text-amber-600"
-                            onClick={() => handleOpenEdit(gestion)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs text-red-600"
-                            onClick={() => handleDelete(gestion)}
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
+                    {/* Pie con usuario y acciones */}
+                    <div className="flex items-center justify-between pt-1.5 border-t text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <UserCheck className="h-3 w-3 text-primary shrink-0" />
+                        <span>
+                          Por:{" "}
+                          <strong className="text-foreground">
+                            {gestion.user?.nombre}
+                          </strong>
+                        </span>
                       </div>
-                    </CardContent>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => {
+                            setSelectedGestion(gestion);
+                            setIsDetailOpen(true);
+                          }}
+                        >
+                          Ver detalle
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleOpenEdit(gestion)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDelete(gestion)}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
                 </div>
               ))}
+
+              {/* Botón Cargar Más en Vista Línea de Tiempo */}
+              {page < totalPages ? (
+                <div className="pt-2 flex flex-col items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loadingMore}
+                    onClick={() => fetchGestiones(page + 1, true)}
+                    className="h-8 px-5 text-xs gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-colors shadow-xs"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        Cargando actividades...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3.5 w-3.5" />
+                        Cargar más actividades
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                gestiones.length > 0 && (
+                  <div className="pt-2 text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    Has llegado al final del historial
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
@@ -1464,15 +1565,24 @@ export function SuperCobranza() {
                   onValueChange={handleEmpresaChange}
                   required
                 >
-                  <SelectTrigger id="empresa_select" className="text-xs h-10">
+                  <SelectTrigger
+                    id="empresa_select"
+                    className="text-xs h-10 w-full min-w-0 max-w-full overflow-hidden"
+                  >
                     <SelectValue placeholder="Selecciona una empresa cliente..." />
                   </SelectTrigger>
-                  <SelectContent className="max-h-64">
+                  <SelectContent className="max-h-64 max-w-[500px]">
                     {empresas.map((emp) => (
-                      <SelectItem key={emp.id} value={String(emp.id)}>
-                        <span className="font-medium">{emp.nombre}</span>{" "}
+                      <SelectItem
+                        key={emp.id}
+                        value={String(emp.id)}
+                        className="truncate"
+                      >
+                        <span className="font-medium truncate">
+                          {emp.nombre}
+                        </span>{" "}
                         {emp.rut ? (
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-muted-foreground text-xs shrink-0">
                             ({emp.rut})
                           </span>
                         ) : (
@@ -1630,7 +1740,7 @@ export function SuperCobranza() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Compromiso de Pago (Opcional) */}
               <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 space-y-3">
-                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider block items-center gap-1.5">
+                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="h-4 w-4" />
                   Compromiso de Pago (Opcional)
                 </span>
@@ -1661,6 +1771,7 @@ export function SuperCobranza() {
                     <Input
                       id="fecha_compromiso"
                       type="date"
+                      min={format(new Date(), "yyyy-MM-dd")}
                       value={formData.fecha_compromiso}
                       onChange={(e) =>
                         setFormData((prev) => ({
@@ -1676,7 +1787,7 @@ export function SuperCobranza() {
 
               {/* Próxima Acción y Seguimiento */}
               <div className="p-4 bg-purple-500/5 rounded-xl border border-purple-500/20 space-y-3">
-                <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider block flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   Próxima Acción / Seguimiento
                 </span>
@@ -1735,7 +1846,7 @@ export function SuperCobranza() {
                     observaciones: e.target.value,
                   }))
                 }
-                className="text-xs resize-none"
+                className="text-xs min-h-[110px] w-full resize-y break-words leading-relaxed"
               />
             </div>
 
@@ -1887,7 +1998,7 @@ export function SuperCobranza() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 space-y-3">
-                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider block flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
                   <DollarSign className="h-4 w-4" />
                   Compromiso de Pago
                 </span>
@@ -1911,6 +2022,7 @@ export function SuperCobranza() {
                     <Label className="text-xs">Fecha Compromiso</Label>
                     <Input
                       type="date"
+                      min={format(new Date(), "yyyy-MM-dd")}
                       value={formData.fecha_compromiso}
                       onChange={(e) =>
                         setFormData((prev) => ({
@@ -1925,7 +2037,7 @@ export function SuperCobranza() {
               </div>
 
               <div className="p-4 bg-purple-500/5 rounded-xl border border-purple-500/20 space-y-3">
-                <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider block flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
                   Próxima Acción
                 </span>
@@ -1962,9 +2074,12 @@ export function SuperCobranza() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Observaciones</Label>
+              <Label className="text-xs font-semibold">
+                Observaciones y Minuta de la Gestión
+              </Label>
               <Textarea
                 rows={4}
+                placeholder="Detalla lo conversado con el cliente, acuerdos alcanzados, notas importantes..."
                 value={formData.observaciones}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -1972,7 +2087,7 @@ export function SuperCobranza() {
                     observaciones: e.target.value,
                   }))
                 }
-                className="text-xs resize-none"
+                className="text-xs min-h-[110px] w-full resize-y break-words leading-relaxed"
               />
             </div>
 
@@ -2079,7 +2194,7 @@ export function SuperCobranza() {
                     <span className="text-muted-foreground block text-[11px]">
                       Correo Electrónico:
                     </span>
-                    <span className="font-medium text-xs">
+                    <span className="font-medium text-xs break-all">
                       {selectedGestion.contacto_email || "No especificado"}
                     </span>
                   </div>
@@ -2119,11 +2234,11 @@ export function SuperCobranza() {
               )}
 
               {selectedGestion.observaciones && (
-                <div className="p-4 bg-muted/20 border rounded-xl space-y-1">
+                <div className="p-4 bg-muted/20 border rounded-xl space-y-1 overflow-hidden">
                   <span className="font-semibold text-foreground block">
                     Observaciones y Minuta:
                   </span>
-                  <p className="text-muted-foreground whitespace-pre-wrap text-xs leading-relaxed">
+                  <p className="text-muted-foreground whitespace-pre-wrap break-all text-xs leading-relaxed">
                     {selectedGestion.observaciones}
                   </p>
                 </div>
@@ -2135,7 +2250,7 @@ export function SuperCobranza() {
                     <span className="text-muted-foreground block text-[11px]">
                       Próxima Acción:
                     </span>
-                    <span className="font-semibold text-purple-700 dark:text-purple-300 text-xs">
+                    <span className="font-semibold text-purple-700 dark:text-purple-300 text-xs break-all">
                       {selectedGestion.proxima_accion}
                     </span>
                   </div>
