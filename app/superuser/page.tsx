@@ -14,6 +14,7 @@ import {
   AlbumIcon,
   IdCard,
   FileSpreadsheet,
+  DollarSign,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AdminStats } from "@/components/admin-stats";
@@ -27,6 +28,7 @@ import { TravelSearch } from "@/components/travel-search";
 import { UserProvider } from "@/components/providers/user-provider";
 import { CompanyPassengers } from "@/components/super-components/super-passengers";
 import { SuperReports } from "@/components/super-components/super-reports";
+import { SuperCobranza } from "@/components/super-components/super-cobranza";
 import { usePersistedTab } from "@/hooks/usePersistedTab";
 
 export default function SuperUserPage() {
@@ -103,6 +105,10 @@ export default function SuperUserPage() {
                   <IdCard className="h-4 w-4" />
                   Pasajeros
                 </TabsTrigger>
+                <TabsTrigger value="cobranza" className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Cobranza
+                </TabsTrigger>
                 {user?.role === "superuser" && (
                   <TabsTrigger value="reports" className="gap-2">
                     <FileSpreadsheet className="h-4 w-4" />
@@ -141,6 +147,10 @@ export default function SuperUserPage() {
 
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
+              </TabsContent>
+
+              <TabsContent value="cobranza" className="mt-6">
+                <SuperCobranza />
               </TabsContent>
 
               {user?.role === "superuser" && (
