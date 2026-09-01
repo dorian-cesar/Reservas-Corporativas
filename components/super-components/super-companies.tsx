@@ -99,6 +99,10 @@ export function SuperCompanies() {
     id: string;
     rut?: string;
     name: string;
+    giro?: string;
+    direccion?: string;
+    ciudad?: string;
+    comuna?: string;
     current_account?: string;
     state: boolean;
     surchargePercentage?: number;
@@ -116,6 +120,7 @@ export function SuperCompanies() {
     ente_facturador?: string;
     contacto_fact_nombre?: string;
     contacto_fact_email?: string;
+    contacto_fact_email_cc?: string;
     contacto_fact_telefono?: string;
     ejecutivo_com_nombre?: string;
     ejecutivo_com_email?: string;
@@ -160,6 +165,10 @@ export function SuperCompanies() {
   const [formData, setFormData] = useState({
     rut: "",
     name: "",
+    giro: "",
+    direccion: "",
+    ciudad: "",
+    comuna: "",
     current_account: "",
     state: true,
     surchargePercentage: "20",
@@ -174,6 +183,7 @@ export function SuperCompanies() {
     ente_facturador: "",
     contacto_fact_nombre: "",
     contacto_fact_email: "",
+    contacto_fact_email_cc: "",
     contacto_fact_telefono: "",
     ejecutivo_com_nombre: "",
     ejecutivo_com_email: "",
@@ -258,6 +268,10 @@ export function SuperCompanies() {
           id: empresa.id.toString(),
           rut: empresa.rut || "-",
           name: empresa.nombre,
+          giro: empresa.giro || "",
+          direccion: empresa.direccion || "",
+          ciudad: empresa.ciudad || "",
+          comuna: empresa.comuna || "",
           current_account: empresa.cuenta_corriente || "-",
           state: empresa.estado,
           surchargePercentage: empresa.recargo || 0,
@@ -275,6 +289,7 @@ export function SuperCompanies() {
           ente_facturador: empresa.ente_facturador || "",
           contacto_fact_nombre: empresa.contacto_fact_nombre || "",
           contacto_fact_email: empresa.contacto_fact_email || "",
+          contacto_fact_email_cc: empresa.contacto_fact_email_cc || "",
           contacto_fact_telefono: empresa.contacto_fact_telefono || "",
           ejecutivo_com_nombre: empresa.ejecutivo_com_nombre || "",
           ejecutivo_com_email: empresa.ejecutivo_com_email || "",
@@ -354,6 +369,10 @@ export function SuperCompanies() {
     setFormData({
       rut: "",
       name: "",
+      giro: "",
+      direccion: "",
+      ciudad: "",
+      comuna: "",
       current_account: "",
       state: true,
       surchargePercentage: "20",
@@ -368,6 +387,7 @@ export function SuperCompanies() {
       ente_facturador: "",
       contacto_fact_nombre: "",
       contacto_fact_email: "",
+      contacto_fact_email_cc: "",
       contacto_fact_telefono: "",
       ejecutivo_com_nombre: "",
       ejecutivo_com_email: "",
@@ -411,6 +431,10 @@ export function SuperCompanies() {
         body: JSON.stringify({
           rut: formData.rut,
           nombre: formData.name,
+          giro: formData.giro,
+          direccion: formData.direccion,
+          ciudad: formData.ciudad,
+          comuna: formData.comuna,
           cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
@@ -427,6 +451,7 @@ export function SuperCompanies() {
           ente_facturador: formData.ente_facturador,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
+          contacto_fact_email_cc: formData.contacto_fact_email_cc,
           contacto_fact_telefono: formData.contacto_fact_telefono,
           ejecutivo_com_nombre: formData.ejecutivo_com_nombre,
           ejecutivo_com_email: formData.ejecutivo_com_email,
@@ -489,6 +514,10 @@ export function SuperCompanies() {
         body: JSON.stringify({
           rut: formData.rut,
           nombre: formData.name,
+          giro: formData.giro,
+          direccion: formData.direccion,
+          ciudad: formData.ciudad,
+          comuna: formData.comuna,
           cuenta_corriente: formData.current_account,
           estado: formData.state,
           recargo: Number(formData.surchargePercentage),
@@ -504,6 +533,7 @@ export function SuperCompanies() {
           ente_facturador: formData.ente_facturador,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
+          contacto_fact_email_cc: formData.contacto_fact_email_cc,
           contacto_fact_telefono: formData.contacto_fact_telefono,
           ejecutivo_com_nombre: formData.ejecutivo_com_nombre,
           ejecutivo_com_email: formData.ejecutivo_com_email,
@@ -855,6 +885,10 @@ export function SuperCompanies() {
     setFormData({
       rut: company.rut?.toString() ?? "-",
       name: company.name,
+      giro: company.giro || "",
+      direccion: company.direccion || "",
+      ciudad: company.ciudad || "",
+      comuna: company.comuna || "",
       current_account: company.current_account?.toString() ?? "-",
       state: Boolean(company.state),
       surchargePercentage: company.surchargePercentage?.toString() ?? "0",
@@ -869,6 +903,7 @@ export function SuperCompanies() {
       ente_facturador: company.ente_facturador || "",
       contacto_fact_nombre: company.contacto_fact_nombre || "",
       contacto_fact_email: company.contacto_fact_email || "",
+      contacto_fact_email_cc: company.contacto_fact_email_cc || "",
       contacto_fact_telefono: company.contacto_fact_telefono || "",
       ejecutivo_com_nombre: company.ejecutivo_com_nombre || "",
       ejecutivo_com_email: company.ejecutivo_com_email || "",
@@ -1224,7 +1259,7 @@ export function SuperCompanies() {
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto px-1 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Columna 1 */}
+              {/* Columna 1: Identificación y Condiciones Comerciales (7 campos) */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre de la Empresa *</Label>
@@ -1235,6 +1270,53 @@ export function SuperCompanies() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rut">Rut Empresa</Label>
+                  <Input
+                    id="rut"
+                    type="text"
+                    placeholder="123456789-0"
+                    required
+                    value={formData.rut}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        rut: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="giro">Giro Comercial</Label>
+                  <Input
+                    id="giro"
+                    type="text"
+                    placeholder="Ej: Servicios de Transporte y Logística"
+                    value={formData.giro}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        giro: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="current_account">Cuenta Corriente</Label>
+                  <Input
+                    id="current_account"
+                    type="text"
+                    placeholder="ABCD-0"
+                    required
+                    value={formData.current_account}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        current_account: e.target.value,
+                      });
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1291,26 +1373,55 @@ export function SuperCompanies() {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Columna 2: Ubicación y Facturación (7 campos) */}
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rut">Rut Empresa</Label>
+                  <Label htmlFor="direccion">Dirección</Label>
                   <Input
-                    id="rut"
+                    id="direccion"
                     type="text"
-                    placeholder="123456789-0"
-                    required
-                    value={formData.rut}
+                    placeholder="Ej: Av. Providencia 1234, Of. 501"
+                    value={formData.direccion}
                     onChange={(e) => {
                       setFormData({
                         ...formData,
-                        rut: e.target.value,
+                        direccion: e.target.value,
                       });
                     }}
                   />
                 </div>
-              </div>
-
-              {/* Columna 2 */}
-              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ciudad">Ciudad</Label>
+                  <Input
+                    id="ciudad"
+                    type="text"
+                    placeholder="Ej: Santiago"
+                    value={formData.ciudad}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        ciudad: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="comuna">Comuna</Label>
+                  <Input
+                    id="comuna"
+                    type="text"
+                    placeholder="Ej: Providencia"
+                    value={formData.comuna}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        comuna: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="billingDay">Día Emisión EDP</Label>
                   <Input
@@ -1371,113 +1482,94 @@ export function SuperCompanies() {
                     type="number"
                     min="0"
                     placeholder="0"
-                    required
-                    value={formData.count}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        count: e.target.value,
-                      });
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="current_account">Cuenta Corriente</Label>
-                  <Input
-                    id="current_account"
-                    type="text"
-                    placeholder="ABCD-0"
-                    required
-                    value={formData.current_account}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        current_account: e.target.value,
-                      });
-                    }}
+                    value={formData.count || "0"}
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
+                    readOnly
                   />
                 </div>
               </div>
             </div>
 
+            {/* Configuración de Facturación y Convenio */}
             <div className="border-t pt-4 space-y-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="tipo_facturacion">
-                      Tipo de Facturación *
-                    </Label>
-                    <select
-                      id="tipo_facturacion"
-                      value={formData.tipo_facturacion}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tipo_facturacion: e.target.value as any,
-                        })
-                      }
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      <option value="Masiva">Masiva</option>
-                      <option value="Especial">Especial</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="ente_facturador">Ente Facturador</Label>
-                    <select
-                      id="ente_facturador"
-                      value={formData.ente_facturador}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          ente_facturador: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      <option value="">Seleccione Ente Facturador</option>
-                      <option value="WIT Latam">WIT Latam</option>
-                      <option value="Turismo FYF">Turismo FYF</option>
-                      <option value="Transportes Cometa">
-                        Transportes Cometa
-                      </option>
-                    </select>
-                  </div>
+              <h3 className="font-semibold text-sm text-primary">
+                Configuración de Facturación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_facturacion">Tipo de Facturación *</Label>
+                  <select
+                    name="tipo_facturacion"
+                    id="tipo_facturacion"
+                    value={formData.tipo_facturacion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tipo_facturacion: e.target.value as "Masiva" | "Especial",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="Masiva">Masiva (EDP automático)</option>
+                    <option value="Especial">Especial (EDP manual / Caso especial)</option>
+                  </select>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-6 pt-2">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="fact-manual-add"
-                      checked={formData.fact_manual}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, fact_manual: checked })
-                      }
-                    />
-                    <Label htmlFor="fact-manual-add" className="cursor-pointer">
-                      Facturación Manual
-                    </Label>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (Si se activa, no se generará facturación automática)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="morosidad-add"
-                      checked={formData.morosidad}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, morosidad: checked })
-                      }
-                    />
-                    <Label htmlFor="morosidad-add" className="cursor-pointer">
-                      Morosidad
-                    </Label>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (Bloquea compras de pasajes)
-                    </span>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ente_facturador">Ente Facturador</Label>
+                  <select
+                    name="ente_facturador"
+                    id="ente_facturador"
+                    value={formData.ente_facturador}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ente_facturador: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="">
+                      Seleccione Ente Facturador (Opcional)
+                    </option>
+                    <option value="WIT Latam">WIT Latam</option>
+                    <option value="Turismo FYF">Turismo FYF</option>
+                    <option value="Transportes Cometa">
+                      Transportes Cometa
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch
+                    id="fact_manual-add"
+                    checked={formData.fact_manual}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, fact_manual: checked })
+                    }
+                  />
+                  <Label htmlFor="fact_manual-add" className="cursor-pointer">
+                    Facturación Manual
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (Excluir de EDP masivo)
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch
+                    id="morosidad-add"
+                    checked={formData.morosidad}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, morosidad: checked })
+                    }
+                  />
+                  <Label htmlFor="morosidad-add" className="cursor-pointer">
+                    Morosidad
+                  </Label>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (Bloquea compras de pasajes)
+                  </span>
                 </div>
               </div>
             </div>
@@ -1530,6 +1622,26 @@ export function SuperCompanies() {
                     }
                   />
                 </div>
+              </div>
+              <div className="space-y-1 pt-1">
+                <Label htmlFor="contacto_fact_email_cc">
+                  Correos en Copia (CC) para Envío de EDP
+                </Label>
+                <Input
+                  id="contacto_fact_email_cc"
+                  type="text"
+                  placeholder="correo1@empresa.com, correo2@empresa.com, contabilidad@empresa.com"
+                  value={formData.contacto_fact_email_cc}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      contacto_fact_email_cc: e.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ingrese los correos separados por coma
+                </p>
               </div>
             </div>
 
@@ -1757,14 +1869,33 @@ export function SuperCompanies() {
                     </div>
                     <div>
                       <CardTitle className="text-lg">{company.name}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        {getStatusBadge(company.state)}
-                        <span className="text-xs text-muted-foreground">
-                          ID: {company.id}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          Rut: {company.rut || "-"}
-                        </span>
+                      <CardDescription className="space-y-1 mt-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getStatusBadge(company.state)}
+                          <span className="text-xs text-muted-foreground">
+                            ID: {company.id}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            RUT: {company.rut || "-"}
+                          </span>
+                        </div>
+                        {(company.giro || company.direccion || company.comuna) && (
+                          <div className="text-xs text-muted-foreground pt-0.5 space-y-0.5">
+                            {company.giro && (
+                              <p className="line-clamp-1">
+                                <span className="font-semibold text-foreground/80">Giro:</span> {company.giro}
+                              </p>
+                            )}
+                            {(company.direccion || company.comuna || company.ciudad) && (
+                              <p className="line-clamp-1">
+                                <span className="font-semibold text-foreground/80">Dirección:</span>{" "}
+                                {[company.direccion, company.comuna, company.ciudad]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </CardDescription>
                     </div>
                   </div>
@@ -2023,7 +2154,7 @@ export function SuperCompanies() {
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto px-1 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Columna 1 */}
+              {/* Columna 1: Identificación y Condiciones Comerciales (7 campos) */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
@@ -2035,6 +2166,53 @@ export function SuperCompanies() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-rut">Rut Empresa</Label>
+                  <Input
+                    id="edit-rut"
+                    type="text"
+                    placeholder="123456789-0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.rut}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        rut: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-giro">Giro Comercial</Label>
+                  <Input
+                    id="edit-giro"
+                    type="text"
+                    placeholder="Ej: Servicios de Transporte y Logística"
+                    value={formData.giro}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        giro: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-current_account">Cuenta Corriente</Label>
+                  <Input
+                    id="edit-current_account"
+                    type="text"
+                    placeholder="ABCD-0"
+                    disabled={user?.role !== "superuser"}
+                    value={formData.current_account}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        current_account: e.target.value,
+                      });
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -2096,26 +2274,55 @@ export function SuperCompanies() {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Columna 2: Ubicación y Facturación (7 campos) */}
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rut">Rut Empresa</Label>
+                  <Label htmlFor="edit-direccion">Dirección</Label>
                   <Input
-                    id="rut"
+                    id="edit-direccion"
                     type="text"
-                    placeholder="123456789-0"
-                    disabled={user?.role !== "superuser"}
-                    value={formData.rut}
+                    placeholder="Ej: Av. Providencia 1234, Of. 501"
+                    value={formData.direccion}
                     onChange={(e) => {
                       setFormData({
                         ...formData,
-                        rut: e.target.value,
+                        direccion: e.target.value,
                       });
                     }}
                   />
                 </div>
-              </div>
-
-              {/* Columna 2 */}
-              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-ciudad">Ciudad</Label>
+                  <Input
+                    id="edit-ciudad"
+                    type="text"
+                    placeholder="Ej: Santiago"
+                    value={formData.ciudad}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        ciudad: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-comuna">Comuna</Label>
+                  <Input
+                    id="edit-comuna"
+                    type="text"
+                    placeholder="Ej: Providencia"
+                    value={formData.comuna}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        comuna: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-billingDay">Día Emisión EDP</Label>
                   <Input
@@ -2183,74 +2390,61 @@ export function SuperCompanies() {
                     readOnly
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="current_account">Cuenta Corriente</Label>
-                  <Input
-                    id="current_account"
-                    type="text"
-                    placeholder="ABCD-0"
-                    disabled={user?.role !== "superuser"}
-                    value={formData.current_account}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        current_account: e.target.value,
-                      });
-                    }}
-                  />
-                </div>
               </div>
             </div>
 
+            {/* Configuración de Facturación y Convenio */}
             <div className="border-t pt-4 space-y-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-tipo_facturacion">
-                      Tipo de Facturación *
-                    </Label>
-                    <select
-                      id="edit-tipo_facturacion"
-                      value={formData.tipo_facturacion}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tipo_facturacion: e.target.value as any,
-                        })
-                      }
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      <option value="Masiva">Masiva</option>
-                      <option value="Especial">Especial</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-ente_facturador">
-                      Ente Facturador
-                    </Label>
-                    <select
-                      id="edit-ente_facturador"
-                      value={formData.ente_facturador}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          ente_facturador: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border rounded-md bg-background"
-                    >
-                      <option value="">
-                        Seleccione Ente Facturador (Opcional)
-                      </option>
-                      <option value="WIT Latam">WIT Latam</option>
-                      <option value="Turismo FYF">Turismo FYF</option>
-                      <option value="Transportes Cometa">
-                        Transportes Cometa
-                      </option>
-                    </select>
-                  </div>
+              <h3 className="font-semibold text-sm text-primary">
+                Configuración de Facturación
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tipo_facturacion">
+                    Tipo de Facturación *
+                  </Label>
+                  <select
+                    id="edit-tipo_facturacion"
+                    value={formData.tipo_facturacion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tipo_facturacion: e.target.value as "Masiva" | "Especial",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="Masiva">Masiva (EDP automático)</option>
+                    <option value="Especial">Especial (EDP manual / Caso especial)</option>
+                  </select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-ente_facturador">
+                    Ente Facturador
+                  </Label>
+                  <select
+                    id="edit-ente_facturador"
+                    value={formData.ente_facturador}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ente_facturador: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="">
+                      Seleccione Ente Facturador (Opcional)
+                    </option>
+                    <option value="WIT Latam">WIT Latam</option>
+                    <option value="Turismo FYF">Turismo FYF</option>
+                    <option value="Transportes Cometa">
+                      Transportes Cometa
+                    </option>
+                  </select>
+                </div>
+              </div>
 
                 <div className="flex flex-wrap items-center gap-6 pt-2">
                   <div className="flex items-center space-x-2">
@@ -2292,7 +2486,6 @@ export function SuperCompanies() {
                     </span>
                   </div>
                 </div>
-              </div>
             </div>
 
             <div className="border-t pt-4 space-y-3">
@@ -2343,6 +2536,26 @@ export function SuperCompanies() {
                     }
                   />
                 </div>
+              </div>
+              <div className="space-y-1 pt-1">
+                <Label htmlFor="edit-contacto_fact_email_cc">
+                  Correos en Copia (CC) para Envío de EDP
+                </Label>
+                <Input
+                  id="edit-contacto_fact_email_cc"
+                  type="text"
+                  placeholder="correo1@empresa.com, correo2@empresa.com, contabilidad@empresa.com"
+                  value={formData.contacto_fact_email_cc}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      contacto_fact_email_cc: e.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ingrese los correos separados por coma
+                </p>
               </div>
             </div>
 
