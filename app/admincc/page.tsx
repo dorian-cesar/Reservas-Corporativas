@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard, FileSpreadsheet, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
@@ -15,9 +15,12 @@ import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
 import { UserProvider } from "@/components/providers/user-provider"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
+import { SuperReports } from "@/components/super-components/super-reports"
+import { SuperCobranza } from "@/components/super-components/super-cobranza"
+import { SuperReclamos } from "@/components/super-components/super-reclamos"
 import { usePersistedTab } from "@/hooks/usePersistedTab"
 
-export default function SuperUserPage() {
+export default function AdminCCPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
 
@@ -25,7 +28,6 @@ export default function SuperUserPage() {
     "companies-crud",
     "admincc-page-active-tab"
   )
-
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -60,14 +62,14 @@ export default function SuperUserPage() {
                   <Building2 className="h-4 w-4" />
                   Empresas
                 </TabsTrigger>
-                {/* <TabsTrigger value="cost-center" className="gap-2">
+                <TabsTrigger value="cost-center" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Centros de Costo
-                </TabsTrigger> */}
-                {/* <TabsTrigger value="users" className="gap-2">
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
-                </TabsTrigger> */}
+                </TabsTrigger>
                 <TabsTrigger value="esp" className="gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
@@ -76,19 +78,26 @@ export default function SuperUserPage() {
                   <Calendar className="h-4 w-4" />
                   Cuenta corriente
                 </TabsTrigger>
-                {/* <TabsTrigger value="tickets" className="gap-2">
+                <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Boletos
-                </TabsTrigger> */}
-                {/* <TabsTrigger value="bookings" className="gap-2">
-                  <AlbumIcon className="h-4 w-4" />
-                  Reservas
-                </TabsTrigger> */}
-
-                {/* <TabsTrigger value="passengers" className="gap-2">
+                </TabsTrigger>
+                <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
                   Pasajeros
-                </TabsTrigger> */}
+                </TabsTrigger>
+                <TabsTrigger value="cobranza" className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Cobranza
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Reportes
+                </TabsTrigger>
+                <TabsTrigger value="reclamos" className="gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Reclamos
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -102,6 +111,7 @@ export default function SuperUserPage() {
               <TabsContent value="users" className="mt-6">
                 <CompanyUsers />
               </TabsContent>
+              
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
               </TabsContent>
@@ -114,13 +124,20 @@ export default function SuperUserPage() {
                 <SuperAllBookings />
               </TabsContent>
 
-              {/* <TabsContent value="bookings" className="mt-6">
-                <UserProvider />
-                <TravelSearch />
-              </TabsContent> */}
-
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
+              </TabsContent>
+
+              <TabsContent value="cobranza" className="mt-6">
+                <SuperCobranza />
+              </TabsContent>
+
+              <TabsContent value="reports" className="mt-6">
+                <SuperReports />
+              </TabsContent>
+
+              <TabsContent value="reclamos" className="mt-6">
+                <SuperReclamos />
               </TabsContent>
             </Tabs>
           </div>

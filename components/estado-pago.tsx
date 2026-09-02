@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useState, useEffect, useRef, use } from "react";
 import {
   Card,
@@ -99,6 +100,7 @@ type EstadoCuentaType = {
 
 export function EstadoPago() {
   const { user, token } = useAuth.getState();
+  const { can } = usePermissions();
   const [estadosCuenta, setEstadosCuenta] = useState<EstadoCuentaType[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
@@ -1280,11 +1282,11 @@ export function EstadoPago() {
                 <TableRow>
                   <TableHead>Fecha Generación</TableHead>
                   <TableHead>Período Facturación</TableHead>
-                  <TableHead>Total Tickets</TableHead>
-                  <TableHead>Total Anulados</TableHead>
+                  <TableHead>Total Boletos</TableHead>
+                  <TableHead>Total Boletos Anulados</TableHead>
                   <TableHead>Monto Facturado</TableHead>
                   <TableHead>Suma Devoluciones</TableHead>
-                  {(user?.role === "superuser" || user?.role === "admincc") && (
+                  {can("estados_de_pago_aplicar_descuento_a_estado_de_pago") && (
                     <TableHead>Descuento</TableHead>
                   )}
                   <TableHead>Acciones</TableHead>
@@ -1308,8 +1310,7 @@ export function EstadoPago() {
                           (ec.reclamos_descuento ?? 0),
                       )}
                     </TableCell>
-                    {(user?.role === "superuser" ||
-                      user?.role === "admincc") && (
+                    {can("estados_de_pago_aplicar_descuento_a_estado_de_pago") && (
                       <TableCell>
                         <DescuentoDialog
                           estadoCuenta={ec}

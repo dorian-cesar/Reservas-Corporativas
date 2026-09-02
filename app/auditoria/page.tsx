@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, IdCard, AlbumIcon } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, IdCard, AlbumIcon, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { AdminStats } from "@/components/admin-stats"
@@ -19,6 +19,7 @@ import { CompanyPassengers } from "@/components/super-components/super-passenger
 import { UserProvider } from "@/components/providers/user-provider"
 import { TravelSearch } from "@/components/travel-search"
 import { SuperCompanies } from "@/components/super-components/super-companies"
+import { SuperCobranza } from "@/components/super-components/super-cobranza"
 
 export default function AuditoriaPage() {
   const { user, logout } = useAuth()
@@ -76,11 +77,10 @@ export default function AuditoriaPage() {
                   <IdCard className="h-4 w-4" />
                   Pasajeros
                 </TabsTrigger>
-
-                {/* <TabsTrigger value="bookings" className="gap-2">
-                  <AlbumIcon className="h-4 w-4" />
-                  Reservas
-                </TabsTrigger> */}
+                <TabsTrigger value="cobranza" className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Cobranza
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -109,6 +109,10 @@ export default function AuditoriaPage() {
 
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
+              </TabsContent>
+
+              <TabsContent value="cobranza" className="mt-6">
+                <SuperCobranza />
               </TabsContent>
 
               {/* <TabsContent value="bookings" className="mt-6">
