@@ -90,6 +90,9 @@ interface EmpresaOption {
   contacto_fact_nombre?: string;
   contacto_fact_email?: string;
   contacto_fact_telefono?: string;
+  ejecutivo_com_nombre?: string;
+  ejecutivo_com_email?: string;
+  ejecutivo_com_telefono?: string;
 }
 
 interface CobranzaGestion {
@@ -428,18 +431,15 @@ export function SuperCobranza() {
     }, 50);
   };
 
-  // Autocompletar datos de contacto al seleccionar empresa en el form
+  // Autocompletar datos del contacto de facturación al seleccionar empresa en el form
   const handleEmpresaChange = (empresaId: string) => {
     const selected = empresas.find((e) => String(e.id) === String(empresaId));
     setFormData((prev) => ({
       ...prev,
       empresa_id: empresaId,
-      contacto_nombre:
-        prev.contacto_nombre || selected?.contacto_fact_nombre || "",
-      contacto_email:
-        prev.contacto_email || selected?.contacto_fact_email || "",
-      contacto_telefono:
-        prev.contacto_telefono || selected?.contacto_fact_telefono || "",
+      contacto_nombre: selected?.contacto_fact_nombre || "",
+      contacto_email: selected?.contacto_fact_email || "",
+      contacto_telefono: selected?.contacto_fact_telefono || "",
     }));
   };
 
@@ -1645,6 +1645,7 @@ export function SuperCobranza() {
                   <PopoverTrigger asChild>
                     <Button
                       id="empresa_select"
+                      type="button"
                       variant="outline"
                       role="combobox"
                       aria-expanded={openCreateEmpresaCombo}
@@ -1666,7 +1667,8 @@ export function SuperCobranza() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[500px] p-0"
+                    portal={false}
+                    className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[500px] p-0 z-[70]"
                     align="start"
                   >
                     <Command>
@@ -1679,6 +1681,10 @@ export function SuperCobranza() {
                               key={emp.id}
                               value={`${emp.id} ${emp.nombre} ${emp.rut || ""}`}
                               onSelect={() => {
+                                handleEmpresaChange(String(emp.id));
+                                setOpenCreateEmpresaCombo(false);
+                              }}
+                              onClick={() => {
                                 handleEmpresaChange(String(emp.id));
                                 setOpenCreateEmpresaCombo(false);
                               }}
