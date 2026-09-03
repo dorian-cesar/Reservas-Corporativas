@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import Swal from "sweetalert2";
 
 const formatCLP = (monto: number): string =>
@@ -47,6 +48,7 @@ const formatCLP = (monto: number): string =>
 
 export function SuperReports() {
   const { user, token } = useAuth();
+  const { can } = usePermissions();
   const [reportType, setReportType] = useState<"periodo" | "empresa">(
     "periodo",
   );
@@ -524,24 +526,28 @@ export function SuperReports() {
           {(reportType === "periodo" ||
             (reportType === "empresa" && selectedEmpresaDetalle !== "todas")) && (
             <>
-              <Button
-                onClick={handleExportPDF}
-                disabled={exportingPdf || loading}
-                variant="outline"
-                className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700 transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                {exportingPdf ? "Generando PDF..." : "Exportar PDF"}
-              </Button>
-              <Button
-                onClick={handleExportExcel}
-                disabled={exporting || loading}
-                variant="outline"
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                {exporting ? "Generando Excel..." : "Exportar Excel (.xlsx)"}
-              </Button>
+              {can("reportes_exportar_en_pdf") && (
+                <Button
+                  onClick={handleExportPDF}
+                  disabled={exportingPdf || loading}
+                  variant="outline"
+                  className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  {exportingPdf ? "Generando PDF..." : "Exportar PDF"}
+                </Button>
+              )}
+              {can("reportes_exportar_en_excel") && (
+                <Button
+                  onClick={handleExportExcel}
+                  disabled={exporting || loading}
+                  variant="outline"
+                  className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  {exporting ? "Generando Excel..." : "Exportar Excel (.xlsx)"}
+                </Button>
+              )}
             </>
           )}
         </div>

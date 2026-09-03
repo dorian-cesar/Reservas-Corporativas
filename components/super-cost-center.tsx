@@ -55,8 +55,11 @@ import {
 } from "@/components/ui/popover";
 
 
+import { usePermissions } from "@/hooks/usePermissions";
+
 export function SuperCostCenters() {
     const { user, token } = useAuth.getState();
+    const { can } = usePermissions();
     const [costCenters, setCostCenters] = useState<CostCenter[]>([])
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -437,7 +440,7 @@ export function SuperCostCenters() {
                 refreshAction={() => handleSearch()}
 
                 primaryAction={
-                    (user?.role === "superuser" || user?.role === "admin") ? {
+                    can("centro_de_costo_crear_nuevo_centro_de_costo") ? {
                         label: "Agregar Centro",
                         icon: <Plus className="h-4 w-4" />,
                         onClick: openAddDialog,
@@ -472,7 +475,7 @@ export function SuperCostCenters() {
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                {user?.role === "superuser" && (
+                                {can("centro_de_costo_carga_masiva") && (
                                     <div className="space-y-2">
                                         <Label>Selecciona una acción</Label>
                                         <Button
@@ -712,7 +715,7 @@ export function SuperCostCenters() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    {user?.role === "superuser" && (
+                                    {can("centro_de_costo_modificar_estado_de_centro_de_costo") && (
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -742,7 +745,7 @@ export function SuperCostCenters() {
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Creado</TableHead>
                                     <TableHead>Actualizado</TableHead>
-                                    {user?.role === "superuser" && <TableHead className="text-right">Acciones</TableHead>}
+                                    {can("centro_de_costo_modificar_estado_de_centro_de_costo") && <TableHead className="text-right">Acciones</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -763,7 +766,6 @@ export function SuperCostCenters() {
                                                 </div>
                                             </div>
                                         </TableCell>
-
                                         <TableCell>
                                             {getStatusBadge(costCenter.estado)}
                                         </TableCell>
@@ -773,9 +775,9 @@ export function SuperCostCenters() {
                                         <TableCell>
                                             <span className="text-sm">{formatDate(costCenter.updated_at)}</span>
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-end gap-2">
-                                                {(user?.role === "superuser" || user?.role === "admin") && (
+                                        {can("centro_de_costo_modificar_estado_de_centro_de_costo") && (
+                                            <TableCell>
+                                                <div className="flex justify-end gap-2">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -784,9 +786,9 @@ export function SuperCostCenters() {
                                                     >
                                                         <Pencil className="h-3 w-3" />
                                                     </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
+                                                </div>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>

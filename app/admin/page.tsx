@@ -20,19 +20,34 @@ import { SuperCostCenters } from "@/components/super-cost-center"
 import { SuperAllBookings } from "@/components/super-components/super-bookings"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
 import Reserve from "@/components/admin-components/reserve"
-import { usePersistedTab } from "@/hooks/usePersistedTab" // Importa el hook
+import { usePersistedTab } from "@/hooks/usePersistedTab"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function AdminPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { can } = usePermissions()
+
+  const tabs = [
+    { value: "cost-center", label: "Centros de Costo", icon: Settings, perm: "centro_de_costo_ver_informacion_de_centro_de_costo", component: <SuperCostCenters /> },
+    { value: "users", label: "Usuarios", icon: Users, perm: "usuarios_ver_informacion_de_usuarios", component: <CompanyUsers /> },
+    { value: "esp", label: "Estado de pago", icon: AlertCircle, perm: "estados_de_pago_ver_informacion_de_estados_de_pago", component: <AdminEstadoPago /> },
+    { value: "cuenta-corriente", label: "Cuenta corriente", icon: Calendar, perm: "cuentas_corrientes_ver_informacion_de_cuentas_corrientes", component: <AdminCurrentAccounts /> },
+    { value: "tickets", label: "Boletos", icon: BarChart, perm: "tickets_ver_informacion_de_tickets", component: <SuperAllBookings /> },
+    { value: "passengers", label: "Pasajeros", icon: IdCard, perm: "pasajeros_ver_informacion_de_pasajeros", component: <CompanyPassengers /> },
+    { value: "bookings", label: "Reservas", icon: AlbumIcon, perm: "buscar_generar_buequeda_de_servicios", component: <Reserve /> },
+  ];
+
+  const allowedTabs = tabs.filter((t) => can(t.perm));
 
   const { activeTab, handleTabChange } = usePersistedTab(
-    "cost-center",
+    allowedTabs[0]?.value || "cost-center",
     "admin-page-active-tab"
   )
 
-  // Fallback seguro por si un admin tenía guardada la pestaña 'companies-crud'
-  const safeActiveTab = activeTab === "companies-crud" ? "cost-center" : activeTab;
+  const currentTab = allowedTabs.some((t) => t.value === activeTab)
+    ? activeTab
+    : allowedTabs[0]?.value || activeTab;
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -54,7 +69,7 @@ export default function AdminPage() {
             <AdminStats />
 
             <Tabs
-              value={safeActiveTab}
+              value={currentTab}
               onValueChange={handleTabChange}
               className="w-full"
             >
@@ -64,57 +79,22 @@ export default function AdminPage() {
                   p-2 -mx-2 sm:mx-0
                   rounded-md
                 ">
-                <TabsTrigger value="cost-center" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  Centros de Costo
-                </TabsTrigger>
-                <TabsTrigger value="users" className="gap-2">
-                  <Users className="h-4 w-4" />
-                  Usuarios
-                </TabsTrigger>
-                <TabsTrigger value="esp" className="gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Estado de pago
-                </TabsTrigger>
-                <TabsTrigger value="cuenta-corriente" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Cuenta corriente
-                </TabsTrigger>
-                <TabsTrigger value="tickets" className="gap-2">
-                  <BarChart className="h-4 w-4" />
-                  Boletos
-                </TabsTrigger>
-                <TabsTrigger value="passengers" className="gap-2">
-                  <IdCard className="h-4 w-4" />
-                  Pasajeros
-                </TabsTrigger>
-                <TabsTrigger value="bookings" className="gap-2">
-                  <AlbumIcon className="h-4 w-4" />
-                  Reservas
-                </TabsTrigger>
+                {allowedTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
 
-              <TabsContent value="cost-center" className="mt-6">
-                <SuperCostCenters />
-              </TabsContent>
-              <TabsContent value="users" className="mt-6">
-                <CompanyUsers />
-              </TabsContent>
-              <TabsContent value="esp" className="mt-6">
-                <AdminEstadoPago />
-              </TabsContent>
-              <TabsContent value="cuenta-corriente" className="mt-6">
-                <AdminCurrentAccounts />
-              </TabsContent>
-              <TabsContent value="tickets" className="mt-6">
-                <SuperAllBookings />
-              </TabsContent>
-              <TabsContent value="passengers" className="mt-6">
-                <CompanyPassengers />
-              </TabsContent>
-              <TabsContent value="bookings" className="mt-6">
-                <Reserve />
-              </TabsContent>
+              {allowedTabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value} className="mt-6">
+                  {tab.component}
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
         </main>

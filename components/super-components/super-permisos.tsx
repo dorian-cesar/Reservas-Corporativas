@@ -23,17 +23,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   ShieldCheck,
   Search,
-  RotateCcw,
   RefreshCw,
   CheckCircle2,
   Building2,
@@ -41,9 +32,9 @@ import {
   CreditCard,
   Ticket,
   FileSpreadsheet,
-  AlertCircle,
   DollarSign,
   FolderLock,
+  AlertCircle,
 } from "lucide-react";
 
 interface PermisoItem {
@@ -95,9 +86,6 @@ export function SuperPermisos() {
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
   const [moduloFiltro, setModuloFiltro] = useState<string>("todos");
-  const [dialogRestablecerOpen, setDialogRestablecerOpen] =
-    useState<boolean>(false);
-  const [restableciendo, setRestableciendo] = useState<boolean>(false);
   const [updatingCell, setUpdatingCell] = useState<string | null>(null);
 
   const fetchPermisos = async () => {
@@ -196,40 +184,6 @@ export function SuperPermisos() {
     }
   };
 
-  const handleRestablecer = async () => {
-    try {
-      setRestableciendo(true);
-      const res = await fetch("/api/permisos/restablecer", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) throw new Error("Error al restablecer permisos");
-
-      const data = await res.json();
-      setPermisos(data.permisos || []);
-      setDialogRestablecerOpen(false);
-
-      toast({
-        title: "Matriz restablecida",
-        description:
-          "Todos los permisos fueron sincronizados exactamente con roles_permisos.xlsx.",
-      });
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: "Error al restablecer",
-        description: err.message || "Fallo en la sincronización con el Excel",
-        variant: "destructive",
-      });
-    } finally {
-      setRestableciendo(false);
-    }
-  };
-
   // Función para corregir nombres de módulos
   const formatModuloNombre = (nombre: string) => {
     if (nombre.toLowerCase().includes("cuanta")) {
@@ -253,7 +207,7 @@ export function SuperPermisos() {
   // Módulos únicos
   const modulosDisponibles = useMemo(() => {
     const list = Array.from(
-      new Set(permisos.map((p) => formatModuloNombre(p.modulo)))
+      new Set(permisos.map((p) => formatModuloNombre(p.modulo))),
     );
     return list;
   }, [permisos]);
@@ -348,17 +302,6 @@ export function SuperPermisos() {
                   className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
                 />
                 Actualizar
-              </Button>
-
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDialogRestablecerOpen(true)}
-                disabled={loading}
-                className="h-9 gap-1.5"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Restablecer permisos a default
               </Button>
             </div>
           </div>
@@ -515,57 +458,6 @@ export function SuperPermisos() {
           ))}
         </div>
       )}
-
-      {/* Diálogo de Confirmación para Restablecer a Excel */}
-      <Dialog
-        open={dialogRestablecerOpen}
-        onOpenChange={setDialogRestablecerOpen}
-      >
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <div className="flex items-center gap-2 text-destructive mb-1">
-              <AlertCircle className="h-5 w-5" />
-              <DialogTitle>¿Restablecer matriz a valores de Excel?</DialogTitle>
-            </div>
-            <DialogDescription className="text-xs sm:text-sm pt-2">
-              Esta acción sobrescribirá todos los permisos actuales en la base
-              de datos y cargará los valores predeterminados definidos en el
-              archivo <strong>roles_permisos.xlsx</strong>.
-              <br />
-              <br />
-              Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setDialogRestablecerOpen(false)}
-              disabled={restableciendo}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRestablecer}
-              disabled={restableciendo}
-              className="gap-1.5"
-            >
-              {restableciendo ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Restableciendo...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="h-4 w-4" />
-                  Sí, Restablecer Matriz
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

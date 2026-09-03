@@ -457,7 +457,7 @@ export function CurrentAccounts() {
           fetchMovements(selectedCompany, pagination.page, pagination.limit)
         }
         primaryAction={
-          can("cuentas_corrientes_crear_movimiento_cargo_abono")
+          can("cuentas_corrientes_crear_nuevo_movimiento")
             ? {
                 label: "Nuevo Movimiento",
                 icon: <Plus className="h-4 w-4" />,
@@ -864,7 +864,7 @@ export function CurrentAccounts() {
 
                         {movement.tipo_movimiento === "cargo" &&
                           !movement.pagado &&
-                          can("cuentas_corrientes_pagar_cargo_de_cuenta_corriente") && (
+                          can("cuentas_corrientes_pagar_linea_generada") && (
                             <Button
                               variant="default"
                               size="sm"
@@ -972,7 +972,7 @@ export function CurrentAccounts() {
                               Adjuntos
                             </Button>
 
-                            {can("cuentas_corrientes_pagar_cargo_de_cuenta_corriente") && (
+                            {can("cuentas_corrientes_pagar_linea_generada") && (
                               <>
                                 {movement.tipo_movimiento === "cargo" &&
                                 !movement.pagado ? (

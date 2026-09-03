@@ -60,6 +60,7 @@ import {
 import Swal from "sweetalert2";
 
 import ToolBar from "../tool-bar";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const backendToPercent = (val: any): number => {
   if (val === null || val === undefined || val === "") return 0;
@@ -82,6 +83,7 @@ const formatPercent = (n: number) => {
 
 export function SuperCompanies() {
   const { user, token } = useAuth();
+  const { can } = usePermissions();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -1011,9 +1013,7 @@ export function SuperCompanies() {
           })
         }
         primaryAction={
-          user?.role !== "admin" &&
-          user?.role !== "contralor" &&
-          user?.role !== "admincc"
+          can("empresa_crear_nueva_empresa")
             ? {
                 label: "Agregar Empresa",
                 icon: <Plus className="h-4 w-4" />,
@@ -1026,7 +1026,7 @@ export function SuperCompanies() {
           onClick: openDetailsDialog,
         }}
         secondaryActions={
-          user?.role === "superuser"
+          can("empresa_exportar_datos")
             ? [
                 {
                   label: "Exportar Excel",
@@ -1056,7 +1056,7 @@ export function SuperCompanies() {
               </div>
             ) : (
               <div className="space-y-6">
-                {user?.role === "superuser" && (
+                {can("empresa_carga_masiva") && (
                   <div className="space-y-2">
                     <Label>Selecciona una acción</Label>
                     <Button
@@ -1068,15 +1068,17 @@ export function SuperCompanies() {
                     </Button>
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Button
-                    onClick={() => setIsExportDialogOpen(true)}
-                    className="w-full bg-accent hover:bg-accent/90"
-                    disabled={loading || filteredCompanies.length === 0}
-                  >
-                    <Download className="h-4 w-4" /> Exportar
-                  </Button>
-                </div>
+                {can("empresa_exportar_datos") && (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => setIsExportDialogOpen(true)}
+                      className="w-full bg-accent hover:bg-accent/90"
+                      disabled={loading || filteredCompanies.length === 0}
+                    >
+                      <Download className="h-4 w-4" /> Exportar
+                    </Button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="show-inactives" className="text-base">
@@ -2283,19 +2285,17 @@ export function SuperCompanies() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
-                        {user?.role !== "admin" &&
-                          user?.role !== "contralor" &&
-                          user?.role !== "admincc" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openEditDialog(company)}
-                              className="h-8 px-3"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          )}
-                        {user?.role === "superuser" && (
+                        {can("empresa_modificar_datos_de_empresa") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(company)}
+                            className="h-8 px-3"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {can("empresa_modificar_cupo_de_empresa") && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -2400,13 +2400,14 @@ export function SuperCompanies() {
                     id="edit-state"
                     value={formData.state.toString()}
                     required
+                    disabled={!can("empresa_modificar_estado_empresa")}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         state: e.target.value === "true",
                       })
                     }
-                    className="w-full p-2 border rounded-md"
+                    className={`w-full p-2 border rounded-md ${!can("empresa_modificar_estado_empresa") ? "bg-muted cursor-not-allowed" : ""}`}
                   >
                     <option value="true">Activa</option>
                     <option value="false">Inactiva</option>
@@ -2422,7 +2423,7 @@ export function SuperCompanies() {
                     min="0"
                     max="100"
                     placeholder="0"
-                    disabled={user?.role !== "superuser"}
+                    disabled={!can("empresa_modificar_datos_de_empresa")}
                     value={formData.surchargePercentage}
                     onChange={(e) => {
                       setFormData({
@@ -2442,7 +2443,7 @@ export function SuperCompanies() {
                     min="0"
                     max="100"
                     placeholder="0"
-                    disabled={user?.role !== "superuser"}
+                    disabled={!can("empresa_modificar_datos_de_empresa")}
                     value={formData.returnPercentage}
                     onChange={(e) => {
                       setFormData({
@@ -2509,7 +2510,7 @@ export function SuperCompanies() {
                     min="0"
                     max="31"
                     placeholder="5"
-                    disabled={user?.role !== "superuser"}
+                    disabled={!can("empresa_modificar_condiciones_de_facturacion")}
                     value={formData.billingDay}
                     onChange={(e) => {
                       setFormData({
@@ -2527,7 +2528,7 @@ export function SuperCompanies() {
                     min="0"
                     max="31"
                     placeholder="15"
-                    disabled={user?.role !== "superuser"}
+                    disabled={!can("empresa_modificar_condiciones_de_facturacion")}
                     value={formData.expirationDay}
                     onChange={(e) => {
                       setFormData({
@@ -2634,7 +2635,7 @@ export function SuperCompanies() {
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, fact_manual: checked })
                     }
-                    disabled={user?.role !== "superuser"}
+                    disabled={!can("empresa_modificar_condiciones_de_facturacion")}
                   />
                   <Label htmlFor="fact-manual-edit" className="cursor-pointer">
                     Facturación Manual
@@ -2651,9 +2652,7 @@ export function SuperCompanies() {
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, morosidad: checked })
                     }
-                    disabled={
-                      user?.role !== "superuser" && user?.role !== "admin"
-                    }
+                    disabled={!can("empresa_modicar_morocidad_empresa")}
                   />
                   <Label htmlFor="morosidad-edit" className="cursor-pointer">
                     Morosidad
@@ -2792,31 +2791,33 @@ export function SuperCompanies() {
                 <h3 className="font-semibold text-sm text-primary">
                   Estrategia de Negocios (Tramos de Descuento)
                 </h3>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    let nextDesde = 0;
-                    if (tramosData.length > 0) {
-                      const lastHasta =
-                        tramosData[tramosData.length - 1].monto_hasta;
-                      if (lastHasta && !isNaN(Number(lastHasta))) {
-                        nextDesde = Number(lastHasta) + 1;
+                {can("empresa_modificar_tramos_de_descuentos") && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      let nextDesde = 0;
+                      if (tramosData.length > 0) {
+                        const lastHasta =
+                          tramosData[tramosData.length - 1].monto_hasta;
+                        if (lastHasta && !isNaN(Number(lastHasta))) {
+                          nextDesde = Number(lastHasta) + 1;
+                        }
                       }
-                    }
-                    setTramosData([
-                      ...tramosData,
-                      {
-                        monto_desde: nextDesde.toString(),
-                        monto_hasta: "",
-                        porcentaje_descuento: "0",
-                      },
-                    ]);
-                  }}
-                  className="h-8 bg-accent text-white hover:bg-accent/90"
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Agregar Tramo
-                </Button>
+                      setTramosData([
+                        ...tramosData,
+                        {
+                          monto_desde: nextDesde.toString(),
+                          monto_hasta: "",
+                          porcentaje_descuento: "0",
+                        },
+                      ]);
+                    }}
+                    className="h-8 bg-accent text-white hover:bg-accent/90"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Agregar Tramo
+                  </Button>
+                )}
               </div>
 
               {tramosData.length === 0 ? (

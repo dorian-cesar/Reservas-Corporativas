@@ -50,9 +50,11 @@ import ToolBar from "../tool-bar";
 import TicketPDFButton from "@/components/ticket-pdf";
 import Swal from "sweetalert2";
 import moment from "moment-timezone";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function SuperAllBookings() {
   const { user, token } = useAuth.getState();
+  const { can } = usePermissions();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
@@ -1061,12 +1063,16 @@ export function SuperAllBookings() {
             ticketNumber: searchTerm.trim() || undefined,
           })
         }
-        secondaryAction={{
-          label: "Exportar",
-          icon: <Download className="h-4 w-4" />,
-          onClick: () => setIsExportDialogOpen(true),
-          disabled: !empresaId || tickets.length === 0,
-        }}
+        secondaryAction={
+          can("tickets_exportar_datos")
+            ? {
+                label: "Exportar",
+                icon: <Download className="h-4 w-4" />,
+                onClick: () => setIsExportDialogOpen(true),
+                disabled: !empresaId || tickets.length === 0,
+              }
+            : undefined
+        }
       />
 
       {isLoading && (
@@ -1479,8 +1485,7 @@ export function SuperAllBookings() {
 
                   <div className="pt-4 flex flex-col gap-2">
                     {ticket.ticketStatus === "Confirmed" &&
-                      user?.role !== "contralor" &&
-                      user?.role !== "auditoria" && (
+                      can("tickets_ingresar_reclamo") && (
                         <div
                           title={
                             ticket.reclamos && ticket.reclamos.length > 0
@@ -1514,8 +1519,7 @@ export function SuperAllBookings() {
 
                     {/* Botón de anular */}
                     {ticket.ticketStatus === "Confirmed" &&
-                      user?.role !== "contralor" &&
-                      user?.role !== "auditoria" &&
+                      can("tickets_anular_pasaje") &&
                       !isPastTrip(ticket) && (
                         <div
                           title={
@@ -1655,12 +1659,12 @@ export function SuperAllBookings() {
                         </p>
                       </TableCell>
                       <TableCell>
-                        {ticket.ticketStatus === "Confirmed" && (
-                          <TicketPDFButton ticketNumber={ticket.ticketNumber} />
-                        )}
                         {ticket.ticketStatus === "Confirmed" &&
-                          user?.role !== "contralor" &&
-                          user?.role !== "auditoria" && (
+                          can("tickets_descargas_pdf_pasaje") && (
+                            <TicketPDFButton ticketNumber={ticket.ticketNumber} />
+                          )}
+                        {ticket.ticketStatus === "Confirmed" &&
+                          can("tickets_ingresar_reclamo") && (
                             <div
                               title={
                                 ticket.reclamos && ticket.reclamos.length > 0
@@ -1695,8 +1699,7 @@ export function SuperAllBookings() {
                             </div>
                           )}
                         {ticket.ticketStatus === "Confirmed" &&
-                          user?.role !== "contralor" &&
-                          user?.role !== "auditoria" &&
+                          can("tickets_anular_pasaje") &&
                           !isPastTrip(ticket) && (
                             <div
                               title={
