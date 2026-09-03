@@ -2657,7 +2657,7 @@ export function SuperCompanies() {
                     onCheckedChange={(checked) =>
                       setFormData({ ...formData, morosidad: checked })
                     }
-                    disabled={!can("empresa_modicar_morocidad_empresa")}
+                    disabled={!can("empresa_modificar_morosidad_empresa")}
                   />
                   <Label htmlFor="morosidad-edit" className="cursor-pointer">
                     Morosidad

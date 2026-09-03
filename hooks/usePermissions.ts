@@ -171,6 +171,14 @@ export function usePermissions() {
           "usuarios_ver_informacion_de_usuarios",
         ],
 
+        // Empresa - Morosidad
+        empresa_modificar_morosidad_empresa: [
+          "empresa_modicar_morocidad_empresa",
+        ],
+        empresa_modicar_morocidad_empresa: [
+          "empresa_modificar_morosidad_empresa",
+        ],
+
         // Boletos / Tickets
         tickets_ver_informacion_de_boletos: [
           "tickets_ver_informacion_de_tickets",
@@ -181,9 +189,15 @@ export function usePermissions() {
 
         // Reservas / Búsqueda
         reservas_ver_informacion_de_reservas: [
+          "buscar_generar_busqueda_de_servicios",
           "buscar_generar_buequeda_de_servicios",
         ],
+        buscar_generar_busqueda_de_servicios: [
+          "buscar_generar_buequeda_de_servicios",
+          "reservas_ver_informacion_de_reservas",
+        ],
         buscar_generar_buequeda_de_servicios: [
+          "buscar_generar_busqueda_de_servicios",
           "reservas_ver_informacion_de_reservas",
         ],
       };

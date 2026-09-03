@@ -195,9 +195,14 @@ export function SuperPermisos() {
     return nombre;
   };
 
-  // Función para corregir nombres de acciones (Tickets -> Boletos)
+  // Función para corregir nombres de acciones de forma prolija
   const formatAccionNombre = (accion: string) => {
     return accion
+      .replace(/buequeda/gi, "búsqueda")
+      .replace(/Modicar\s+Morocidad/gi, "Modificar Morosidad")
+      .replace(/Informacion/g, "Información")
+      .replace(/Modulo/g, "Módulo")
+      .replace(/\.$/, "")
       .replace(/Tickets/g, "Boletos")
       .replace(/Ticket/g, "Boleto")
       .replace(/tickets/g, "boletos")
