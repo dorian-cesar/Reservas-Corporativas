@@ -20,12 +20,40 @@ import { UserProvider } from "@/components/providers/user-provider"
 import { TravelSearch } from "@/components/travel-search"
 import { SuperCompanies } from "@/components/super-components/super-companies"
 import { SuperCobranza } from "@/components/super-components/super-cobranza"
+import { usePersistedTab } from "@/hooks/usePersistedTab"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function AuditoriaPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { can } = usePermissions()
+
+  const tabs = [
+    { value: "companies-crud", label: "Empresas", icon: Building2, perm: "empresa_ver_informacion_de_empresa", component: <SuperCompanies /> },
+    { value: "cost-center", label: "Centros de Costo", icon: Settings, perm: "centro_de_costo_ver_informacion_de_centro_de_costo", component: <SuperCostCenters /> },
+    { value: "users", label: "Usuarios", icon: Users, perm: "usuarios_ver_informacion_de_usuarios", component: <CompanyUsers /> },
+    { value: "esp", label: "Estado de pago", icon: AlertCircle, perm: "estados_de_pago_ver_informacion_de_estados_de_pago", component: <EstadoPago /> },
+    { value: "cuenta-corriente", label: "Cuenta corriente", icon: Calendar, perm: "cuentas_corrientes_ver_informacion_de_cuentas_corrientes", component: <CurrentAccounts /> },
+    { value: "tickets", label: "Boletos", icon: BarChart, perm: "tickets_ver_informacion_de_tickets", component: <SuperAllBookings /> },
+    { value: "passengers", label: "Pasajeros", icon: IdCard, perm: "pasajeros_ver_informacion_de_pasajeros", component: <CompanyPassengers /> },
+    { value: "cobranza", label: "Cobranza", icon: DollarSign, perm: "cobranza_ver_informacion_de_cobranza", component: <SuperCobranza /> },
+  ];
+
+  const allowedTabs = tabs.filter((t) => can(t.perm));
+
+  const { activeTab, handleTabChange } = usePersistedTab(
+    allowedTabs[0]?.value || "companies-crud",
+    "auditoria-page-active-tab"
+  )
+
+  const currentTab = allowedTabs.some((t) => t.value === activeTab)
+    ? activeTab
+    : allowedTabs[0]?.value || activeTab;
 
   const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auditoria-page-active-tab")
+    }
     logout()
     router.push("/")
   }
@@ -37,88 +65,36 @@ export default function AuditoriaPage() {
           <div className="space-y-6">
             <div>
               <h1 className="text-xl font-bold">Panel de Administración</h1>
-              <p className="text-sm text-muted-foreground">Admin CC</p>
+              <p className="text-sm text-muted-foreground">Auditoría</p>
             </div>
-            {/* <AdminStats /> */}
 
-            <Tabs defaultValue="companies-crud" className="w-full">
+            <Tabs
+              value={currentTab}
+              onValueChange={handleTabChange}
+              className="w-full"
+            >
               <TabsList className="
                   flex items-center gap-2
                   overflow-x-auto whitespace-nowrap
                   p-2 -mx-2 sm:mx-0
                   rounded-md
                 ">
-                <TabsTrigger value="companies-crud" className="gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Empresas
-                </TabsTrigger>
-                <TabsTrigger value="cost-center" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  Centros de Costo
-                </TabsTrigger>
-                <TabsTrigger value="users" className="gap-2">
-                  <Users className="h-4 w-4" />
-                  Usuarios
-                </TabsTrigger>
-                <TabsTrigger value="esp" className="gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Estado de pago
-                </TabsTrigger>
-                <TabsTrigger value="cuenta-corriente" className="gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Cuenta corriente
-                </TabsTrigger>
-                <TabsTrigger value="tickets" className="gap-2">
-                  <BarChart className="h-4 w-4" />
-                  Boletos
-                </TabsTrigger>
-
-                <TabsTrigger value="passengers" className="gap-2">
-                  <IdCard className="h-4 w-4" />
-                  Pasajeros
-                </TabsTrigger>
-                <TabsTrigger value="cobranza" className="gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Cobranza
-                </TabsTrigger>
+                {allowedTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
 
-              <TabsContent value="companies-crud" className="mt-6">
-                {/* <AuditoriaCompanies /> */}
-                <SuperCompanies />
-              </TabsContent>
-              <TabsContent value="users" className="mt-6">
-                <CompanyUsers />
-              </TabsContent>
-
-              <TabsContent value="cost-center" className="mt-6">
-                <SuperCostCenters />
-              </TabsContent>
-
-              <TabsContent value="esp" className="mt-6">
-                <EstadoPago />
-              </TabsContent>
-
-              <TabsContent value="cuenta-corriente" className="mt-6">
-                <CurrentAccounts />
-              </TabsContent>
-
-              <TabsContent value="tickets" className="mt-6">
-                <SuperAllBookings />
-              </TabsContent>
-
-              <TabsContent value="passengers" className="mt-6">
-                <CompanyPassengers />
-              </TabsContent>
-
-              <TabsContent value="cobranza" className="mt-6">
-                <SuperCobranza />
-              </TabsContent>
-
-              {/* <TabsContent value="bookings" className="mt-6">
-                <UserProvider />
-                <TravelSearch />
-              </TabsContent> */}
+              {allowedTabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value} className="mt-6">
+                  {tab.component}
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
         </main>

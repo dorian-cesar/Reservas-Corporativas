@@ -1039,18 +1039,26 @@ export function EstadoPago() {
           })
         }
         secondaryActions={[
-          {
-            label: "Exportar",
-            icon: <Download className="h-4 w-4" />,
-            onClick: () => setIsExportDialogOpen(true),
-            disabled: !empresaId || estadosCuenta.length === 0,
-          },
-          {
-            label: "Crear Estado de Cuenta",
-            icon: <Plus className="h-4 w-4" />,
-            onClick: openAddDialog,
-            disabled: !empresaId || isLoading,
-          },
+          ...(can("estados_de_pago_exportar_datos")
+            ? [
+                {
+                  label: "Exportar",
+                  icon: <Download className="h-4 w-4" />,
+                  onClick: () => setIsExportDialogOpen(true),
+                  disabled: !empresaId || estadosCuenta.length === 0,
+                },
+              ]
+            : []),
+          ...(can("estados_de_pago_crear_edp_manual")
+            ? [
+                {
+                  label: "Crear Estado de Cuenta",
+                  icon: <Plus className="h-4 w-4" />,
+                  onClick: openAddDialog,
+                  disabled: !empresaId || isLoading,
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -1286,7 +1294,7 @@ export function EstadoPago() {
                   <TableHead>Total Boletos Anulados</TableHead>
                   <TableHead>Monto Facturado</TableHead>
                   <TableHead>Suma Devoluciones</TableHead>
-                  {can("estados_de_pago_aplicar_descuento_a_estado_de_pago") && (
+                  {can("estados_de_pago_aplicar_descuento_en_edp") && (
                     <TableHead>Descuento</TableHead>
                   )}
                   <TableHead>Acciones</TableHead>
@@ -1310,7 +1318,7 @@ export function EstadoPago() {
                           (ec.reclamos_descuento ?? 0),
                       )}
                     </TableCell>
-                    {can("estados_de_pago_aplicar_descuento_a_estado_de_pago") && (
+                    {can("estados_de_pago_aplicar_descuento_en_edp") && (
                       <TableCell>
                         <DescuentoDialog
                           estadoCuenta={ec}
@@ -1326,21 +1334,26 @@ export function EstadoPago() {
 
                     <TableCell>
                       <div className="flex justify-end gap-4">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openDetailDialog(ec.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        {can("estados_de_pago_descargar_detalle_de_edp") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => openDetailDialog(ec.id)}
+                            title="Ver detalle de tickets"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
 
-                        <EDPPDFButton
-                          id={ec.id}
-                          nombre={ec.empresa?.nombre ?? "sistema"}
-                          cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"}
-                          periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`}
-                        />
+                        {can("estados_de_pago_descargar_pdf_de_edp") && (
+                          <EDPPDFButton
+                            id={ec.id}
+                            nombre={ec.empresa?.nombre ?? "sistema"}
+                            cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"}
+                            periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`}
+                          />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

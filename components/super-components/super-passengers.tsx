@@ -42,6 +42,7 @@ import {
   Phone,
   Search,
   Upload,
+  Download,
   ChevronsUpDown,
 } from "lucide-react";
 import {
@@ -68,9 +69,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ToolBar from "../tool-bar";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function CompanyPassengers() {
   const { user, token } = useAuth.getState();
+  const { can } = usePermissions();
   const [companies, setCompanies] = useState<{ id: string; nombre: string }[]>(
     [],
   );
@@ -599,6 +602,32 @@ export function CompanyPassengers() {
     });
   };
 
+  const exportPassengersToCSV = () => {
+    if (!passengers || passengers.length === 0) return;
+    const headers = ["Nombre", "RUT", "Correo", "Teléfono", "Empresa", "Centro de Costo"];
+    const rows = passengers.map((p) => [
+      p.nombre || "",
+      p.rut || "",
+      p.correo || "",
+      p.telefono || "",
+      p.empresa?.nombre || "",
+      p.centroCosto?.nombre || "",
+    ]);
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((f) => `"${f}"`).join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `pasajeros_${selectedCompany}_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    toast({
+      title: "Exportación exitosa",
+      description: `Se exportaron ${passengers.length} pasajeros a CSV`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <ToolBar
@@ -615,7 +644,7 @@ export function CompanyPassengers() {
         loadingCompanies={loadingCompanies}
         refreshAction={() => selectedCompany && fetchPassengers()}
         primaryAction={
-          user?.role !== "auditoria"
+          can("pasajeros_crear_nuevo_pasajero")
             ? {
                 label: "Nuevo Pasajero",
                 icon: <Plus className="h-4 w-4" />,
@@ -623,15 +652,27 @@ export function CompanyPassengers() {
               }
             : undefined
         }
-        secondaryAction={
-          user?.role === "superuser"
-            ? {
-                label: "Subir CSV",
-                icon: <Upload className="h-4 w-4" />,
-                onClick: sendCSV,
-              }
-            : undefined
-        }
+        secondaryActions={[
+          ...(can("pasajeros_carga_masiva")
+            ? [
+                {
+                  label: "Subir CSV",
+                  icon: <Upload className="h-4 w-4" />,
+                  onClick: sendCSV,
+                },
+              ]
+            : []),
+          ...(can("pasajeros_exportar_datos")
+            ? [
+                {
+                  label: "Exportar Datos",
+                  icon: <Download className="h-4 w-4" />,
+                  onClick: exportPassengersToCSV,
+                  disabled: passengers.length === 0,
+                },
+              ]
+            : []),
+        ]}
       />
       {isAddDialogOpen && (
         <div className="space-y-4 p-4 border rounded-lg bg-card mb-6 animate-in fade-in slide-in-from-top-2">
@@ -1270,7 +1311,7 @@ export function CompanyPassengers() {
                         </div>
                       )}
                     </div>
-                    {user?.role !== "auditoria" && (
+                    {can("pasajeros_modificar_datos_de_pasajero") && (
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -1302,7 +1343,7 @@ export function CompanyPassengers() {
                       <TableHead>Teléfono</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>Centro Costo</TableHead>
-                      {user?.role !== "auditoria" && (
+                      {can("pasajeros_modificar_datos_de_pasajero") && (
                         <TableHead className="text-right">Acciones</TableHead>
                       )}
                     </TableRow>
@@ -1319,35 +1360,20 @@ export function CompanyPassengers() {
                               <User className="h-4 w-4 text-primary" />
                             </div>
                             <div>
-                              <p className="font-medium">{passenger.nombre}</p>
+                              <p className="font-medium text-sm">
+                                {passenger.nombre}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Key className="h-3 w-3 text-muted-foreground" />
-                            {passenger.rut}
-                          </div>
+                        <TableCell className="font-mono text-xs">
+                          {passenger.rut}
                         </TableCell>
-                        <TableCell>
-                          {passenger.correo ? (
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-3 w-3 text-muted-foreground" />
-                              {passenger.correo}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                        <TableCell className="text-xs">
+                          {passenger.correo || "—"}
                         </TableCell>
-                        <TableCell>
-                          {passenger.telefono ? (
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {passenger.telefono}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                        <TableCell className="text-xs">
+                          {passenger.telefono || "—"}
                         </TableCell>
                         <TableCell>
                           {passenger.empresa && (
@@ -1365,7 +1391,7 @@ export function CompanyPassengers() {
                             </div>
                           )}
                         </TableCell>
-                        {user?.role !== "auditoria" && (
+                        {can("pasajeros_modificar_datos_de_pasajero") && (
                           <TableCell>
                             <div className="flex justify-end gap-2">
                               <Button

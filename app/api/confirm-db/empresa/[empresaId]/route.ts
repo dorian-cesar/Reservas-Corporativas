@@ -90,7 +90,12 @@ export async function GET(
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`Backend error: ${res.status} - ${errorText}`);
-      throw new Error(`Backend responded with status: ${res.status} - ${errorText}`);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return NextResponse.json(errorJson, { status: res.status });
+      } catch {
+        return NextResponse.json({ message: errorText || "Error en backend" }, { status: res.status });
+      }
     }
 
     const data = await res.json();

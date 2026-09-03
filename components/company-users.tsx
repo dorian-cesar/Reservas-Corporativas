@@ -72,9 +72,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import ToolBar from "./tool-bar";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function CompanyUsers() {
   const { user, token } = useAuth.getState();
+  const { can } = usePermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -830,7 +832,7 @@ export function CompanyUsers() {
         loadingCompanies={loadingCompanies}
         refreshAction={() => selectedCompany && fetchUsers()}
         primaryAction={
-          user?.role !== "auditoria"
+          can("usuarios_crear_nuevo_usuario")
             ? {
                 label: "Agregar Usuario",
                 icon: <Plus className="h-4 w-4" />,
@@ -839,7 +841,7 @@ export function CompanyUsers() {
             : undefined
         }
         secondaryAction={
-          user?.role === "superuser"
+          can("usuarios_carga_masiva")
             ? {
                 label: "Subir CSV",
                 icon: <Upload className="h-4 w-4" />,
@@ -848,7 +850,7 @@ export function CompanyUsers() {
             : undefined
         }
         secondaryActions={
-          user?.role === "superuser"
+          can("usuarios_exportar_datos")
             ? [
                 {
                   label: "Exportar Excel",
@@ -1585,7 +1587,7 @@ export function CompanyUsers() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        {currentUser?.role !== "auditoria" && (
+                        {can("usuarios_modificar_datos_de_usuarios") && (
                           <TableCell>
                             {canEditUser(currentUser?.role || "", user.rol) && (
                               <div className="flex justify-end">
@@ -1795,7 +1797,8 @@ export function CompanyUsers() {
                     estado: e.target.value === "true",
                   })
                 }
-                className="w-full p-2 border rounded-md"
+                disabled={!can("usuarios_modificar_estado_de_usuarios")}
+                className={`w-full p-2 border rounded-md ${!can("usuarios_modificar_estado_de_usuarios") ? "bg-muted cursor-not-allowed" : ""}`}
               >
                 <option value="true">Activo</option>
                 <option value="false">Inactivo</option>
