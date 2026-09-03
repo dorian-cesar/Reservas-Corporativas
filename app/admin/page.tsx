@@ -36,7 +36,7 @@ export default function AdminPage() {
     { value: "cuenta-corriente", label: "Cuenta corriente", icon: Calendar, perm: "cuentas_corrientes_ver_informacion_de_cuentas_corrientes", component: <CurrentAccounts /> },
     { value: "tickets", label: "Boletos", icon: BarChart, perm: "tickets_ver_informacion_de_tickets", component: <SuperAllBookings /> },
     { value: "passengers", label: "Pasajeros", icon: IdCard, perm: "pasajeros_ver_informacion_de_pasajeros", component: <CompanyPassengers /> },
-    { value: "bookings", label: "Reservas", icon: AlbumIcon, perm: "buscar_generar_buequeda_de_servicios", component: <Reserve /> },
+    { value: "bookings", label: "Reservas", icon: AlbumIcon, perm: "buscar_generar_busqueda_de_servicios", component: <Reserve /> },
   ];
 
   const allowedTabs = tabs.filter((t) => can(t.perm));
