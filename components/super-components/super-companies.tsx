@@ -218,9 +218,10 @@ export function SuperCompanies() {
   >([]);
   const [openSearchCombo, setOpenSearchCombo] = useState<boolean>(false);
 
-  const fetchCompaniesForCombo = async () => {
+  const fetchCompaniesForCombo = async (inactives: boolean = showInactives) => {
     try {
-      const res = await fetch("/api/companies?includeInactives=true", {
+      const url = inactives ? "/api/companies?includeInactives=true" : "/api/companies";
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -248,7 +249,7 @@ export function SuperCompanies() {
       limit: pagination.limit,
       includeInactives: showInactives,
     });
-    fetchCompaniesForCombo();
+    fetchCompaniesForCombo(showInactives);
   }, []);
 
   const reloadCompanies = () => {
@@ -1092,6 +1093,7 @@ export function SuperCompanies() {
                     checked={showInactives}
                     onCheckedChange={(checked) => {
                       setShowInactives(checked);
+                      fetchCompaniesForCombo(checked);
                       setDetailsDialogOpen(false);
 
                       if (pagination.total > 0) {

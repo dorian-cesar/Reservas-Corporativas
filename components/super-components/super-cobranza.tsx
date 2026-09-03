@@ -313,14 +313,11 @@ export function SuperCobranza() {
   // Cargar lista de empresas para selects y combobox
   const fetchEmpresas = async () => {
     try {
-      const res = await fetch(
-        "/api/companies?includeInactives=true",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const res = await fetch("/api/companies", {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data)

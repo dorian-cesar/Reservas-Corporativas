@@ -94,6 +94,8 @@ export function CurrentAccounts() {
     hasPrevPage: false,
   });
 
+  const [saldoActual, setSaldoActual] = useState<number>(0);
+
   const { toast } = useToast();
 
   type Movement = {
@@ -237,6 +239,11 @@ export function CurrentAccounts() {
         hasPrevPage: page > 1,
       };
 
+      setSaldoActual(
+        data.saldo_actual !== undefined
+          ? Number(data.saldo_actual)
+          : movementsArray[0]?.saldo || 0,
+      );
       setMovements(movementsArray);
       setPagination({
         page: paginationData.page || page,
@@ -373,8 +380,7 @@ export function CurrentAccounts() {
   };
 
   const getCurrentBalance = () => {
-    if (movements.length === 0) return 0;
-    return movements[movements.length - 1]?.saldo || 0;
+    return saldoActual;
   };
 
   const formatCurrency = (amount: number) => {
