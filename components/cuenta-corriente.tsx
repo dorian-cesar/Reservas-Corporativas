@@ -110,6 +110,13 @@ export function CurrentAccounts() {
     mes_operacion?: string;
     periodo_operacion?: string;
     pagado?: boolean;
+    monto_a_pagar?: number;
+    descuento_aplicado?: {
+      porcentaje: number;
+      monto_descuento: number;
+      monto_original: number;
+      monto_final: number;
+    } | null;
     empresa?: {
       id: string;
       nombre: string;
@@ -846,7 +853,12 @@ export function CurrentAccounts() {
                           {movement.tipo_movimiento === "abono" ? "+" : "-"}
                           {formatCurrency(movement.monto)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        {movement.descuento_aplicado && (
+                          <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-0.5 inline-block">
+                            Desc: -{movement.descuento_aplicado.porcentaje}% (-{formatCurrency(movement.descuento_aplicado.monto_descuento)})
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-0.5">
                           Saldo: {formatCurrency(movement.saldo)}
                         </p>
                       </div>
@@ -951,8 +963,15 @@ export function CurrentAccounts() {
                         <TableCell
                           className={`text-right font-medium ${movement.tipo_movimiento === "abono" ? "text-green-600" : "text-red-600"}`}
                         >
-                          {movement.tipo_movimiento === "abono" ? "+" : "-"}
-                          {formatCurrency(movement.monto)}
+                          <div>
+                            {movement.tipo_movimiento === "abono" ? "+" : "-"}
+                            {formatCurrency(movement.monto)}
+                          </div>
+                          {movement.descuento_aplicado && (
+                            <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mt-1 inline-block text-left" title={`Monto a pagar con descuento: ${formatCurrency(movement.monto_a_pagar ?? 0)}`}>
+                              Desc. -{movement.descuento_aplicado.porcentaje}% (-{formatCurrency(movement.descuento_aplicado.monto_descuento)})
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(movement.saldo)}

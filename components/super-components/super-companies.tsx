@@ -2146,20 +2146,21 @@ export function SuperCompanies() {
                   </div>
                 </div>
 
-                {user?.role !== "admin" &&
-                  user?.role !== "contralor" &&
-                  user?.role !== "admincc" && (
+                {(can("empresa_modificar_datos_de_empresa") ||
+                  can("empresa_modificar_cupo_de_empresa")) && (
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
-                        onClick={() => openEditDialog(company)}
-                      >
-                        <Pencil className="h-3 w-3 mr-2" />
-                        Editar
-                      </Button>
-                      {user?.role === "superuser" && (
+                      {can("empresa_modificar_datos_de_empresa") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 transition-all hover:scale-[1.02] bg-transparent"
+                          onClick={() => openEditDialog(company)}
+                        >
+                          <Pencil className="h-3 w-3 mr-2" />
+                          Editar
+                        </Button>
+                      )}
+                      {can("empresa_modificar_cupo_de_empresa") && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -2196,9 +2197,10 @@ export function SuperCompanies() {
                   <TableHead>Monto Acumulado</TableHead>
                   <TableHead>Monto Deuda CC</TableHead>
                   <TableHead>Saldo disponible</TableHead>
-                  {user?.role !== "admin" &&
-                    user?.role !== "contralor" &&
-                    user?.role !== "admincc" && <TableHead>Acciones</TableHead>}
+                  {(can("empresa_modificar_datos_de_empresa") ||
+                    can("empresa_modificar_cupo_de_empresa")) && (
+                    <TableHead>Acciones</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2283,30 +2285,33 @@ export function SuperCompanies() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        {can("empresa_modificar_datos_de_empresa") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditDialog(company)}
-                            className="h-8 px-3"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {can("empresa_modificar_cupo_de_empresa") && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleReset(company.id)}
-                            className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
-                          >
-                            <RefreshCcw className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                    {(can("empresa_modificar_datos_de_empresa") ||
+                      can("empresa_modificar_cupo_de_empresa")) && (
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          {can("empresa_modificar_datos_de_empresa") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(company)}
+                              className="h-8 px-3"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {can("empresa_modificar_cupo_de_empresa") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReset(company.id)}
+                              className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-red-500"
+                            >
+                              <RefreshCcw className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

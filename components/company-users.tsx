@@ -1486,7 +1486,7 @@ export function CompanyUsers() {
 
                     {canEditUser(currentUser?.role || "", user.rol) && (
                       <div className="flex gap-2">
-                        {currentUser?.role !== "auditoria" && (
+                        {can("usuarios_modificar_datos_de_usuarios") && (
                           <Button
                             variant="outline"
                             size="sm"
