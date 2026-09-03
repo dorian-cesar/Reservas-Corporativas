@@ -239,7 +239,11 @@ export function SuperReports() {
   }, [token, reportType, meses, activeSelectedEmpresa]);
 
   // Guard de rol — debe ir DESPUÉS de todos los hooks
-  if (user?.role !== "superuser") {
+  if (
+    user?.role !== "superuser" &&
+    user?.role !== "contralor" &&
+    user?.role !== "admincc"
+  ) {
     return null;
   }
 

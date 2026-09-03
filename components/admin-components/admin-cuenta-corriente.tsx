@@ -70,6 +70,7 @@ export function AdminCurrentAccounts() {
     id: string;
     nombre: string;
   } | null>(null);
+  const [saldoActual, setSaldoActual] = useState<number>(0);
 
   type Movement = {
     id: number;
@@ -176,6 +177,11 @@ export function AdminCurrentAccounts() {
         : Array.isArray(data)
           ? data
           : [];
+      setSaldoActual(
+        data.saldo_actual !== undefined
+          ? Number(data.saldo_actual)
+          : movementsArray[0]?.saldo || 0,
+      );
       setMovements(movementsArray);
     } catch (err) {
       console.error(err);
@@ -279,8 +285,7 @@ export function AdminCurrentAccounts() {
   };
 
   const getCurrentBalance = () => {
-    if (movements.length === 0) return 0;
-    return movements[movements.length - 1].saldo;
+    return saldoActual;
   };
 
   const formatCurrency = (amount: number) => {

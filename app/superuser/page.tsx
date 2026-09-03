@@ -15,6 +15,7 @@ import {
   IdCard,
   FileSpreadsheet,
   DollarSign,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AdminStats } from "@/components/admin-stats";
@@ -29,6 +30,7 @@ import { UserProvider } from "@/components/providers/user-provider";
 import { CompanyPassengers } from "@/components/super-components/super-passengers";
 import { SuperReports } from "@/components/super-components/super-reports";
 import { SuperCobranza } from "@/components/super-components/super-cobranza";
+import { SuperPermisos } from "@/components/super-components/super-permisos";
 import { usePersistedTab } from "@/hooks/usePersistedTab";
 
 export default function SuperUserPage() {
@@ -115,6 +117,12 @@ export default function SuperUserPage() {
                     Reportes
                   </TabsTrigger>
                 )}
+                {user?.role === "superuser" && (
+                  <TabsTrigger value="permisos" className="gap-2">
+                    <ShieldCheck className="h-4 w-4" />
+                    Roles y Permisos
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -156,6 +164,12 @@ export default function SuperUserPage() {
               {user?.role === "superuser" && (
                 <TabsContent value="reports" className="mt-6">
                   <SuperReports />
+                </TabsContent>
+              )}
+
+              {user?.role === "superuser" && (
+                <TabsContent value="permisos" className="mt-6">
+                  <SuperPermisos />
                 </TabsContent>
               )}
             </Tabs>

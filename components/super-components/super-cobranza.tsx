@@ -50,6 +50,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   PhoneCall,
   Mail,
@@ -253,6 +254,7 @@ const ESTADOS_GESTION = [
 
 export function SuperCobranza() {
   const { token } = useAuth();
+  const { can } = usePermissions();
 
   // Estados de datos
   const [gestiones, setGestiones] = useState<CobranzaGestion[]>([]);
@@ -311,14 +313,11 @@ export function SuperCobranza() {
   // Cargar lista de empresas para selects y combobox
   const fetchEmpresas = async () => {
     try {
-      const res = await fetch(
-        "/api/companies?includeInactives=true",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const res = await fetch("/api/companies", {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data)
@@ -831,14 +830,16 @@ export function SuperCobranza() {
             <Download className="h-4 w-4" />
             Exportar CSV
           </Button>
-          <Button
-            onClick={handleOpenCreate}
-            size="sm"
-            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            Registrar Gestión
-          </Button>
+          {can("cobranza_crear") && (
+            <Button
+              onClick={handleOpenCreate}
+              size="sm"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar Gestión
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1350,15 +1351,17 @@ export function SuperCobranza() {
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Eliminar"
-                            onClick={() => handleDelete(gestion)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {can("cobranza_eliminar") && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Eliminar"
+                              onClick={() => handleDelete(gestion)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1560,14 +1563,16 @@ export function SuperCobranza() {
                         >
                           Editar
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDelete(gestion)}
-                        >
-                          Eliminar
-                        </Button>
+                        {can("cobranza_eliminar") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(gestion)}
+                          >
+                            Eliminar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </Card>

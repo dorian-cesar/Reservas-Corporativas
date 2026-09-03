@@ -27,9 +27,12 @@ export default function AdminPage() {
   const router = useRouter()
 
   const { activeTab, handleTabChange } = usePersistedTab(
-    "companies-crud",
+    "cost-center",
     "admin-page-active-tab"
   )
+
+  // Fallback seguro por si un admin tenía guardada la pestaña 'companies-crud'
+  const safeActiveTab = activeTab === "companies-crud" ? "cost-center" : activeTab;
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -51,7 +54,7 @@ export default function AdminPage() {
             <AdminStats />
 
             <Tabs
-              value={activeTab}
+              value={safeActiveTab}
               onValueChange={handleTabChange}
               className="w-full"
             >
@@ -61,10 +64,6 @@ export default function AdminPage() {
                   p-2 -mx-2 sm:mx-0
                   rounded-md
                 ">
-                <TabsTrigger value="companies-crud" className="gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Empresas
-                </TabsTrigger>
                 <TabsTrigger value="cost-center" className="gap-2">
                   <Settings className="h-4 w-4" />
                   Centros de Costo
@@ -72,6 +71,14 @@ export default function AdminPage() {
                 <TabsTrigger value="users" className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
+                </TabsTrigger>
+                <TabsTrigger value="esp" className="gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Estado de pago
+                </TabsTrigger>
+                <TabsTrigger value="cuenta-corriente" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Cuenta corriente
                 </TabsTrigger>
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
@@ -87,14 +94,17 @@ export default function AdminPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="companies-crud" className="mt-6">
-                <SuperCompanies />
-              </TabsContent>
               <TabsContent value="cost-center" className="mt-6">
                 <SuperCostCenters />
               </TabsContent>
               <TabsContent value="users" className="mt-6">
                 <CompanyUsers />
+              </TabsContent>
+              <TabsContent value="esp" className="mt-6">
+                <AdminEstadoPago />
+              </TabsContent>
+              <TabsContent value="cuenta-corriente" className="mt-6">
+                <AdminCurrentAccounts />
               </TabsContent>
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />

@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   AlertCircle,
   Loader2,
@@ -66,6 +67,7 @@ interface Reclamo {
 
 export function SuperReclamos() {
   const { token } = useAuth();
+  const { can } = usePermissions();
   const [reclamos, setReclamos] = useState<Reclamo[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("Pendiente");
@@ -490,38 +492,42 @@ export function SuperReclamos() {
                     </div>
                   </div>
 
-                  {reclamo.estado === "Pendiente" && (
+                  {reclamo.estado === "Pendiente" && (can("reclamos_aprobar") || can("reclamos_rechazar")) && (
                     <div className="flex flex-col gap-2 min-w-37.5 justify-center border-t lg:border-t-0 lg:border-l pt-4 lg:pt-0 lg:pl-6 border-border">
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleAceptar(reclamo)}
-                        disabled={processingId === reclamo.id}
-                      >
-                        {processingId === reclamo.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Aceptar
-                          </>
-                        )}
-                      </Button>
+                      {can("reclamos_aprobar") && (
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleAceptar(reclamo)}
+                          disabled={processingId === reclamo.id}
+                        >
+                          {processingId === reclamo.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Aceptar
+                            </>
+                          )}
+                        </Button>
+                      )}
 
-                      <Button
-                        variant="outline"
-                        className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-400"
-                        onClick={() => handleRechazar(reclamo)}
-                        disabled={processingId === reclamo.id}
-                      >
-                        {processingId === reclamo.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Rechazar
-                          </>
-                        )}
-                      </Button>
+                      {can("reclamos_rechazar") && (
+                        <Button
+                          variant="outline"
+                          className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-600 hover:border-red-400"
+                          onClick={() => handleRechazar(reclamo)}
+                          disabled={processingId === reclamo.id}
+                        >
+                          {processingId === reclamo.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Rechazar
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

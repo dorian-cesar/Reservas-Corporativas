@@ -3,7 +3,7 @@
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuth } from "@/lib/auth"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard } from "lucide-react"
+import { LogOut, Building2, BarChart, Settings, Users, Calendar, AlertCircle, AlbumIcon, IdCard, FileSpreadsheet, DollarSign } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { AdminStats } from "@/components/admin-stats"
 import { CurrentAccounts } from "@/components/cuenta-corriente"
@@ -14,6 +14,8 @@ import { SuperCostCenters } from "@/components/super-cost-center"
 import { EstadoPago } from "@/components/estado-pago"
 import { TravelSearch } from "@/components/travel-search"
 import { CompanyPassengers } from "@/components/super-components/super-passengers"
+import { SuperReports } from "@/components/super-components/super-reports"
+import { SuperCobranza } from "@/components/super-components/super-cobranza"
 
 export default function ControllersPage() {
   const { user, logout } = useAuth()
@@ -45,23 +47,34 @@ export default function ControllersPage() {
                   <Settings className="h-4 w-4" />
                   Centros de Costo
                 </TabsTrigger>
-                {/* <TabsTrigger value="users" className="gap-2">
+                <TabsTrigger value="users" className="gap-2">
                   <Users className="h-4 w-4" />
                   Usuarios
-                </TabsTrigger> */}
+                </TabsTrigger>
                 <TabsTrigger value="esp" className="gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Estado de pago
+                </TabsTrigger>
+                <TabsTrigger value="cuenta-corriente" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Cuenta corriente
                 </TabsTrigger>
                 <TabsTrigger value="tickets" className="gap-2">
                   <BarChart className="h-4 w-4" />
                   Boletos
                 </TabsTrigger>
-
-                {/* <TabsTrigger value="passengers" className="gap-2">
+                <TabsTrigger value="passengers" className="gap-2">
                   <IdCard className="h-4 w-4" />
                   Pasajeros
-                </TabsTrigger> */}
+                </TabsTrigger>
+                <TabsTrigger value="cobranza" className="gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Cobranza
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Reportes
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="companies-crud" className="mt-6">
@@ -72,20 +85,33 @@ export default function ControllersPage() {
                 <SuperCostCenters />
               </TabsContent>
 
-              {/* <TabsContent value="users" className="mt-6">
+              <TabsContent value="users" className="mt-6">
                 <CompanyUsers />
-              </TabsContent> */}
+              </TabsContent>
+
               <TabsContent value="esp" className="mt-6">
                 <EstadoPago />
+              </TabsContent>
+
+              <TabsContent value="cuenta-corriente" className="mt-6">
+                <CurrentAccounts />
               </TabsContent>
 
               <TabsContent value="tickets" className="mt-6">
                 <SuperAllBookings />
               </TabsContent>
-{/* 
+
               <TabsContent value="passengers" className="mt-6">
                 <CompanyPassengers />
-              </TabsContent> */}
+              </TabsContent>
+
+              <TabsContent value="cobranza" className="mt-6">
+                <SuperCobranza />
+              </TabsContent>
+
+              <TabsContent value="reports" className="mt-6">
+                <SuperReports />
+              </TabsContent>
             </Tabs>
           </div>
         </main>

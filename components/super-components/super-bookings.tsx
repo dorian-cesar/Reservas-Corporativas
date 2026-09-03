@@ -504,7 +504,7 @@ export function SuperAllBookings() {
       }
 
       const headers = [
-        "Número de Ticket",
+        "Número de Boleto",
         "PNR",
         "Estado",
         "Nombre Usuario",
@@ -566,7 +566,7 @@ export function SuperAllBookings() {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `tickets_empresa_${empresaId}_${new Date().toISOString().split("T")[0]}.csv`,
+        `boletos_empresa_${empresaId}_${new Date().toISOString().split("T")[0]}.csv`,
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -638,7 +638,7 @@ export function SuperAllBookings() {
       XLSX.utils.book_append_sheet(workbook, worksheet, "Boletos");
       XLSX.writeFile(
         workbook,
-        `tickets_empresa_${empresaId}_${new Date().toISOString().split("T")[0]}.xlsx`,
+        `boletos_empresa_${empresaId}_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
 
       setIsExportDialogOpen(false);
