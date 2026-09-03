@@ -11,7 +11,8 @@ import { AdminBookings } from "@/components/admin-components/admin-bookings"
 import { AdminCompanyUsers } from "@/components/admin-components/admin-company-users"
 import { CompanyUsers } from "@/components/company-users"
 import { AdminCostCenters } from "@/components/admin-components/admin-cost-center"
-import { AdminEstadoPago } from "@/components/admin-components/admin-estado-pago"
+import { EstadoPago } from "@/components/estado-pago"
+import { CurrentAccounts } from "@/components/cuenta-corriente"
 import { TravelSearch } from "@/components/travel-search"
 import { UserProvider } from "@/components/providers/user-provider";
 import { AdminPassengers } from "@/components/admin-components/admin-passengers"
@@ -31,8 +32,8 @@ export default function AdminPage() {
   const tabs = [
     { value: "cost-center", label: "Centros de Costo", icon: Settings, perm: "centro_de_costo_ver_informacion_de_centro_de_costo", component: <SuperCostCenters /> },
     { value: "users", label: "Usuarios", icon: Users, perm: "usuarios_ver_informacion_de_usuarios", component: <CompanyUsers /> },
-    { value: "esp", label: "Estado de pago", icon: AlertCircle, perm: "estados_de_pago_ver_informacion_de_estados_de_pago", component: <AdminEstadoPago /> },
-    { value: "cuenta-corriente", label: "Cuenta corriente", icon: Calendar, perm: "cuentas_corrientes_ver_informacion_de_cuentas_corrientes", component: <AdminCurrentAccounts /> },
+    { value: "esp", label: "Estado de pago", icon: AlertCircle, perm: "estados_de_pago_ver_informacion_de_estados_de_pago", component: <EstadoPago /> },
+    { value: "cuenta-corriente", label: "Cuenta corriente", icon: Calendar, perm: "cuentas_corrientes_ver_informacion_de_cuentas_corrientes", component: <CurrentAccounts /> },
     { value: "tickets", label: "Boletos", icon: BarChart, perm: "tickets_ver_informacion_de_tickets", component: <SuperAllBookings /> },
     { value: "passengers", label: "Pasajeros", icon: IdCard, perm: "pasajeros_ver_informacion_de_pasajeros", component: <CompanyPassengers /> },
     { value: "bookings", label: "Reservas", icon: AlbumIcon, perm: "buscar_generar_buequeda_de_servicios", component: <Reserve /> },
