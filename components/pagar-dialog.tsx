@@ -33,6 +33,13 @@ type Props = {
         monto: number;
         referencia?: string;
         tipo_movimiento?: 'abono' | 'cargo';
+        monto_a_pagar?: number;
+        descuento_aplicado?: {
+            porcentaje: number;
+            monto_descuento: number;
+            monto_original: number;
+            monto_final: number;
+        } | null;
     } | null;
     token: string | null;
     onSuccess: () => void;
@@ -46,6 +53,16 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
     const [metodoPago, setMetodoPago] = useState<string>("Transferencia");
     const [numeroReferencia, setNumeroReferencia] = useState("");
     const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
+
+    const tieneDescuento = Boolean(
+        movimiento?.descuento_aplicado || 
+        (movimiento?.monto_a_pagar !== undefined && movimiento.monto_a_pagar < movimiento.monto)
+    );
+
+    const montoOriginal = movimiento?.descuento_aplicado?.monto_original ?? movimiento?.monto ?? 0;
+    const montoDescuento = movimiento?.descuento_aplicado?.monto_descuento ?? (tieneDescuento ? montoOriginal - (movimiento?.monto_a_pagar ?? 0) : 0);
+    const porcentajeDescuento = movimiento?.descuento_aplicado?.porcentaje ?? (montoOriginal > 0 ? Math.round((montoDescuento / montoOriginal) * 100) : 0);
+    const montoEfectivoPagar = movimiento?.monto_a_pagar ?? (tieneDescuento ? montoOriginal - montoDescuento : movimiento?.monto ?? 0);
 
     const getReferenciaCuenta = () => {
         if (!movimiento) return "";
@@ -124,7 +141,7 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                 },
                 body: JSON.stringify({
                     movimientoId: movimiento.id,
-                    monto: movimiento.monto,
+                    monto: montoEfectivoPagar,
                     referenciaPago: refPagoFinal,
                     tipo_pago: metodoPago,
                 }),
@@ -206,14 +223,43 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
-                        <div className="p-3 bg-gray-50 rounded-md space-y-2">
+                        <div className="p-3 bg-gray-50 rounded-md space-y-2 border border-gray-200">
                             <p className="text-sm font-medium">
                                 {movimiento.descripcion || "Cargo sin descripción"}
                             </p>
                             <p className="text-sm text-gray-600">
-                                Monto: <span className="font-bold">{formatCurrency(movimiento.monto)}</span>
+                                Monto Cargo: <span className="font-bold">{formatCurrency(montoOriginal)}</span>
                             </p>
                         </div>
+
+                        {/* Banner Informativo de Descuento si aplica */}
+                        {tieneDescuento && (
+                            <div className="p-3 bg-emerald-50/90 border border-emerald-300 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        Descuento Aplicado ({porcentajeDescuento}%)
+                                    </span>
+                                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                                        Ahorro: -{formatCurrency(montoDescuento)}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-emerald-950 divide-y divide-emerald-200/70 pt-1">
+                                    <div className="flex justify-between py-1 text-muted-foreground">
+                                        <span>Monto base original:</span>
+                                        <span className="line-through">{formatCurrency(montoOriginal)}</span>
+                                    </div>
+                                    <div className="flex justify-between py-1 text-emerald-700 font-semibold">
+                                        <span>Descuento acordado ({porcentajeDescuento}%):</span>
+                                        <span>-{formatCurrency(montoDescuento)}</span>
+                                    </div>
+                                    <div className="flex justify-between py-1.5 text-sm font-bold text-emerald-950">
+                                        <span>Total Final con Descuento:</span>
+                                        <span className="text-emerald-800 text-base">{formatCurrency(montoEfectivoPagar)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="referencia-cuenta">Referencia de cuenta</Label>
@@ -226,15 +272,22 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="monto">Monto a pagar</Label>
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="monto">Monto a pagar</Label>
+                                {tieneDescuento && (
+                                    <span className="text-xs text-emerald-700 font-semibold">
+                                        (Con {porcentajeDescuento}% de descuento incluido)
+                                    </span>
+                                )}
+                            </div>
                             <div className="relative">
-                                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <DollarSign className={`absolute left-3 top-3 h-4 w-4 ${tieneDescuento ? "text-emerald-600 font-bold" : "text-gray-400"}`} />
                                 <Input
                                     id="monto"
                                     type="text"
-                                    value={formatCurrency(movimiento.monto)}
+                                    value={formatCurrency(montoEfectivoPagar)}
                                     disabled
-                                    className="pl-10 bg-gray-100 cursor-not-allowed font-medium"
+                                    className={`pl-10 bg-gray-100 cursor-not-allowed font-bold text-base ${tieneDescuento ? "text-emerald-900 border-emerald-200" : "font-medium"}`}
                                 />
                             </div>
                         </div>
@@ -359,9 +412,14 @@ export function PagarDialog({ open, onOpenChange, movimiento, token, onSuccess }
 
                     <div className="py-4">
                         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md space-y-1">
-                            <p className="text-sm font-medium text-yellow-800">
-                                Monto: {formatCurrency(movimiento.monto)}
+                            <p className="text-sm font-bold text-yellow-900">
+                                Monto a Pagar: {formatCurrency(montoEfectivoPagar)}
                             </p>
+                            {tieneDescuento && (
+                                <p className="text-xs text-emerald-800 font-semibold">
+                                    Descuento aplicado: -{formatCurrency(montoDescuento)} ({porcentajeDescuento}%)
+                                </p>
+                            )}
                             <p className="text-sm text-yellow-800">
                                 Método: <span className="font-semibold">{metodoPago}</span>
                             </p>
