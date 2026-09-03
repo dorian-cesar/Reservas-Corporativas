@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -1394,6 +1395,39 @@ export function EstadoPago() {
                 {/* <p>Pagado: {ec.pagado ? "Sí" : "No"}</p> */}
                 <p>Fecha Pago: {formatDate(ec.fecha_pago)}</p>
               </CardContent>
+              <CardFooter className="pt-2 border-t flex justify-between items-center gap-2">
+                {can("estados_de_pago_aplicar_descuento_en_edp") ? (
+                  <DescuentoDialog
+                    estadoCuenta={ec}
+                    onDescuentoAplicado={() =>
+                      fetchEstadosCuenta(Number(empresaId), {
+                        desde: dateDesde,
+                        hasta: dateHasta,
+                      })
+                    }
+                  />
+                ) : <div />}
+                <div className="flex gap-2">
+                  {can("estados_de_pago_descargar_detalle_de_edp") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openDetailDialog(ec.id)}
+                      title="Ver detalle de tickets"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {can("estados_de_pago_descargar_pdf_de_edp") && (
+                    <EDPPDFButton
+                      id={ec.id}
+                      nombre={ec.empresa?.nombre ?? "sistema"}
+                      cuenta={ec.empresa?.cuenta_corriente ?? "cuenta"}
+                      periodo={`${formatDate(ec.fecha_inicio)}-${formatDate(ec.fecha_fin)}`}
+                    />
+                  )}
+                </div>
+              </CardFooter>
             </Card>
           ))}
         </div>

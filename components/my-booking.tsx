@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Ticket,
   MapPin,
@@ -106,6 +107,7 @@ export function MyBookings({
   hideReclamo = false,
 }: MyBookingsProps) {
   const { user, token } = useAuth();
+  const { can } = usePermissions();
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
@@ -863,11 +865,14 @@ export function MyBookings({
                 </div>
                 {booking.ticketStatus?.toLowerCase() === "confirmed" && (
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                    <TicketPDFButton ticketNumber={booking.ticketNumber} />
+                    {(can("reservas_descargas_pdf_pasaje") ||
+                      can("tickets_descargas_pdf_pasaje")) && (
+                      <TicketPDFButton ticketNumber={booking.ticketNumber} />
+                    )}
 
                     {!hideReclamo &&
-                      user?.role !== "contralor" &&
-                      user?.role !== "auditoria" && (
+                      (can("reservas_ingresar_reclamo") ||
+                        can("tickets_ingresar_reclamo")) && (
                         <div
                           title={
                             booking.reclamos && booking.reclamos.length > 0
@@ -901,36 +906,38 @@ export function MyBookings({
                         </div>
                       )}
 
-                    {!isPastTrip(booking) && (
-                      <div
-                        title={
-                          booking.reclamos && booking.reclamos.length > 0
-                            ? "No se puede anular porque el ticket ya tiene un reclamo ingresado"
-                            : undefined
-                        }
-                        className="flex-1"
-                      >
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive"
-                          onClick={() => handleCancelBooking(booking)}
-                          disabled={
-                            cancelingId === String(booking.id) ||
-                            !!(booking.reclamos && booking.reclamos.length > 0)
+                    {!isPastTrip(booking) &&
+                      (can("reservas_anular_pasaje") ||
+                        can("tickets_anular_pasaje")) && (
+                        <div
+                          title={
+                            booking.reclamos && booking.reclamos.length > 0
+                              ? "No se puede anular porque el ticket ya tiene un reclamo ingresado"
+                              : undefined
                           }
+                          className="flex-1"
                         >
-                          {cancelingId === String(booking.id) ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <XCircle className="h-4 w-4 mr-2" />
-                          )}
-                          {cancelingId === String(booking.id)
-                            ? "Anulando..."
-                            : "Anular Reserva"}
-                        </Button>
-                      </div>
-                    )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive"
+                            onClick={() => handleCancelBooking(booking)}
+                            disabled={
+                              cancelingId === String(booking.id) ||
+                              !!(booking.reclamos && booking.reclamos.length > 0)
+                            }
+                          >
+                            {cancelingId === String(booking.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <XCircle className="h-4 w-4 mr-2" />
+                            )}
+                            {cancelingId === String(booking.id)
+                              ? "Anulando..."
+                              : "Anular Reserva"}
+                          </Button>
+                        </div>
+                      )}
                   </div>
                 )}
               </div>
