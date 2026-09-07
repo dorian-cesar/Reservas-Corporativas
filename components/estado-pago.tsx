@@ -393,6 +393,17 @@ export function EstadoPago() {
     const [descripcion, setDescripcion] = useState("");
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+      if (isOpen) {
+        setPorcentaje(
+          estadoCuenta.porcentaje_descuento
+            ? String(estadoCuenta.porcentaje_descuento)
+            : "",
+        );
+        setDescripcion("");
+      }
+    }, [isOpen, estadoCuenta.porcentaje_descuento]);
+
     // FUNCIÓN LOCAL PARA MANEJAR EL CAMBIO DE PORCENTAJE
     const handlePorcentajeChangeLocal = (value: string) => {
       // Permitir borrar
@@ -413,6 +424,49 @@ export function EstadoPago() {
       setPorcentaje(value);
     };
 
+    const handleRevertir = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/estado-cuenta/${estadoCuenta.id}/revertir-descuento`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              motivo: descripcion || "Descuento revertido manualmente",
+            }),
+          },
+        );
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.message || "Error al revertir el descuento");
+        }
+
+        toast({
+          title: "Descuento revertido",
+          description: "Se eliminó el descuento del estado de cuenta",
+          variant: "default",
+        });
+
+        onDescuentoAplicado();
+        setIsOpen(false);
+        setPorcentaje("");
+        setDescripcion("");
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const handleSubmit = async () => {
       if (
         !porcentaje ||
@@ -430,6 +484,30 @@ export function EstadoPago() {
 
       setLoading(true);
       try {
+        // Si el estado de cuenta ya tiene un descuento, primero se revierte para permitir la actualización
+        if ((estadoCuenta.porcentaje_descuento ?? 0) > 0) {
+          const revertRes = await fetch(
+            `/api/estado-cuenta/${estadoCuenta.id}/revertir-descuento`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                motivo: "Revertido para actualizar porcentaje de descuento",
+              }),
+            },
+          );
+
+          if (!revertRes.ok) {
+            const errorData = await revertRes.json();
+            throw new Error(
+              errorData.message || "Error al revertir el descuento previo",
+            );
+          }
+        }
+
         const res = await fetch(
           `/api/estado-cuenta/${estadoCuenta.id}/aplicar-descuento`,
           {
@@ -499,7 +577,6 @@ export function EstadoPago() {
             variant="outline"
             size="sm"
             className="h-8 px-3"
-            disabled={(estadoCuenta.porcentaje_descuento ?? 0) > 0}
           >
             {estadoCuenta.porcentaje_descuento
               ? estadoCuenta.porcentaje_descuento + "%"
@@ -510,7 +587,7 @@ export function EstadoPago() {
           <DialogHeader>
             <DialogTitle>Aplicar Descuento</DialogTitle>
             <DialogDescription>
-              Aplica un porcentaje de descuento a este estado de cuenta
+              Aplica o modifica el porcentaje de descuento a este estado de cuenta
             </DialogDescription>
           </DialogHeader>
 
@@ -572,7 +649,18 @@ export function EstadoPago() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
+            {(estadoCuenta.porcentaje_descuento ?? 0) > 0 && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleRevertir}
+                disabled={loading}
+                className="mr-auto"
+              >
+                {loading ? "Procesando..." : "Quitar Descuento"}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => {
