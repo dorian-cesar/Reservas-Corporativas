@@ -126,6 +126,7 @@ export function CompanyUsers() {
     empresa_id: string;
     centro_costo_id?: string;
     estado: boolean;
+    owner?: "Pullman" | "Wit";
   };
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -203,6 +204,7 @@ export function CompanyUsers() {
     estado: true,
     empresa_id: "",
     centro_costo_id: "",
+    owner: (user?.role === "superuser" ? "Pullman" : user?.owner || "Pullman") as "Pullman" | "Wit",
   });
 
   useEffect(() => {
@@ -412,6 +414,7 @@ export function CompanyUsers() {
         empresa_id: user.empresa_id?.toString?.() || "",
         centro_costo_id: user.centro_costo_id?.toString?.() || "",
         estado: user.estado,
+        owner: user.owner || "Pullman",
       }));
 
       setUsers(usersMapped);
@@ -445,6 +448,7 @@ export function CompanyUsers() {
       estado: true,
       empresa_id: "",
       centro_costo_id: "",
+      owner: (user?.role === "superuser" ? "Pullman" : user?.owner || "Pullman") as "Pullman" | "Wit",
     });
     setCostCenters([]);
   };
@@ -482,6 +486,7 @@ export function CompanyUsers() {
           password: formData.password,
           rol: formData.rol,
           estado: formData.estado,
+          owner: formData.owner,
           empresa_id: formData.empresa_id || null,
           centro_costo_id: formData.centro_costo_id || null,
         }),
@@ -531,6 +536,7 @@ export function CompanyUsers() {
         email: formData.email,
         rol: formData.rol,
         estado: formData.estado,
+        owner: formData.owner,
         empresa_id: formData.empresa_id || null,
         centro_costo_id: formData.centro_costo_id || null,
       };
@@ -703,6 +709,7 @@ export function CompanyUsers() {
       password: "", // No mostrar password actual por seguridad
       rol: user.rol,
       estado: Boolean(user.estado),
+      owner: user.owner || "Pullman",
       empresa_id: user.empresa_id,
       centro_costo_id: user.centro_costo_id || "",
     });
@@ -1080,6 +1087,25 @@ export function CompanyUsers() {
                 >
                   <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="owner">Propietario / Organización (Owner)</Label>
+                <select
+                  id="owner"
+                  value={formData.owner}
+                  disabled={user?.role !== "superuser"}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      owner: e.target.value as "Pullman" | "Wit",
+                    })
+                  }
+                  className={`w-full p-2 border rounded-md ${user?.role !== "superuser" ? "bg-muted cursor-not-allowed" : ""}`}
+                >
+                  <option value="Pullman">Pullman</option>
+                  <option value="Wit">Wit</option>
                 </select>
               </div>
             </div>
@@ -1525,6 +1551,7 @@ export function CompanyUsers() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Usuario</TableHead>
+                      <TableHead>Propietario</TableHead>
                       <TableHead>RUT</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Rol</TableHead>
@@ -1548,6 +1575,11 @@ export function CompanyUsers() {
                               <p className="font-medium">{user.nombre}</p>
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                            {user.owner || "Pullman"}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -1802,6 +1834,25 @@ export function CompanyUsers() {
               >
                 <option value="true">Activo</option>
                 <option value="false">Inactivo</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-owner">Propietario / Organización (Owner) *</Label>
+              <select
+                id="edit-owner"
+                value={formData.owner}
+                disabled={user?.role !== "superuser"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    owner: e.target.value as "Pullman" | "Wit",
+                  })
+                }
+                className={`w-full p-2 border rounded-md ${user?.role !== "superuser" ? "bg-muted cursor-not-allowed" : ""}`}
+              >
+                <option value="Pullman">Pullman</option>
+                <option value="Wit">Wit</option>
               </select>
             </div>
           </div>

@@ -28,6 +28,7 @@ export interface User {
   centroCostoId?: string;
   centroCostoName?: string;
   centroCostoEstado?: boolean;
+  owner?: "Pullman" | "Wit";
 }
 
 export interface AuthState {
@@ -90,6 +91,7 @@ export interface TokenPayload {
   rol: string;
   empresa_id?: number;
   centro_costo_id?: number;
+  owner?: "Pullman" | "Wit";
 }
 
 export const useAuth = create<AuthState>()(
@@ -174,6 +176,7 @@ export const useAuth = create<AuthState>()(
             email: data.user.email,
             name: data.user.nombre,
             role: data.user.rol,
+            owner: data.user.owner || "Pullman",
             companyId: data.empresa ? String(data.empresa.id) : undefined,
             companyName: data.empresa?.nombre,
             companyEstado: data.empresa?.estado,
@@ -231,6 +234,7 @@ export const useAuth = create<AuthState>()(
             email: data.user.email,
             name: data.user.nombre,
             role: data.user.rol,
+            owner: data.user.owner || "Pullman",
             companyId: data.empresa ? String(data.empresa.id) : undefined,
             companyName: data.empresa?.nombre,
             companyEstado: data.empresa?.estado,

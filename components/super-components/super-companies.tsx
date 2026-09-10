@@ -135,6 +135,7 @@ export function SuperCompanies() {
     morosidad?: boolean;
     tipo_facturacion?: "Masiva" | "Especial";
     ente_facturador?: string;
+    owner?: "Pullman" | "Wit";
     contacto_fact_nombre?: string;
     contacto_fact_email?: string;
     contacto_fact_email_cc?: string;
@@ -198,6 +199,7 @@ export function SuperCompanies() {
     morosidad: false,
     tipo_facturacion: "Masiva",
     ente_facturador: "",
+    owner: "Pullman" as "Pullman" | "Wit",
     contacto_fact_nombre: "",
     contacto_fact_email: "",
     contacto_fact_email_cc: "",
@@ -335,6 +337,7 @@ export function SuperCompanies() {
           morosidad: empresa.morosidad || false,
           tipo_facturacion: empresa.tipo_facturacion || "Masiva",
           ente_facturador: empresa.ente_facturador || "",
+          owner: empresa.owner || "Pullman",
           contacto_fact_nombre: empresa.contacto_fact_nombre || "",
           contacto_fact_email: empresa.contacto_fact_email || "",
           contacto_fact_email_cc: empresa.contacto_fact_email_cc || "",
@@ -433,6 +436,7 @@ export function SuperCompanies() {
       morosidad: false,
       tipo_facturacion: "Masiva",
       ente_facturador: "",
+      owner: "Pullman",
       contacto_fact_nombre: "",
       contacto_fact_email: "",
       contacto_fact_email_cc: "",
@@ -497,6 +501,7 @@ export function SuperCompanies() {
           morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
           ente_facturador: formData.ente_facturador,
+          owner: formData.owner,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
           contacto_fact_email_cc: formData.contacto_fact_email_cc,
@@ -579,6 +584,7 @@ export function SuperCompanies() {
           morosidad: formData.morosidad,
           tipo_facturacion: formData.tipo_facturacion,
           ente_facturador: formData.ente_facturador,
+          owner: formData.owner,
           contacto_fact_nombre: formData.contacto_fact_nombre,
           contacto_fact_email: formData.contacto_fact_email,
           contacto_fact_email_cc: formData.contacto_fact_email_cc,
@@ -816,6 +822,7 @@ export function SuperCompanies() {
         "facturacion_automatica",
         "morosidad",
         "tipo_facturacion",
+        "propietario_owner",
       ];
 
       const csvData = companiesForExport.map((company: any) => [
@@ -833,6 +840,7 @@ export function SuperCompanies() {
         company.fact_manual ? "No" : "Sí",
         company.morosidad ? "Sí" : "No",
         company.tipo_facturacion || "Masiva",
+        company.owner || "Pullman",
       ]);
 
       const csvContent = [
@@ -949,6 +957,7 @@ export function SuperCompanies() {
       morosidad: Boolean(company.morosidad),
       tipo_facturacion: company.tipo_facturacion || "Masiva",
       ente_facturador: company.ente_facturador || "",
+      owner: company.owner || "Pullman",
       contacto_fact_nombre: company.contacto_fact_nombre || "",
       contacto_fact_email: company.contacto_fact_email || "",
       contacto_fact_email_cc: company.contacto_fact_email_cc || "",
@@ -1499,6 +1508,24 @@ export function SuperCompanies() {
                   </select>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="owner">Propietario (Owner) *</Label>
+                  <select
+                    name="owner"
+                    id="owner"
+                    value={formData.owner}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        owner: e.target.value as "Pullman" | "Wit",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="Pullman">Pullman</option>
+                    <option value="Wit">Wit</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="surcharge">Porcentaje de Recargo (%)</Label>
                   <Input
                     id="surcharge"
@@ -2039,6 +2066,9 @@ export function SuperCompanies() {
                       <CardDescription className="space-y-1 mt-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           {getStatusBadge(company.state)}
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                            {company.owner || "Pullman"}
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             ID: {company.id}
                           </span>
@@ -2188,6 +2218,7 @@ export function SuperCompanies() {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Empresa</TableHead>
+                  <TableHead>Propietario</TableHead>
                   <TableHead>Estado</TableHead>
                   {user?.role !== "admin" && <TableHead>Recargo</TableHead>}
                   {user?.role !== "admin" && <TableHead>Devolución</TableHead>}
@@ -2218,6 +2249,11 @@ export function SuperCompanies() {
                           <p className="font-medium">{company.name}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                        {company.owner || "Pullman"}
+                      </span>
                     </TableCell>
                     <TableCell>{getStatusBadge(company.state)}</TableCell>
                     {user?.role !== "admin" && (
@@ -2416,6 +2452,24 @@ export function SuperCompanies() {
                   >
                     <option value="true">Activa</option>
                     <option value="false">Inactiva</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-owner">Propietario (Owner) *</Label>
+                  <select
+                    name="owner"
+                    id="edit-owner"
+                    value={formData.owner}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        owner: e.target.value as "Pullman" | "Wit",
+                      })
+                    }
+                    className="w-full p-2 border rounded-md bg-background text-foreground"
+                  >
+                    <option value="Pullman">Pullman</option>
+                    <option value="Wit">Wit</option>
                   </select>
                 </div>
                 <div className="space-y-2">
