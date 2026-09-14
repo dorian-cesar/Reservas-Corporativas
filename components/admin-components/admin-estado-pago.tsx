@@ -25,6 +25,7 @@ import {
     RefreshCcw,
     Plus,
     User,
+    Search,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -58,6 +59,7 @@ type EstadoCuentaType = {
 export function AdminEstadoPago() {
     const { token, user } = useAuth.getState();
     const [estadosCuenta, setEstadosCuenta] = useState<EstadoCuentaType[]>([]);
+    const [searchEdp, setSearchEdp] = useState<string>("");
     const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"cards" | "table">("table");
     const [dateDesde, setDateDesde] = useState<string>("");
@@ -72,6 +74,11 @@ export function AdminEstadoPago() {
     const [userCompany, setUserCompany] = useState<{ id: string; nombre: string } | null>(null);
 
     const { toast } = useToast();
+
+    const filteredEstadosCuenta = estadosCuenta.filter((ec) => {
+        if (!searchEdp.trim()) return true;
+        return ec.id.toString().includes(searchEdp.trim());
+    });
 
     const fetchTimeoutRef = useRef<number | null>(null);
 
@@ -195,12 +202,27 @@ export function AdminEstadoPago() {
     const formatCurrency = (amount: string | number) =>
         new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(Number(amount));
 
+    const MESES = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    const formatMonth = (date?: string) => {
+        if (!date) return "-";
+        const match = date.match(/^(\d{4})-(\d{2})/);
+        if (!match) return "-";
+        const monthIndex = parseInt(match[2], 10) - 1;
+        return MESES[monthIndex] || "-";
+    };
+
     const formatDate = (date?: string) => date ? new Date(date).toLocaleDateString("es-CL") : "-";
 
     const exportToCSV = () => {
-        if (estadosCuenta.length === 0) return;
-        const headers = ["Periodo", "Fecha Generación", "Fecha Vencimiento", "Total Tickets", "Total Anulados", "Monto Facturado", "Pagado", "Fecha Pago"];
-        const csvData = estadosCuenta.map(ec => [
+        if (filteredEstadosCuenta.length === 0) return;
+        const headers = ["N° EDP", "Mes", "Periodo", "Fecha Generación", "Fecha Vencimiento", "Total Tickets", "Total Anulados", "Monto Facturado", "Pagado", "Fecha Pago"];
+        const csvData = filteredEstadosCuenta.map(ec => [
+            ec.id,
+            formatMonth(ec.fecha_generacion),
             ec.periodo,
             formatDate(ec.fecha_generacion),
             formatDate(ec.fecha_vencimiento),
@@ -217,12 +239,14 @@ export function AdminEstadoPago() {
         link.download = `estados_cuenta_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
         setIsExportDialogOpen(false);
-        toast({ title: "Exportación exitosa", description: `Se exportaron ${estadosCuenta.length} registros a CSV` });
+        toast({ title: "Exportación exitosa", description: `Se exportaron ${filteredEstadosCuenta.length} registros a CSV` });
     };
 
     const exportToXLSX = () => {
-        if (estadosCuenta.length === 0) return;
-        const data = estadosCuenta.map(ec => ({
+        if (filteredEstadosCuenta.length === 0) return;
+        const data = filteredEstadosCuenta.map(ec => ({
+            "N° EDP": ec.id,
+            "Mes": formatMonth(ec.fecha_generacion),
             "Periodo": ec.periodo,
             "Fecha Generación": formatDate(ec.fecha_generacion),
             "Fecha Vencimiento": formatDate(ec.fecha_vencimiento),
@@ -237,7 +261,7 @@ export function AdminEstadoPago() {
         XLSX.utils.book_append_sheet(workbook, worksheet, "EstadosCuenta");
         XLSX.writeFile(workbook, `estados_cuenta_${new Date().toISOString().split('T')[0]}.xlsx`);
         setIsExportDialogOpen(false);
-        toast({ title: "Exportación exitosa", description: `Se exportaron ${estadosCuenta.length} registros a XLSX` });
+        toast({ title: "Exportación exitosa", description: `Se exportaron ${filteredEstadosCuenta.length} registros a XLSX` });
     };
 
     const exportTicketsToCSV = (ticketsData: any[], cuenta: EstadoCuentaType | null) => {
@@ -339,7 +363,21 @@ export function AdminEstadoPago() {
             )}
             {empresaId && !isLoading && (
                 <Card>
-                    <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="search_edp">Buscar por N° EDP</Label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="search_edp"
+                                    type="text"
+                                    placeholder="Ej: 15"
+                                    className="pl-8"
+                                    value={searchEdp}
+                                    onChange={(e) => setSearchEdp(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="desde">Fecha Desde</Label>
                             <Input
@@ -363,10 +401,11 @@ export function AdminEstadoPago() {
                         <div className="space-y-2">
                             <Label>Resultados</Label>
                             <div className="text-sm text-muted-foreground pt-2">
-                                {estadosCuenta.length} registros
-                                {(dateDesde || dateHasta) && (
+                                {filteredEstadosCuenta.length} de {estadosCuenta.length} registros
+                                {(dateDesde || dateHasta || searchEdp) && (
                                     <div className="text-xs">
-                                        Filtrado por fecha
+                                        Filtrado
+                                        {searchEdp && ` por N° EDP "${searchEdp}"`}
                                         {dateDesde && ` desde ${dateDesde}`}
                                         {dateHasta && ` hasta ${dateHasta}`}
                                     </div>
@@ -384,12 +423,16 @@ export function AdminEstadoPago() {
                 </div>
             )}
 
-            {!isLoading && empresaId && estadosCuenta.length === 0 && (
+            {!isLoading && empresaId && filteredEstadosCuenta.length === 0 && (
                 <Card>
                     <CardContent className="text-center py-12">
                         <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                         <h3 className="text-lg font-semibold mb-2">No hay estados de cuenta</h3>
-                        <p className="text-muted-foreground mb-4">No se encontraron registros para la empresa seleccionada</p>
+                        <p className="text-muted-foreground mb-4">
+                            {searchEdp
+                                ? `No se encontraron estados de cuenta con el N° EDP "${searchEdp}"`
+                                : "No se encontraron registros para la empresa seleccionada"}
+                        </p>
                     </CardContent>
                 </Card>
             )}
@@ -414,12 +457,14 @@ export function AdminEstadoPago() {
                 </DialogContent>
             </Dialog>
 
-            {!isLoading && estadosCuenta.length > 0 && viewMode === "table" && (
+            {!isLoading && filteredEstadosCuenta.length > 0 && viewMode === "table" && (
                 <Card>
                     <CardContent className="p-0">
                         <UITable>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>N° EDP (ID)</TableHead>
+                                    <TableHead>Mes</TableHead>
                                     <TableHead>Periodo</TableHead>
                                     <TableHead>Fecha Generación</TableHead>
                                     <TableHead>Fecha Vencimiento</TableHead>
@@ -431,8 +476,10 @@ export function AdminEstadoPago() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {estadosCuenta.map(ec => (
+                                {filteredEstadosCuenta.map(ec => (
                                     <TableRow key={ec.id} className="hover:bg-muted/50">
+                                        <TableCell className="font-medium">{ec.id}</TableCell>
+                                        <TableCell>{formatMonth(ec.fecha_generacion)}</TableCell>
                                         <TableCell>{ec.periodo}</TableCell>
                                         <TableCell>{formatDate(ec.fecha_generacion)}</TableCell>
                                         <TableCell>{formatDate(ec.fecha_vencimiento)}</TableCell>
@@ -460,12 +507,12 @@ export function AdminEstadoPago() {
                 </Card>
             )}
 
-            {!isLoading && estadosCuenta.length > 0 && viewMode === "cards" && (
+            {!isLoading && filteredEstadosCuenta.length > 0 && viewMode === "cards" && (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {estadosCuenta.map((ec) => (
+                    {filteredEstadosCuenta.map((ec) => (
                         <Card key={ec.id} className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl">
                             <CardHeader>
-                                <CardTitle>Periodo: {ec.periodo}</CardTitle>
+                                <CardTitle>N° EDP: {ec.id} | Periodo: {ec.periodo}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 <p>Generación: {formatDate(ec.fecha_generacion)}</p>

@@ -40,6 +40,7 @@ import {
   Pencil,
   Plus,
   ChevronsUpDown,
+  Search,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -103,6 +104,7 @@ export function EstadoPago() {
   const { user, token } = useAuth.getState();
   const { can } = usePermissions();
   const [estadosCuenta, setEstadosCuenta] = useState<EstadoCuentaType[]>([]);
+  const [searchEdp, setSearchEdp] = useState<string>("");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const [dateDesde, setDateDesde] = useState<string>("");
@@ -145,6 +147,11 @@ export function EstadoPago() {
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  const filteredEstadosCuenta = estadosCuenta.filter((ec) => {
+    if (!searchEdp.trim()) return true;
+    return ec.id.toString().includes(searchEdp.trim());
+  });
 
   useEffect(() => {
     if (!empresaId) {
@@ -751,6 +758,19 @@ export function EstadoPago() {
     return new Date(year, month - 1, day);
   };
 
+  const MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  const formatMonth = (date?: string) => {
+    if (!date) return "-";
+    const match = date.match(/^(\d{4})-(\d{2})/);
+    if (!match) return "-";
+    const monthIndex = parseInt(match[2], 10) - 1;
+    return MESES[monthIndex] || "-";
+  };
+
   const formatDate = (date?: string) => {
     if (!date) return "-";
 
@@ -763,10 +783,12 @@ export function EstadoPago() {
   };
 
   const exportToCSV = () => {
-    if (estadosCuenta.length === 0) return;
+    if (filteredEstadosCuenta.length === 0) return;
 
     // ACTUALIZADO: Headers con nuevos campos
     const headers = [
+      "N° EDP",
+      "Mes",
       "Periodo",
       "Fecha Generación",
       "Fecha Inicio",
@@ -778,7 +800,9 @@ export function EstadoPago() {
       "Fecha Pago",
     ];
 
-    const csvData = estadosCuenta.map((ec) => [
+    const csvData = filteredEstadosCuenta.map((ec) => [
+      ec.id,
+      formatMonth(ec.fecha_generacion),
       ec.periodo,
       formatDate(ec.fecha_generacion),
       formatDate(ec.fecha_inicio),
@@ -805,15 +829,17 @@ export function EstadoPago() {
     setIsExportDialogOpen(false);
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${estadosCuenta.length} registros a CSV`,
+      description: `Se exportaron ${filteredEstadosCuenta.length} registros a CSV`,
     });
   };
 
   const exportToXLSX = () => {
-    if (estadosCuenta.length === 0) return;
+    if (filteredEstadosCuenta.length === 0) return;
 
     // ACTUALIZADO: Datos con nuevos campos
-    const data = estadosCuenta.map((ec) => ({
+    const data = filteredEstadosCuenta.map((ec) => ({
+      "N° EDP": ec.id,
+      Mes: formatMonth(ec.fecha_generacion),
       Periodo: ec.periodo,
       "Fecha Generación": formatDate(ec.fecha_generacion),
       "Fecha Inicio": formatDate(ec.fecha_inicio),
@@ -838,7 +864,7 @@ export function EstadoPago() {
     setIsExportDialogOpen(false);
     toast({
       title: "Exportación exitosa",
-      description: `Se exportaron ${estadosCuenta.length} registros a XLSX`,
+      description: `Se exportaron ${filteredEstadosCuenta.length} registros a XLSX`,
     });
   };
   const extractTicketRowData = (ticket: any, cuenta: EstadoCuentaType | null) => {
@@ -1166,7 +1192,21 @@ export function EstadoPago() {
       )}
       {empresaId && !isLoading && (
         <Card>
-          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="search_edp">Buscar por N° EDP</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search_edp"
+                  type="text"
+                  placeholder="Ej: 15"
+                  className="pl-8"
+                  value={searchEdp}
+                  onChange={(e) => setSearchEdp(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="desde">Fecha Desde</Label>
               <Input
@@ -1190,10 +1230,11 @@ export function EstadoPago() {
             <div className="space-y-2">
               <Label>Resultados</Label>
               <div className="text-sm text-muted-foreground pt-2">
-                {estadosCuenta.length} registros
-                {(dateDesde || dateHasta) && (
+                {filteredEstadosCuenta.length} de {estadosCuenta.length} registros
+                {(dateDesde || dateHasta || searchEdp) && (
                   <div className="text-xs">
-                    Filtrado por fecha
+                    Filtrado
+                    {searchEdp && ` por N° EDP "${searchEdp}"`}
                     {dateDesde && ` desde ${dateDesde}`}
                     {dateHasta && ` hasta ${dateHasta}`}
                   </div>
@@ -1213,7 +1254,7 @@ export function EstadoPago() {
         </div>
       )}
 
-      {!isLoading && empresaId && estadosCuenta.length === 0 && (
+      {!isLoading && empresaId && filteredEstadosCuenta.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -1221,7 +1262,9 @@ export function EstadoPago() {
               No hay estados de cuenta
             </h3>
             <p className="text-muted-foreground mb-4">
-              No se encontraron registros para la empresa seleccionada
+              {searchEdp
+                ? `No se encontraron estados de cuenta con el N° EDP "${searchEdp}"`
+                : "No se encontraron registros para la empresa seleccionada"}
             </p>
           </CardContent>
         </Card>
@@ -1371,12 +1414,14 @@ export function EstadoPago() {
         </form>
       </div>
 
-      {!isLoading && estadosCuenta.length > 0 && viewMode === "table" && (
+      {!isLoading && filteredEstadosCuenta.length > 0 && viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <UITable>
               <TableHeader>
                 <TableRow>
+                  <TableHead>N° EDP (ID)</TableHead>
+                  <TableHead>Mes</TableHead>
                   <TableHead>Fecha Generación</TableHead>
                   <TableHead>Período Facturación</TableHead>
                   <TableHead>Total Boletos</TableHead>
@@ -1390,8 +1435,10 @@ export function EstadoPago() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {estadosCuenta.map((ec) => (
+                {filteredEstadosCuenta.map((ec) => (
                   <TableRow key={ec.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{ec.id}</TableCell>
+                    <TableCell>{formatMonth(ec.fecha_generacion)}</TableCell>
                     <TableCell>{formatDate(ec.fecha_generacion)}</TableCell>
                     <TableCell>
                       {ec.fecha_inicio || ec.fecha_fin
@@ -1453,15 +1500,15 @@ export function EstadoPago() {
         </Card>
       )}
 
-      {!isLoading && estadosCuenta.length > 0 && viewMode === "cards" && (
+      {!isLoading && filteredEstadosCuenta.length > 0 && viewMode === "cards" && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {estadosCuenta.map((ec) => (
+          {filteredEstadosCuenta.map((ec) => (
             <Card
               key={ec.id}
               className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl"
             >
               <CardHeader>
-                <CardTitle>Periodo: {ec.periodo}</CardTitle>
+                <CardTitle>N° EDP: {ec.id} | Periodo: {ec.periodo}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p>Generación: {formatDate(ec.fecha_generacion)}</p>
