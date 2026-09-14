@@ -1184,6 +1184,11 @@ export function EstadoPago() {
         description="Visualice los estados de cuenta de cada empresa"
         viewMode={viewMode}
         setViewMode={setViewMode}
+        showSearch
+        searchValue={searchEdpGeneralInput}
+        onSearchChange={setSearchEdpGeneralInput}
+        onSearch={handleGeneralSearch}
+        searchPlaceholder="Buscar N° EDP..."
         showCompanySelect
         companies={companies}
         selectedCompany={empresaId}
@@ -1223,102 +1228,15 @@ export function EstadoPago() {
       />
 
       {!isLoading && !empresaId && !isGeneralSearch && (
-        <Card className="border-2 border-dashed">
-          <CardContent className="py-8 px-6 space-y-6">
-            <div className="text-center space-y-2">
-              <Building2 className="h-12 w-12 mx-auto text-primary opacity-80" />
-              <h3 className="text-lg font-semibold">
-                Consulta de Estados de Cuenta (EDP)
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Realiza una búsqueda general por N° de EDP en todas las empresas o selecciona una empresa específica.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-2">
-              {/* Opción 1: Búsqueda General por N° EDP */}
-              <div className="space-y-3 p-4 border rounded-lg bg-card shadow-xs flex flex-col justify-between">
-                <div className="space-y-1">
-                  <Label htmlFor="general_search_edp" className="font-semibold flex items-center gap-2">
-                    <Search className="h-4 w-4 text-primary" />
-                    Búsqueda General por N° EDP
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Busca por número de EDP en todas las empresas
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    id="general_search_edp"
-                    type="text"
-                    placeholder="Ej: 15"
-                    value={searchEdpGeneralInput}
-                    onChange={(e) => setSearchEdpGeneralInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleGeneralSearch();
-                    }}
-                  />
-                  <Button
-                    onClick={handleGeneralSearch}
-                    disabled={isLoading || !searchEdpGeneralInput.trim()}
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  >
-                    Buscar
-                  </Button>
-                </div>
-              </div>
-
-              {/* Opción 2: Seleccionar Empresa */}
-              <div className="space-y-3 p-4 border rounded-lg bg-card shadow-xs flex flex-col justify-between">
-                <div className="space-y-1">
-                  <Label className="font-semibold flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" />
-                    Seleccionar Empresa
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ver todos los EDPs de una empresa específica
-                  </p>
-                </div>
-                <Popover
-                  open={companyPopoverOpenGeneral}
-                  onOpenChange={setCompanyPopoverOpenGeneral}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between bg-white"
-                    >
-                      Selecciona una empresa...
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Buscar empresa..." />
-                      <CommandList>
-                        <CommandEmpty>No se encontró la empresa.</CommandEmpty>
-                        <CommandGroup>
-                          {companies.map((company) => (
-                            <CommandItem
-                              key={company.id}
-                              value={`${company.id} ${company.nombre}`}
-                              onSelect={() => {
-                                setEmpresaId(company.id);
-                                setCompanyPopoverOpenGeneral(false);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              {company.id} - {company.nombre}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
+        <Card>
+          <CardContent className="text-center py-12">
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">
+              Selecciona una empresa o busca por N° EDP
+            </h3>
+            <p className="text-muted-foreground">
+              Utiliza el buscador de N° EDP en la barra superior o selecciona una empresa del desplegable.
+            </p>
           </CardContent>
         </Card>
       )}

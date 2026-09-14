@@ -135,6 +135,20 @@ export default function ToolBar({
       </div>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+        {showSearch && (
+          <div className="relative flex items-center min-w-[180px] sm:w-[220px]">
+            <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSearch && onSearch()}
+              className="pl-8 pr-3 py-2 border rounded-md text-sm w-full bg-white h-10 border-input shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+        )}
+
         {showEnteFacturadorSelect && (
           <div className="w-full sm:w-[180px]">
             <Select
@@ -224,22 +238,6 @@ export default function ToolBar({
                 ))}
               </select>
             )}
-          </div>
-        )}
-
-        {showSearch && (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onSearch && onSearch()}
-              className="px-3 py-2 border rounded-md w-48 sm:w-64"
-            />
-            <Button onClick={() => onSearch && onSearch()} className="h-8 px-3">
-              Buscar
-            </Button>
           </div>
         )}
 
