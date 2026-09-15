@@ -56,6 +56,8 @@ import ToolBar from "./tool-bar";
 import { PagarDialog } from "./pagar-dialog";
 import { AdjuntosDialog } from "./adjuntos-dialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getMesOperacion } from "@/lib/utils";
+
 
 export function CurrentAccounts() {
   const { user, token } = useAuth.getState();
@@ -833,9 +835,8 @@ export function CurrentAccounts() {
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(movement.fecha_movimiento)}
-                            {movement.mes_operacion &&
-                              movement.mes_operacion !== "—" &&
-                              ` • Mes: ${movement.mes_operacion}`}
+                            {getMesOperacion(movement.fecha_movimiento, movement.mes_operacion) !== "—" &&
+                              ` • Mes: ${getMesOperacion(movement.fecha_movimiento, movement.mes_operacion)}`}
                             {movement.referencia &&
                               ` • Ref: ${movement.referencia}`}
                           </p>
@@ -930,7 +931,7 @@ export function CurrentAccounts() {
                           {formatDate(movement.fecha_movimiento)}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
-                          {movement.mes_operacion || "—"}
+                          {getMesOperacion(movement.fecha_movimiento, movement.mes_operacion)}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
                           {movement.empresa?.ente_facturador || "—"}

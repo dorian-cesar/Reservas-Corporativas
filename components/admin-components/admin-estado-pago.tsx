@@ -1,6 +1,8 @@
 "use client"
 
 import { useAuth } from "@/lib/auth";
+import { getMesOperacion } from "@/lib/utils";
+
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -208,18 +210,14 @@ export function AdminEstadoPago() {
     ];
 
     const formatMonth = (date?: string) => {
-        if (!date) return "-";
-        const match = date.match(/^(\d{4})-(\d{2})/);
-        if (!match) return "-";
-        const monthIndex = parseInt(match[2], 10) - 1;
-        return MESES[monthIndex] || "-";
+        return getMesOperacion(date, "-");
     };
 
     const formatDate = (date?: string) => date ? new Date(date).toLocaleDateString("es-CL") : "-";
 
     const exportToCSV = () => {
         if (filteredEstadosCuenta.length === 0) return;
-        const headers = ["N° EDP", "Mes", "Periodo", "Fecha Generación", "Fecha Vencimiento", "Total Tickets", "Total Anulados", "Monto Facturado", "Pagado", "Fecha Pago"];
+        const headers = ["N° EDP", "Mes de Operación", "Periodo", "Fecha Generación", "Fecha Vencimiento", "Total Tickets", "Total Anulados", "Monto Facturado", "Pagado", "Fecha Pago"];
         const csvData = filteredEstadosCuenta.map(ec => [
             ec.id,
             formatMonth(ec.fecha_generacion),
@@ -246,7 +244,7 @@ export function AdminEstadoPago() {
         if (filteredEstadosCuenta.length === 0) return;
         const data = filteredEstadosCuenta.map(ec => ({
             "N° EDP": ec.id,
-            "Mes": formatMonth(ec.fecha_generacion),
+            "Mes de Operación": formatMonth(ec.fecha_generacion),
             "Periodo": ec.periodo,
             "Fecha Generación": formatDate(ec.fecha_generacion),
             "Fecha Vencimiento": formatDate(ec.fecha_vencimiento),
@@ -464,7 +462,7 @@ export function AdminEstadoPago() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>N° EDP (ID)</TableHead>
-                                    <TableHead>Mes</TableHead>
+                                    <TableHead>Mes de Operación</TableHead>
                                     <TableHead>Periodo</TableHead>
                                     <TableHead>Fecha Generación</TableHead>
                                     <TableHead>Fecha Vencimiento</TableHead>

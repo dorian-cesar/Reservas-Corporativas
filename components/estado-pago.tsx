@@ -56,6 +56,8 @@ import * as XLSX from "xlsx";
 import ToolBar from "./tool-bar";
 import Swal from "sweetalert2";
 import { swalErrorConfig, swalSuccessConfig } from "@/lib/swal-config";
+import { getMesOperacion } from "@/lib/utils";
+
 
 import { Eye } from "lucide-react";
 import {
@@ -806,11 +808,7 @@ export function EstadoPago() {
   ];
 
   const formatMonth = (date?: string) => {
-    if (!date) return "-";
-    const match = date.match(/^(\d{4})-(\d{2})/);
-    if (!match) return "-";
-    const monthIndex = parseInt(match[2], 10) - 1;
-    return MESES[monthIndex] || "-";
+    return getMesOperacion(date, "-");
   };
 
   const formatDate = (date?: string) => {
@@ -831,7 +829,7 @@ export function EstadoPago() {
     const headers = [
       "N° EDP",
       "Empresa",
-      "Mes",
+      "Mes de Operación",
       "Periodo",
       "Fecha Generación",
       "Fecha Inicio",
@@ -884,7 +882,7 @@ export function EstadoPago() {
     const data = filteredEstadosCuenta.map((ec) => ({
       "N° EDP": ec.id,
       Empresa: ec.empresa?.nombre || companies.find((c) => c.id === String(ec.empresa_id))?.nombre || ec.empresa_id,
-      Mes: formatMonth(ec.fecha_generacion),
+      "Mes de Operación": formatMonth(ec.fecha_generacion),
       Periodo: ec.periodo,
       "Fecha Generación": formatDate(ec.fecha_generacion),
       "Fecha Inicio": formatDate(ec.fecha_inicio),
@@ -1509,7 +1507,7 @@ export function EstadoPago() {
                 <TableRow>
                   <TableHead>N° EDP (ID)</TableHead>
                   <TableHead>Empresa</TableHead>
-                  <TableHead>Mes</TableHead>
+                  <TableHead>Mes de Operación</TableHead>
                   <TableHead>Fecha Generación</TableHead>
                   <TableHead>Período Facturación</TableHead>
                   <TableHead>Total Boletos</TableHead>

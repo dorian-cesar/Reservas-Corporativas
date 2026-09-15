@@ -49,6 +49,8 @@ import {
 import ToolBar from "../tool-bar";
 import { AdjuntosDialog } from "../adjuntos-dialog";
 import { Paperclip } from "lucide-react";
+import { getMesOperacion } from "@/lib/utils";
+
 
 export function AuditoriaCurrentAccounts() {
   const { token } = useAuth.getState();
@@ -243,9 +245,8 @@ export function AuditoriaCurrentAccounts() {
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {formatDate(movement.fecha_movimiento)}
-                            {movement.mes_operacion &&
-                              movement.mes_operacion !== "—" &&
-                              ` • Mes: ${movement.mes_operacion}`}
+                            {getMesOperacion(movement.fecha_movimiento, movement.mes_operacion) !== "—" &&
+                              ` • Mes: ${getMesOperacion(movement.fecha_movimiento, movement.mes_operacion)}`}
                             {movement.referencia &&
                               ` • Ref: ${movement.referencia}`}
                           </p>
@@ -322,7 +323,7 @@ export function AuditoriaCurrentAccounts() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm font-medium">
-                          {movement.mes_operacion || "—"}
+                          {getMesOperacion(movement.fecha_movimiento, movement.mes_operacion)}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
                           {movement.empresa?.ente_facturador || "—"}
